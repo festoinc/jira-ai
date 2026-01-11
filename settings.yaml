@@ -1,4 +1,4 @@
-# Jira CLI Settings
+# Jira AI Settings
 
 # Projects: List of allowed projects (use "all" to allow all projects)
 # Examples: BP, PM, PS
@@ -20,4 +20,5 @@ commands:
   # - all
   - task-with-details
   # - project-statuses
-  - update-description  
+  - update-description
+  - add-comment

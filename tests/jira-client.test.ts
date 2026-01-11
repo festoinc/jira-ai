@@ -1,0 +1,123 @@
+import { getTaskWithDetails } from '../src/lib/jira-client';
+import { Version3Client } from 'jira.js';
+
+// Mock dependencies
+const mockGetIssue = jest.fn();
+jest.mock('jira.js', () => ({
+  Version3Client: jest.fn().mockImplementation(() => ({
+    issues: {
+      getIssue: mockGetIssue
+    }
+  }))
+}));
+
+jest.mock('../src/lib/utils', () => ({
+  convertADFToMarkdown: jest.fn(val => val ? 'mocked markdown' : undefined)
+}));
+
+describe('Jira Client', () => {
+  beforeAll(() => {
+    // Set environment variables required by getJiraClient
+    process.env.JIRA_HOST = 'https://test.atlassian.net';
+    process.env.JIRA_USER_EMAIL = 'test@example.com';
+    process.env.JIRA_API_TOKEN = 'test-token';
+  });
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  describe('getTaskWithDetails', () => {
+    it('should correctly extract task details including parent and subtasks', async () => {
+      const mockRawIssue = {
+        id: '10001',
+        key: 'PROJ-123',
+        fields: {
+          summary: 'Test summary',
+          description: { type: 'doc', content: [] },
+          status: { name: 'In Progress' },
+          assignee: { displayName: 'John Doe' },
+          reporter: { displayName: 'Jane Smith' },
+          created: '2023-01-01T10:00:00.000Z',
+          updated: '2023-01-02T10:00:00.000Z',
+          comment: {
+            comments: [
+              {
+                id: 'comment-1',
+                author: { displayName: 'Author 1' },
+                body: { type: 'doc', content: [] },
+                created: '2023-01-01T11:00:00.000Z'
+              }
+            ]
+          },
+          parent: {
+            id: '10000',
+            key: 'PROJ-100',
+            fields: {
+              summary: 'Parent summary',
+              status: { name: 'Done' }
+            }
+          },
+          subtasks: [
+            {
+              id: '10002',
+              key: 'PROJ-124',
+              fields: {
+                summary: 'Subtask summary',
+                status: { name: 'To Do' }
+              }
+            }
+          ]
+        }
+      };
+
+      mockGetIssue.mockResolvedValue(mockRawIssue);
+
+      const result = await getTaskWithDetails('PROJ-123');
+
+      expect(mockGetIssue).toHaveBeenCalledWith({
+        issueIdOrKey: 'PROJ-123',
+        fields: expect.arrayContaining(['parent', 'subtasks'])
+      });
+
+      expect(result.key).toBe('PROJ-123');
+      expect(result.parent).toEqual({
+        id: '10000',
+        key: 'PROJ-100',
+        summary: 'Parent summary',
+        status: { name: 'Done' }
+      });
+      expect(result.subtasks).toHaveLength(1);
+      expect(result.subtasks[0]).toEqual({
+        id: '10002',
+        key: 'PROJ-124',
+        summary: 'Subtask summary',
+        status: { name: 'To Do' }
+      });
+    });
+
+    it('should handle task with no parent or subtasks', async () => {
+      const mockRawIssue = {
+        id: '10001',
+        key: 'PROJ-123',
+        fields: {
+          summary: 'Test summary',
+          status: { name: 'In Progress' },
+          created: '2023-01-01T10:00:00.000Z',
+          updated: '2023-01-02T10:00:00.000Z'
+        }
+      };
+
+      mockGetIssue.mockResolvedValue(mockRawIssue);
+
+      const result = await getTaskWithDetails('PROJ-123');
+
+      expect(result.parent).toBeUndefined();
+      expect(result.subtasks).toEqual([]);
+    });
+  });
+});

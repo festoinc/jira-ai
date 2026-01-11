@@ -1,4 +1,4 @@
-# Jira CLI
+# Jira AI
 
 A TypeScript-based command-line interface for interacting with Atlassian Jira. Built with jira.js library and featuring beautiful terminal output with tables and colors.
 
@@ -42,7 +42,7 @@ npm run build
 sudo npm link
 ```
 
-After installation, you can use the `jira` command from anywhere in your terminal.
+After installation, you can use the `jira-ai` command from anywhere in your terminal.
 
 ## Configuration
 
@@ -68,7 +68,7 @@ JIRA_API_TOKEN=your-api-token
 Display your basic Jira user information including host, display name, email, account ID, status, and timezone.
 
 ```bash
-jira me
+jira-ai me
 ```
 
 **Output:**
@@ -96,7 +96,7 @@ User Information:
 Show all projects you have access to in a formatted table.
 
 ```bash
-jira projects
+jira-ai projects
 ```
 
 **Output:**
@@ -117,12 +117,12 @@ Projects (25 total)
 Display detailed information about a specific task including title, status, assignee, reporter, description, and all comments.
 
 ```bash
-jira task-with-details <task-id>
+jira-ai task-with-details <task-id>
 ```
 
 **Example:**
 ```bash
-jira task-with-details BP-1234
+jira-ai task-with-details BP-1234
 ```
 
 **Output:**
@@ -161,12 +161,12 @@ Started working on this task...
 Display all possible issue statuses available in a specific project.
 
 ```bash
-jira project-statuses <project-id>
+jira-ai project-statuses <project-id>
 ```
 
 **Example:**
 ```bash
-jira project-statuses BP
+jira-ai project-statuses BP
 ```
 
 **Output:**
@@ -189,12 +189,12 @@ Project BP - Available Statuses (21 total)
 Run a JQL (Jira Query Language) query and display results in a formatted table.
 
 ```bash
-jira run-jql <jql-query> [--limit <number>]
+jira-ai run-jql <jql-query> [--limit <number>]
 ```
 
 **Example:**
 ```bash
-jira run-jql "project = BP AND status = 'In Progress'" --limit 10
+jira-ai run-jql "project = BP AND status = 'In Progress'" --limit 10
 ```
 
 **Output:**
@@ -215,12 +215,12 @@ JQL Query Results (5 issues found)
 Update a Jira issue's description from a Markdown file. The Markdown content is automatically converted to Atlassian Document Format (ADF).
 
 ```bash
-jira update-description <task-id> --from-file <path-to-markdown-file>
+jira-ai update-description <task-id> --from-file <path-to-markdown-file>
 ```
 
 **Example:**
 ```bash
-jira update-description BP-1234 --from-file ./description.md
+jira-ai update-description BP-1234 --from-file ./description.md
 ```
 
 **Requirements:**

@@ -1,9 +1,10 @@
 import chalk from 'chalk';
 import { fromADF } from 'mdast-util-from-adf';
 import { toMarkdown } from 'mdast-util-to-markdown';
+import { hasCredentials } from './auth-storage';
 
 /**
- * Validate required environment variables
+ * Validate required environment variables or stored credentials
  */
 export function validateEnvVars(): void {
   const required = [
@@ -14,14 +15,11 @@ export function validateEnvVars(): void {
 
   const missing = required.filter((key) => !process.env[key]);
 
-  if (missing.length > 0) {
-    console.error(chalk.red('✗ Missing required environment variables:\n'));
-    missing.forEach((key) => console.error(chalk.red(`  - ${key}`)));
-    console.log('\nPlease create a .env file with the following variables:');
-    console.log('  JIRA_HOST=https://your-domain.atlassian.net');
-    console.log('  JIRA_USER_EMAIL=your-email@example.com');
-    console.log('  JIRA_API_TOKEN=your-api-token');
-    console.log('\nGet your API token from: https://id.atlassian.com/manage-profile/security/api-tokens');
+  if (missing.length > 0 && !hasCredentials()) {
+    console.error(chalk.red('✗ Jira credentials not found.\n'));
+    console.log('Please run ' + chalk.cyan('jira-ai auth') + ' to set up your credentials.');
+    console.log('Alternatively, you can set the following environment variables:');
+    required.forEach((key) => console.log(`  - ${key}`));
     process.exit(1);
   }
 }

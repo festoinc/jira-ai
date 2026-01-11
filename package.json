@@ -1,10 +1,10 @@
 {
-  "name": "jira-cli",
-  "version": "1.0.0",
+  "name": "jira-ai",
+  "version": "0.2.7",
   "description": "CLI tool for interacting with Atlassian Jira",
   "main": "dist/cli.js",
   "bin": {
-    "jira": "./dist/cli.js"
+    "jira-ai": "./dist/cli.js"
   },
   "scripts": {
     "dev": "ts-node src/cli.ts",
@@ -43,5 +43,9 @@
     "ts-jest": "^29.4.6",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
+  },
+  "overrides": {
+    "adf-builder": "npm:@atlaskit/adf-utils@^19.26.4",
+    "uuid": "^10.0.0"
   }
 }

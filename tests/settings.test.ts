@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 import {
   loadSettings,
   isProjectAllowed,
@@ -14,7 +15,9 @@ jest.mock('fs');
 const mockFs = fs as jest.Mocked<typeof fs>;
 
 describe('Settings Module', () => {
-  const mockSettingsPath = path.join(process.cwd(), 'settings.yaml');
+  const mockConfigDir = path.join(os.homedir(), '.jira-ai');
+  const mockSettingsPath = path.join(mockConfigDir, 'settings.yaml');
+  const mockLocalSettingsPath = path.join(process.cwd(), 'settings.yaml');
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -33,28 +36,38 @@ commands:
   - me
   - projects
 `;
-      mockFs.existsSync.mockReturnValue(true);
+      // Mock that config dir exists and settings file exists
+      mockFs.existsSync.mockImplementation((path) => {
+        if (path === mockConfigDir) return true;
+        if (path === mockSettingsPath) return true;
+        return false;
+      });
       mockFs.readFileSync.mockReturnValue(mockYaml);
 
       const settings = loadSettings();
 
       expect(settings.projects).toEqual(['BP', 'PM', 'PS']);
       expect(settings.commands).toEqual(['me', 'projects']);
-      expect(mockFs.existsSync).toHaveBeenCalledWith(mockSettingsPath);
       expect(mockFs.readFileSync).toHaveBeenCalledWith(mockSettingsPath, 'utf8');
     });
 
     it('should return default settings when file does not exist', () => {
+      // Mock that neither config dir nor settings files exist
       mockFs.existsSync.mockReturnValue(false);
+      mockFs.mkdirSync.mockReturnValue(undefined);
+      mockFs.writeFileSync.mockReturnValue(undefined);
 
-      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
       const settings = loadSettings();
 
       expect(settings.projects).toEqual(['all']);
       expect(settings.commands).toEqual(['all']);
-      expect(consoleWarnSpy).toHaveBeenCalled();
-
-      consoleWarnSpy.mockRestore();
+      // Should create the config directory
+      expect(mockFs.mkdirSync).toHaveBeenCalledWith(mockConfigDir, { recursive: true });
+      // Should create default settings file
+      expect(mockFs.writeFileSync).toHaveBeenCalledWith(
+        mockSettingsPath,
+        expect.stringContaining('projects')
+      );
     });
 
     it('should handle null/undefined projects/commands by defaulting to all', () => {
@@ -62,7 +75,11 @@ commands:
 projects:
 commands:
 `;
-      mockFs.existsSync.mockReturnValue(true);
+      mockFs.existsSync.mockImplementation((path) => {
+        if (path === mockConfigDir) return true;
+        if (path === mockSettingsPath) return true;
+        return false;
+      });
       mockFs.readFileSync.mockReturnValue(mockYaml);
 
       const settings = loadSettings();
@@ -72,7 +89,11 @@ commands:
     });
 
     it('should exit process on invalid YAML', () => {
-      mockFs.existsSync.mockReturnValue(true);
+      mockFs.existsSync.mockImplementation((path) => {
+        if (path === mockConfigDir) return true;
+        if (path === mockSettingsPath) return true;
+        return false;
+      });
       mockFs.readFileSync.mockReturnValue('invalid: yaml: content:');
 
       const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
@@ -97,7 +118,11 @@ projects:
 commands:
   - me
 `;
-      mockFs.existsSync.mockReturnValue(true);
+      mockFs.existsSync.mockImplementation((path) => {
+        if (path === mockConfigDir) return true;
+        if (path === mockSettingsPath) return true;
+        return false;
+      });
       mockFs.readFileSync.mockReturnValue(mockYaml);
 
       expect(isProjectAllowed('BP')).toBe(true);
@@ -114,7 +139,11 @@ projects:
 commands:
   - me
 `;
-      mockFs.existsSync.mockReturnValue(true);
+      mockFs.existsSync.mockImplementation((path) => {
+        if (path === mockConfigDir) return true;
+        if (path === mockSettingsPath) return true;
+        return false;
+      });
       mockFs.readFileSync.mockReturnValue(mockYaml);
 
       expect(isProjectAllowed('BP')).toBe(true);
@@ -131,7 +160,11 @@ projects:
 commands:
   - me
 `;
-      mockFs.existsSync.mockReturnValue(true);
+      mockFs.existsSync.mockImplementation((path) => {
+        if (path === mockConfigDir) return true;
+        if (path === mockSettingsPath) return true;
+        return false;
+      });
       mockFs.readFileSync.mockReturnValue(mockYaml);
 
       expect(isProjectAllowed('XYZ')).toBe(false);
@@ -146,7 +179,11 @@ projects:
 commands:
   - me
 `;
-      mockFs.existsSync.mockReturnValue(true);
+      mockFs.existsSync.mockImplementation((path) => {
+        if (path === mockConfigDir) return true;
+        if (path === mockSettingsPath) return true;
+        return false;
+      });
       mockFs.readFileSync.mockReturnValue(mockYaml);
 
       expect(isProjectAllowed('BP')).toBe(true);
@@ -163,7 +200,11 @@ projects:
 commands:
   - all
 `;
-      mockFs.existsSync.mockReturnValue(true);
+      mockFs.existsSync.mockImplementation((path) => {
+        if (path === mockConfigDir) return true;
+        if (path === mockSettingsPath) return true;
+        return false;
+      });
       mockFs.readFileSync.mockReturnValue(mockYaml);
 
       expect(isCommandAllowed('me')).toBe(true);
@@ -179,7 +220,11 @@ commands:
   - me
   - projects
 `;
-      mockFs.existsSync.mockReturnValue(true);
+      mockFs.existsSync.mockImplementation((path) => {
+        if (path === mockConfigDir) return true;
+        if (path === mockSettingsPath) return true;
+        return false;
+      });
       mockFs.readFileSync.mockReturnValue(mockYaml);
 
       expect(isCommandAllowed('me')).toBe(true);
@@ -194,7 +239,11 @@ commands:
   - me
   - projects
 `;
-      mockFs.existsSync.mockReturnValue(true);
+      mockFs.existsSync.mockImplementation((path) => {
+        if (path === mockConfigDir) return true;
+        if (path === mockSettingsPath) return true;
+        return false;
+      });
       mockFs.readFileSync.mockReturnValue(mockYaml);
 
       expect(isCommandAllowed('task-with-details')).toBe(false);
@@ -212,7 +261,11 @@ projects:
 commands:
   - me
 `;
-      mockFs.existsSync.mockReturnValue(true);
+      mockFs.existsSync.mockImplementation((path) => {
+        if (path === mockConfigDir) return true;
+        if (path === mockSettingsPath) return true;
+        return false;
+      });
       mockFs.readFileSync.mockReturnValue(mockYaml);
 
       const projects = getAllowedProjects();
@@ -226,7 +279,11 @@ projects:
 commands:
   - me
 `;
-      mockFs.existsSync.mockReturnValue(true);
+      mockFs.existsSync.mockImplementation((path) => {
+        if (path === mockConfigDir) return true;
+        if (path === mockSettingsPath) return true;
+        return false;
+      });
       mockFs.readFileSync.mockReturnValue(mockYaml);
 
       const projects = getAllowedProjects();
@@ -243,7 +300,11 @@ commands:
   - me
   - projects
 `;
-      mockFs.existsSync.mockReturnValue(true);
+      mockFs.existsSync.mockImplementation((path) => {
+        if (path === mockConfigDir) return true;
+        if (path === mockSettingsPath) return true;
+        return false;
+      });
       mockFs.readFileSync.mockReturnValue(mockYaml);
 
       const commands = getAllowedCommands();
@@ -257,7 +318,11 @@ projects:
 commands:
   - all
 `;
-      mockFs.existsSync.mockReturnValue(true);
+      mockFs.existsSync.mockImplementation((path) => {
+        if (path === mockConfigDir) return true;
+        if (path === mockSettingsPath) return true;
+        return false;
+      });
       mockFs.readFileSync.mockReturnValue(mockYaml);
 
       const commands = getAllowedCommands();
@@ -273,7 +338,11 @@ projects:
 commands:
   - me
 `;
-      mockFs.existsSync.mockReturnValue(true);
+      mockFs.existsSync.mockImplementation((path) => {
+        if (path === mockConfigDir) return true;
+        if (path === mockSettingsPath) return true;
+        return false;
+      });
       mockFs.readFileSync.mockReturnValue(mockYaml);
 
       // Call multiple times

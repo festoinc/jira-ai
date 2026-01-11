@@ -2,7 +2,7 @@
 
 ## Overview
 
-This test suite provides comprehensive coverage for the Jira CLI settings and permissions system.
+This test suite provides comprehensive coverage for the Jira AI settings and permissions system.
 
 ## Test Files
 
