@@ -1,0 +1,149 @@
+import chalk from 'chalk';
+import Table from 'cli-table3';
+import { UserInfo, Project, TaskDetails, Status } from './jira-client';
+import { formatTimestamp, truncate } from './utils';
+
+/**
+ * Create a styled table
+ */
+function createTable(headers: string[], colWidths?: number[]): Table.Table {
+  return new Table({
+    head: headers.map((h) => chalk.cyan.bold(h)),
+    style: {
+      head: [],
+      border: ['gray'],
+    },
+    colWidths,
+    wordWrap: true,
+  });
+}
+
+/**
+ * Format user info
+ */
+export function formatUserInfo(user: UserInfo): string {
+  const table = createTable(['Property', 'Value'], [20, 50]);
+
+  table.push(
+    ['Host', process.env.JIRA_HOST || 'N/A'],
+    ['Display Name', user.displayName],
+    ['Email', user.emailAddress],
+    ['Account ID', user.accountId],
+    ['Status', user.active ? chalk.green('Active') : chalk.red('Inactive')],
+    ['Time Zone', user.timeZone]
+  );
+
+  return '\n' + chalk.bold('User Information:') + '\n' + table.toString() + '\n';
+}
+
+/**
+ * Format projects list
+ */
+export function formatProjects(projects: Project[]): string {
+  if (projects.length === 0) {
+    return chalk.yellow('No projects found.');
+  }
+
+  const table = createTable(['Key', 'Name', 'Type', 'Lead'], [12, 35, 15, 25]);
+
+  projects.forEach((project) => {
+    table.push([
+      chalk.cyan(project.key),
+      truncate(project.name, 35),
+      project.projectTypeKey,
+      project.lead?.displayName || chalk.gray('N/A'),
+    ]);
+  });
+
+  let output = '\n' + chalk.bold(`Projects (${projects.length} total)`) + '\n\n';
+  output += table.toString() + '\n';
+
+  return output;
+}
+
+/**
+ * Format task details with comments
+ */
+export function formatTaskDetails(task: TaskDetails): string {
+  let output = '\n' + chalk.bold.cyan(`${task.key}: ${task.summary}`) + '\n\n';
+
+  // Basic info table
+  const infoTable = createTable(['Property', 'Value'], [15, 65]);
+
+  infoTable.push(
+    ['Status', chalk.green(task.status.name)],
+    ['Assignee', task.assignee?.displayName || chalk.gray('Unassigned')],
+    ['Reporter', task.reporter?.displayName || chalk.gray('N/A')],
+    ['Created', formatTimestamp(task.created)],
+    ['Updated', formatTimestamp(task.updated)]
+  );
+
+  output += infoTable.toString() + '\n\n';
+
+  // Description
+  if (task.description) {
+    output += chalk.bold('Description:') + '\n';
+    output += chalk.dim('─'.repeat(80)) + '\n';
+    output += task.description + '\n';
+    output += chalk.dim('─'.repeat(80)) + '\n\n';
+  }
+
+  // Comments
+  if (task.comments.length > 0) {
+    output += chalk.bold(`Comments (${task.comments.length}):`) + '\n\n';
+
+    task.comments.forEach((comment, index) => {
+      output += chalk.cyan(`${index + 1}. ${comment.author.displayName}`) +
+                chalk.gray(` - ${formatTimestamp(comment.created)}`) + '\n';
+      output += chalk.dim('─'.repeat(80)) + '\n';
+      output += comment.body + '\n';
+      output += chalk.dim('─'.repeat(80)) + '\n\n';
+    });
+  } else {
+    output += chalk.gray('No comments yet.\n\n');
+  }
+
+  return output;
+}
+
+/**
+ * Format project statuses list
+ */
+export function formatProjectStatuses(projectKey: string, statuses: Status[]): string {
+  if (statuses.length === 0) {
+    return chalk.yellow('No statuses found for this project.');
+  }
+
+  const table = createTable(['Status Name', 'Category', 'Description'], [25, 20, 45]);
+
+  // Sort statuses by category for better readability
+  const sortedStatuses = [...statuses].sort((a, b) => {
+    const categoryOrder = ['TODO', 'IN_PROGRESS', 'DONE'];
+    const aIndex = categoryOrder.indexOf(a.statusCategory.key.toUpperCase());
+    const bIndex = categoryOrder.indexOf(b.statusCategory.key.toUpperCase());
+    return aIndex - bIndex;
+  });
+
+  sortedStatuses.forEach((status) => {
+    // Color code based on status category
+    let categoryColor = chalk.white;
+    if (status.statusCategory.key.toLowerCase() === 'done') {
+      categoryColor = chalk.green;
+    } else if (status.statusCategory.key.toLowerCase() === 'indeterminate') {
+      categoryColor = chalk.yellow;
+    } else if (status.statusCategory.key.toLowerCase() === 'new') {
+      categoryColor = chalk.blue;
+    }
+
+    table.push([
+      chalk.cyan(status.name),
+      categoryColor(status.statusCategory.name),
+      truncate(status.description || chalk.gray('No description'), 45),
+    ]);
+  });
+
+  let output = '\n' + chalk.bold(`Project ${projectKey} - Available Statuses (${statuses.length} total)`) + '\n\n';
+  output += table.toString() + '\n';
+
+  return output;
+}

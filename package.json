@@ -1,0 +1,44 @@
+{
+  "name": "jira-cli",
+  "version": "1.0.0",
+  "description": "CLI tool for interacting with Atlassian Jira",
+  "main": "dist/cli.js",
+  "bin": {
+    "jira": "./dist/cli.js"
+  },
+  "scripts": {
+    "dev": "ts-node src/cli.ts",
+    "build": "tsc && chmod +x dist/cli.js",
+    "start": "node dist/cli.js",
+    "link": "npm run build && npm link",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:verbose": "jest --verbose"
+  },
+  "keywords": [
+    "jira",
+    "cli",
+    "atlassian"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "cli-table3": "^0.6.5",
+    "commander": "^11.0.0",
+    "dotenv": "^17.2.3",
+    "jira.js": "^5.2.2",
+    "js-yaml": "^4.1.1",
+    "ora": "^5.4.1"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^25.0.3",
+    "jest": "^30.2.0",
+    "ts-jest": "^29.4.6",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  }
+}
