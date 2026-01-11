@@ -3,17 +3,19 @@
 # Projects: List of allowed projects (use "all" to allow all projects)
 # Examples: BP, PM, PS
 projects:
-  - BP
-  - PM
-  - PS
+  - all
+  #- BP
+  #- PM
+  #- PS
   # Uncomment below to allow all projects
   # - all
 
 # Commands: List of allowed commands (use "all" to allow all commands)
-# Available commands: me, projects, task-with-details, project-statuses, about
+# Available commands: me, projects, task-with-details, project-statuses, run-jql, about
 commands:
   - me
   - projects
+  - run-jql
   # Uncomment below to allow all commands
   # - all
   - task-with-details

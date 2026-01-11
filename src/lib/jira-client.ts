@@ -60,6 +60,20 @@ export interface TaskDetails {
   comments: Comment[];
 }
 
+export interface JqlIssue {
+  key: string;
+  summary: string;
+  status: {
+    name: string;
+  };
+  assignee: {
+    displayName: string;
+  } | null;
+  priority: {
+    name: string;
+  } | null;
+}
+
 let jiraClient: Version3Client | null = null;
 
 /**
@@ -196,4 +210,31 @@ export async function getProjectStatuses(projectIdOrKey: string): Promise<Status
   });
 
   return Array.from(statusMap.values());
+}
+
+/**
+ * Search for issues using JQL query
+ */
+export async function searchIssuesByJql(jqlQuery: string, maxResults: number): Promise<JqlIssue[]> {
+  const client = getJiraClient();
+
+  const response = await client.issueSearch.searchForIssuesUsingJqlEnhancedSearch({
+    jql: jqlQuery,
+    maxResults,
+    fields: ['summary', 'status', 'assignee', 'priority'],
+  });
+
+  return response.issues?.map((issue: any) => ({
+    key: issue.key || '',
+    summary: issue.fields?.summary || '',
+    status: {
+      name: issue.fields?.status?.name || 'Unknown',
+    },
+    assignee: issue.fields?.assignee ? {
+      displayName: issue.fields.assignee.displayName || 'Unknown',
+    } : null,
+    priority: issue.fields?.priority ? {
+      name: issue.fields.priority.name || 'Unknown',
+    } : null,
+  })) || [];
 }

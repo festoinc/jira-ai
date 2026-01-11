@@ -1,6 +1,6 @@
 import chalk from 'chalk';
 import Table from 'cli-table3';
-import { UserInfo, Project, TaskDetails, Status } from './jira-client';
+import { UserInfo, Project, TaskDetails, Status, JqlIssue } from './jira-client';
 import { formatTimestamp, truncate } from './utils';
 
 /**
@@ -143,6 +143,55 @@ export function formatProjectStatuses(projectKey: string, statuses: Status[]): s
   });
 
   let output = '\n' + chalk.bold(`Project ${projectKey} - Available Statuses (${statuses.length} total)`) + '\n\n';
+  output += table.toString() + '\n';
+
+  return output;
+}
+
+/**
+ * Format JQL query results
+ */
+export function formatJqlResults(issues: JqlIssue[]): string {
+  if (issues.length === 0) {
+    return chalk.yellow('\nNo issues found matching your JQL query.\n');
+  }
+
+  const table = createTable(['Key', 'Summary', 'Status', 'Assignee', 'Priority'], [12, 40, 18, 20, 12]);
+
+  issues.forEach((issue) => {
+    // Color-code status
+    let statusColor = chalk.white;
+    const statusLower = issue.status.name.toLowerCase();
+    if (statusLower.includes('done') || statusLower.includes('closed') || statusLower.includes('resolved')) {
+      statusColor = chalk.green;
+    } else if (statusLower.includes('progress') || statusLower.includes('review')) {
+      statusColor = chalk.yellow;
+    }
+
+    // Color-code priority
+    let priorityColor = chalk.white;
+    const priorityName = issue.priority?.name || chalk.gray('None');
+    if (issue.priority) {
+      const priorityLower = issue.priority.name.toLowerCase();
+      if (priorityLower.includes('highest') || priorityLower.includes('high')) {
+        priorityColor = chalk.red;
+      } else if (priorityLower.includes('medium')) {
+        priorityColor = chalk.yellow;
+      } else if (priorityLower.includes('low')) {
+        priorityColor = chalk.blue;
+      }
+    }
+
+    table.push([
+      chalk.cyan(issue.key),
+      truncate(issue.summary, 40),
+      statusColor(issue.status.name),
+      issue.assignee ? truncate(issue.assignee.displayName, 20) : chalk.gray('Unassigned'),
+      typeof priorityName === 'string' ? priorityColor(priorityName) : priorityName,
+    ]);
+  });
+
+  let output = '\n' + chalk.bold(`Results (${issues.length} total)`) + '\n\n';
   output += table.toString() + '\n';
 
   return output;

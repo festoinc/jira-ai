@@ -8,6 +8,7 @@ import { meCommand } from './commands/me';
 import { projectsCommand } from './commands/projects';
 import { taskWithDetailsCommand } from './commands/task-with-details';
 import { projectStatusesCommand } from './commands/project-statuses';
+import { runJqlCommand } from './commands/run-jql';
 import { aboutCommand } from './commands/about';
 import { isCommandAllowed, getAllowedCommands } from './lib/settings';
 
@@ -61,6 +62,13 @@ program
   .command('project-statuses <project-id>')
   .description('Show all possible statuses for a project')
   .action(withPermission('project-statuses', projectStatusesCommand));
+
+// Run JQL command
+program
+  .command('run-jql <jql-query>')
+  .description('Execute JQL query and display results')
+  .option('-l, --limit <number>', 'Maximum number of results (default: 50)', '50')
+  .action(withPermission('run-jql', runJqlCommand));
 
 // About command (always allowed)
 program

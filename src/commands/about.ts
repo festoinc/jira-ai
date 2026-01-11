@@ -29,6 +29,11 @@ const ALL_COMMANDS: CommandInfo[] = [
     usage: 'jira project-statuses --help'
   },
   {
+    name: 'run-jql',
+    description: 'Execute JQL query and display results',
+    usage: 'jira run-jql "<jql-query>" [-l <limit>]'
+  },
+  {
     name: 'about',
     description: 'Show this help message',
     usage: 'jira about'
