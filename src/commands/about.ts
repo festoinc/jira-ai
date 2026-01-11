@@ -1,5 +1,5 @@
 import chalk from 'chalk';
-import { getAllowedCommands, getAllowedProjects, isCommandAllowed } from '../lib/settings';
+import { getAllowedCommands, getAllowedProjects, isCommandAllowed, getSettingsPath } from '../lib/settings';
 
 interface CommandInfo {
   name: string;
@@ -11,40 +11,55 @@ const ALL_COMMANDS: CommandInfo[] = [
   {
     name: 'me',
     description: 'Show details of current user',
-    usage: 'jira me --help'
+    usage: 'jira-ai me --help'
   },
   {
     name: 'projects',
     description: 'List available projects',
-    usage: 'jira projects --help'
+    usage: 'jira-ai projects --help'
   },
   {
     name: 'task-with-details',
     description: 'Show task title, body, and comments',
-    usage: 'jira task-with-details --help'
+    usage: 'jira-ai task-with-details --help'
   },
   {
     name: 'project-statuses',
     description: 'Show all possible statuses for a project',
-    usage: 'jira project-statuses --help'
+    usage: 'jira-ai project-statuses --help'
+  },
+  {
+    name: 'list-issue-types',
+    description: 'Show all issue types for a project (e.g., Epic, Task, Subtask)',
+    usage: 'jira-ai list-issue-types <project-key>'
   },
   {
     name: 'run-jql',
     description: 'Execute JQL query and display results',
-    usage: 'jira run-jql "<jql-query>" [-l <limit>]'
+    usage: 'jira-ai run-jql "<jql-query>" [-l <limit>]'
+  },
+  {
+    name: 'update-description',
+    description: 'Update task description from a Markdown file',
+    usage: 'jira-ai update-description <task-id> --from-file <path>'
+  },
+  {
+    name: 'add-comment',
+    description: 'Add a comment to a Jira issue from a Markdown file',
+    usage: 'jira-ai add-comment --file-path <path> --issue-key <key>'
   },
   {
     name: 'about',
     description: 'Show this help message',
-    usage: 'jira about'
+    usage: 'jira-ai about'
   }
 ];
 
 export async function aboutCommand() {
-  console.log(chalk.bold.cyan('\n📋 Jira CLI - Available Commands\n'));
+  console.log(chalk.bold.cyan('\n📋 Jira AI - Available Commands\n'));
 
   console.log(chalk.bold('Usage:'));
-  console.log('  jira <command> [options]\n');
+  console.log('  jira-ai <command> [options]\n');
 
   const allowedCommandsList = getAllowedCommands();
   const isAllAllowed = allowedCommandsList.includes('all');
@@ -78,10 +93,10 @@ export async function aboutCommand() {
   }
 
   console.log(chalk.bold('For detailed help on any command, run:'));
-  console.log(chalk.green('  jira <command> --help\n'));
+  console.log(chalk.green('  jira-ai <command> --help\n'));
 
   console.log(chalk.bold('Configuration:'));
-  console.log('  Settings are managed in settings.yaml');
+  console.log(`  Settings file: ${chalk.cyan(getSettingsPath())}`);
   const allowedProjects = getAllowedProjects();
   console.log(`  - Projects: ${allowedProjects.includes('all') ? 'All allowed' : allowedProjects.join(', ')}`);
   console.log(`  - Commands: ${isAllAllowed ? 'All allowed' : allowedCommandsList.join(', ')}\n`);

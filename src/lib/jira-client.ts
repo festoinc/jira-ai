@@ -1,5 +1,6 @@
 import { Version3Client } from 'jira.js';
 import { convertADFToMarkdown } from './utils';
+import { loadCredentials } from './auth-storage';
 
 export interface UserInfo {
   accountId: string;
@@ -8,6 +9,7 @@ export interface UserInfo {
   active: boolean;
   timeZone: string;
 }
+// ... (rest of interfaces)
 
 export interface Project {
   id: string;
@@ -41,6 +43,15 @@ export interface Status {
   };
 }
 
+export interface LinkedIssue {
+  id: string;
+  key: string;
+  summary: string;
+  status: {
+    name: string;
+  };
+}
+
 export interface TaskDetails {
   id: string;
   key: string;
@@ -58,6 +69,8 @@ export interface TaskDetails {
   created: string;
   updated: string;
   comments: Comment[];
+  parent?: LinkedIssue;
+  subtasks: LinkedIssue[];
 }
 
 export interface JqlIssue {
@@ -74,6 +87,14 @@ export interface JqlIssue {
   } | null;
 }
 
+export interface IssueType {
+  id: string;
+  name: string;
+  description?: string;
+  subtask: boolean;
+  hierarchyLevel: number;
+}
+
 let jiraClient: Version3Client | null = null;
 
 /**
@@ -81,17 +102,53 @@ let jiraClient: Version3Client | null = null;
  */
 export function getJiraClient(): Version3Client {
   if (!jiraClient) {
-    jiraClient = new Version3Client({
-      host: process.env.JIRA_HOST!,
-      authentication: {
-        basic: {
-          email: process.env.JIRA_USER_EMAIL!,
-          apiToken: process.env.JIRA_API_TOKEN!,
+    const host = process.env.JIRA_HOST;
+    const email = process.env.JIRA_USER_EMAIL;
+    const apiToken = process.env.JIRA_API_TOKEN;
+
+    if (host && email && apiToken) {
+      jiraClient = new Version3Client({
+        host,
+        authentication: {
+          basic: {
+            email,
+            apiToken,
+          },
         },
-      },
-    });
+      });
+    } else {
+      const storedCreds = loadCredentials();
+      if (storedCreds) {
+        jiraClient = new Version3Client({
+          host: storedCreds.host,
+          authentication: {
+            basic: {
+              email: storedCreds.email,
+              apiToken: storedCreds.apiToken,
+            },
+          },
+        });
+      } else {
+        throw new Error('Jira credentials not found. Please set environment variables or run "jira-ai auth"');
+      }
+    }
   }
   return jiraClient;
+}
+
+/**
+ * Initialize a temporary Jira client for verification
+ */
+export function createTemporaryClient(host: string, email: string, apiToken: string): Version3Client {
+  return new Version3Client({
+    host,
+    authentication: {
+      basic: {
+        email,
+        apiToken,
+      },
+    },
+  });
 }
 
 /**
@@ -139,7 +196,18 @@ export async function getTaskWithDetails(taskId: string): Promise<TaskDetails> {
   // Get issue details
   const issue = await client.issues.getIssue({
     issueIdOrKey: taskId,
-    fields: ['summary', 'description', 'status', 'assignee', 'reporter', 'created', 'updated', 'comment'],
+    fields: [
+      'summary',
+      'description',
+      'status',
+      'assignee',
+      'reporter',
+      'created',
+      'updated',
+      'comment',
+      'parent',
+      'subtasks',
+    ],
   });
 
   // Extract comments
@@ -158,6 +226,26 @@ export async function getTaskWithDetails(taskId: string): Promise<TaskDetails> {
   const descriptionMarkdown = convertADFToMarkdown(issue.fields.description);
   const description = descriptionMarkdown || undefined;
 
+  // Extract parent if exists
+  const parent: LinkedIssue | undefined = issue.fields.parent ? {
+    id: issue.fields.parent.id,
+    key: issue.fields.parent.key,
+    summary: issue.fields.parent.fields?.summary || '',
+    status: {
+      name: issue.fields.parent.fields?.status?.name || 'Unknown',
+    },
+  } : undefined;
+
+  // Extract subtasks
+  const subtasks: LinkedIssue[] = issue.fields.subtasks?.map((subtask: any) => ({
+    id: subtask.id,
+    key: subtask.key,
+    summary: subtask.fields?.summary || '',
+    status: {
+      name: subtask.fields?.status?.name || 'Unknown',
+    },
+  })) || [];
+
   return {
     id: issue.id || '',
     key: issue.key || '',
@@ -175,6 +263,8 @@ export async function getTaskWithDetails(taskId: string): Promise<TaskDetails> {
     created: issue.fields.created || '',
     updated: issue.fields.updated || '',
     comments,
+    parent,
+    subtasks,
   };
 }
 
@@ -256,4 +346,40 @@ export async function updateIssueDescription(
     },
     notifyUsers: false,
   });
+}
+
+/**
+ * Add a comment to a Jira issue
+ * @param taskId - The issue key (e.g., "PROJ-123")
+ * @param adfContent - The comment content in ADF format
+ */
+export async function addIssueComment(
+  taskId: string,
+  adfContent: any
+): Promise<void> {
+  const client = getJiraClient();
+  await client.issueComments.addComment({
+    issueIdOrKey: taskId,
+    comment: adfContent,
+  });
+}
+
+/**
+ * Get all issue types for a project
+ */
+export async function getProjectIssueTypes(projectIdOrKey: string): Promise<IssueType[]> {
+  const client = getJiraClient();
+
+  const project = await client.projects.getProject({
+    projectIdOrKey,
+    expand: 'issueTypes',
+  });
+
+  return project.issueTypes?.map((issueType: any) => ({
+    id: issueType.id || '',
+    name: issueType.name || '',
+    description: issueType.description,
+    subtask: issueType.subtask || false,
+    hierarchyLevel: issueType.hierarchyLevel || 0,
+  })) || [];
 }

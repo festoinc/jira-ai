@@ -1,6 +1,6 @@
 import chalk from 'chalk';
 import Table from 'cli-table3';
-import { UserInfo, Project, TaskDetails, Status, JqlIssue } from './jira-client';
+import { UserInfo, Project, TaskDetails, Status, JqlIssue, IssueType } from './jira-client';
 import { formatTimestamp, truncate } from './utils';
 
 /**
@@ -79,6 +79,32 @@ export function formatTaskDetails(task: TaskDetails): string {
   );
 
   output += infoTable.toString() + '\n\n';
+
+  // Parent Task
+  if (task.parent) {
+    output += chalk.bold('Parent Task:') + '\n';
+    const parentTable = createTable(['Key', 'Summary', 'Status'], [12, 50, 18]);
+    parentTable.push([
+      chalk.cyan(task.parent.key),
+      truncate(task.parent.summary, 50),
+      task.parent.status.name,
+    ]);
+    output += parentTable.toString() + '\n\n';
+  }
+
+  // Subtasks
+  if (task.subtasks && task.subtasks.length > 0) {
+    output += chalk.bold(`Subtasks (${task.subtasks.length}):`) + '\n';
+    const subtasksTable = createTable(['Key', 'Summary', 'Status'], [12, 50, 18]);
+    task.subtasks.forEach((subtask) => {
+      subtasksTable.push([
+        chalk.cyan(subtask.key),
+        truncate(subtask.summary, 50),
+        subtask.status.name,
+      ]);
+    });
+    output += subtasksTable.toString() + '\n\n';
+  }
 
   // Description
   if (task.description) {
@@ -193,6 +219,55 @@ export function formatJqlResults(issues: JqlIssue[]): string {
 
   let output = '\n' + chalk.bold(`Results (${issues.length} total)`) + '\n\n';
   output += table.toString() + '\n';
+
+  return output;
+}
+
+/**
+ * Format project issue types list
+ */
+export function formatProjectIssueTypes(projectKey: string, issueTypes: IssueType[]): string {
+  if (issueTypes.length === 0) {
+    return chalk.yellow('No issue types found for this project.');
+  }
+
+  // Separate standard issue types and subtasks
+  const standardTypes = issueTypes.filter(type => !type.subtask);
+  const subtaskTypes = issueTypes.filter(type => type.subtask);
+
+  let output = '\n' + chalk.bold(`Project ${projectKey} - Issue Types (${issueTypes.length} total)`) + '\n\n';
+
+  // Display standard issue types
+  if (standardTypes.length > 0) {
+    output += chalk.bold('Standard Issue Types:') + '\n';
+    const table = createTable(['Name', 'Type', 'Description'], [20, 15, 55]);
+
+    standardTypes.forEach((issueType) => {
+      table.push([
+        chalk.cyan(issueType.name),
+        issueType.subtask ? chalk.yellow('Subtask') : chalk.green('Standard'),
+        truncate(issueType.description || chalk.gray('No description'), 55),
+      ]);
+    });
+
+    output += table.toString() + '\n';
+  }
+
+  // Display subtask types separately if they exist
+  if (subtaskTypes.length > 0) {
+    output += '\n' + chalk.bold('Subtask Types:') + '\n';
+    const subtaskTable = createTable(['Name', 'Type', 'Description'], [20, 15, 55]);
+
+    subtaskTypes.forEach((issueType) => {
+      subtaskTable.push([
+        chalk.cyan(issueType.name),
+        chalk.yellow('Subtask'),
+        truncate(issueType.description || chalk.gray('No description'), 55),
+      ]);
+    });
+
+    output += subtaskTable.toString() + '\n';
+  }
 
   return output;
 }
