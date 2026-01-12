@@ -68,6 +68,7 @@ export interface TaskDetails {
   description?: string;
   status: {
     name: string;
+    category?: string;
   };
   assignee?: {
     displayName: string;
@@ -77,6 +78,7 @@ export interface TaskDetails {
   };
   created: string;
   updated: string;
+  dueDate?: string;
   labels: string[];
   comments: Comment[];
   parent?: LinkedIssue;
@@ -214,6 +216,7 @@ export async function getTaskWithDetails(taskId: string): Promise<TaskDetails> {
       'reporter',
       'created',
       'updated',
+      'duedate',
       'comment',
       'parent',
       'subtasks',
@@ -264,6 +267,7 @@ export async function getTaskWithDetails(taskId: string): Promise<TaskDetails> {
     description,
     status: {
       name: issue.fields.status?.name || 'Unknown',
+      category: issue.fields.status?.statusCategory?.key || 'unknown',
     },
     assignee: issue.fields.assignee ? {
       displayName: issue.fields.assignee.displayName || 'Unknown',
@@ -273,6 +277,7 @@ export async function getTaskWithDetails(taskId: string): Promise<TaskDetails> {
     } : undefined,
     created: issue.fields.created || '',
     updated: issue.fields.updated || '',
+    dueDate: issue.fields.duedate || undefined,
     labels: issue.fields.labels || [],
     comments,
     parent,
