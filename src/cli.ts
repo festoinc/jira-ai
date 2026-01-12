@@ -54,7 +54,9 @@ function withPermission(commandName: string, commandFn: (...args: any[]) => Prom
 program
   .command('auth')
   .description('Set up Jira authentication credentials')
-  .action(() => authCommand());
+  .option('--from-json <json_string>', 'Accepts a raw JSON string with credentials')
+  .option('--from-file <path>', 'Accepts a path to a file (typically .env) with credentials')
+  .action((options) => authCommand(options));
 
 // Me command
 program
