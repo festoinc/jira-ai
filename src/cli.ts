@@ -19,6 +19,15 @@ import { aboutCommand } from './commands/about.js';
 import { authCommand } from './commands/auth.js';
 import { isCommandAllowed, getAllowedCommands } from './lib/settings.js';
 import { CliError } from './types/errors.js';
+import { 
+  validateOptions, 
+  CreateTaskSchema, 
+  AddCommentSchema, 
+  UpdateDescriptionSchema, 
+  RunJqlSchema,
+  IssueKeySchema,
+  ProjectKeySchema
+} from './lib/validation.js';
 
 // Load environment variables
 dotenv.config();
@@ -37,9 +46,13 @@ const validateCredentials = () => {
 };
 
 // Helper function to wrap commands with permission check and credential validation
-function withPermission(commandName: string, commandFn: (...args: any[]) => Promise<void>, skipValidation = false) {
+function withPermission(
+  commandName: string, 
+  commandFn: (...args: any[]) => Promise<void>, 
+  config: { skipValidation?: boolean; schema?: any; validateArgs?: (args: any[]) => void } = {}
+) {
   return async (...args: any[]) => {
-    if (!skipValidation) {
+    if (!config.skipValidation) {
       validateCredentials();
     }
     
@@ -50,6 +63,21 @@ function withPermission(commandName: string, commandFn: (...args: any[]) => Prom
         `Update settings.yaml to enable this command.`
       );
     }
+
+    if (config.schema) {
+      // Commander action arguments: [arg1, arg2, ..., options, command]
+      const optionsIdx = args.length - 2;
+      const options = args[optionsIdx];
+      args[optionsIdx] = validateOptions(config.schema, options);
+    }
+
+    if (config.validateArgs) {
+      // For now, we don't transform positional args because it's more complex,
+      // but we could if needed.
+      config.validateArgs(args);
+    }
+
+
     return commandFn(...args);
   };
 }
@@ -78,33 +106,50 @@ program
 program
   .command('task-with-details <task-id>')
   .description('Show task title, body, and comments')
-  .action(withPermission('task-with-details', taskWithDetailsCommand));
+  .action(withPermission('task-with-details', taskWithDetailsCommand, {
+    validateArgs: (args) => validateOptions(IssueKeySchema, args[0])
+  }));
 
 // Project statuses command
 program
   .command('project-statuses <project-id>')
   .description('Show all possible statuses for a project')
-  .action(withPermission('project-statuses', projectStatusesCommand));
+  .action(withPermission('project-statuses', projectStatusesCommand, {
+    validateArgs: (args) => validateOptions(ProjectKeySchema, args[0])
+  }));
 
 // List issue types command
 program
   .command('list-issue-types <project-key>')
   .description('Show all issue types for a project')
-  .action(withPermission('list-issue-types', listIssueTypesCommand));
+  .action(withPermission('list-issue-types', listIssueTypesCommand, {
+    validateArgs: (args) => validateOptions(ProjectKeySchema, args[0])
+  }));
 
 // Run JQL command
 program
   .command('run-jql <jql-query>')
   .description('Execute JQL query and display results')
   .option('-l, --limit <number>', 'Maximum number of results (default: 50)', '50')
-  .action(withPermission('run-jql', runJqlCommand));
+  .action(withPermission('run-jql', runJqlCommand, { 
+    schema: RunJqlSchema,
+    validateArgs: (args) => {
+      if (typeof args[0] !== 'string' || args[0].trim() === '') {
+        throw new CliError('JQL query cannot be empty');
+      }
+    }
+  }));
+
 
 // Update description command
 program
   .command('update-description <task-id>')
   .description('Update task description from a Markdown file')
   .requiredOption('--from-file <path>', 'Path to Markdown file')
-  .action(withPermission('update-description', updateDescriptionCommand));
+  .action(withPermission('update-description', updateDescriptionCommand, {
+    schema: UpdateDescriptionSchema,
+    validateArgs: (args) => validateOptions(IssueKeySchema, args[0])
+  }));
 
 // Add comment command
 program
@@ -112,19 +157,34 @@ program
   .description('Add a comment to a Jira issue from a Markdown file')
   .requiredOption('--file-path <path>', 'Path to Markdown file')
   .requiredOption('--issue-key <key>', 'Jira issue key (e.g., PS-123)')
-  .action(withPermission('add-comment', addCommentCommand));
+  .action(withPermission('add-comment', addCommentCommand, { schema: AddCommentSchema }));
 
 // Add label command
 program
   .command('add-label-to-issue <task-id> <labels>')
   .description('Add one or more labels to a Jira issue (comma-separated)')
-  .action(withPermission('add-label-to-issue', addLabelCommand));
+  .action(withPermission('add-label-to-issue', addLabelCommand, {
+    validateArgs: (args) => {
+      validateOptions(IssueKeySchema, args[0]);
+      if (typeof args[1] !== 'string' || args[1].trim() === '') {
+        throw new CliError('Labels are required (comma-separated)');
+      }
+    }
+  }));
 
 // Delete label command
 program
   .command('delete-label-from-issue <task-id> <labels>')
   .description('Remove one or more labels from a Jira issue (comma-separated)')
-  .action(withPermission('delete-label-from-issue', deleteLabelCommand));
+  .action(withPermission('delete-label-from-issue', deleteLabelCommand, {
+    validateArgs: (args) => {
+      validateOptions(IssueKeySchema, args[0]);
+      if (typeof args[1] !== 'string' || args[1].trim() === '') {
+        throw new CliError('Labels are required (comma-separated)');
+      }
+    }
+  }));
+
 
 // Create task command
 program
@@ -134,7 +194,8 @@ program
   .requiredOption('--project <project>', 'Project key (e.g., PROJ)')
   .requiredOption('--issue-type <type>', 'Issue type (e.g., Task, Epic, Subtask)')
   .option('--parent <key>', 'Parent issue key (required for subtasks)')
-  .action(withPermission('create-task', createTaskCommand));
+  .action(withPermission('create-task', createTaskCommand, { schema: CreateTaskSchema }));
+
 
 // About command (always allowed)
 program

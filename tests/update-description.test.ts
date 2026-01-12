@@ -71,9 +71,10 @@ describe('Update Description Command', () => {
       CliError
     );
     await expect(updateDescriptionCommand('', { fromFile: mockFilePath })).rejects.toThrow(
-      'Task ID cannot be empty'
+      'Task ID is required'
     );
   });
+
 
   it('should throw error when file does not exist', async () => {
     vi.spyOn(mockFs, 'existsSync').mockReturnValue(false);

@@ -5,29 +5,18 @@ import * as path from 'path';
 import { markdownToAdf } from 'marklassian';
 import { addIssueComment } from '../lib/jira-client.js';
 import { CliError } from '../types/errors.js';
+import { validateOptions, AddCommentSchema } from '../lib/validation.js';
 
 export async function addCommentCommand(
   options: { filePath: string; issueKey: string }
 ): Promise<void> {
+  // Validate options
+  validateOptions(AddCommentSchema, options);
+
   const { filePath, issueKey } = options;
-
-  // Validate issueKey
-  if (!issueKey || issueKey.trim() === '') {
-    throw new CliError('Issue key is required (use --issue-key)');
-  }
-
-  // Validate file path
-  if (!filePath || filePath.trim() === '') {
-    throw new CliError('File path is required (use --file-path)');
-  }
 
   // Resolve file path to absolute
   const absolutePath = path.resolve(filePath);
-
-  // Check file exists
-  if (!fs.existsSync(absolutePath)) {
-    throw new CliError(`File not found: ${absolutePath}`);
-  }
 
   // Read file
   let markdownContent: string;
@@ -36,6 +25,7 @@ export async function addCommentCommand(
   } catch (error) {
     throw new CliError(`Error reading file: ${error instanceof Error ? error.message : String(error)}`);
   }
+
 
   // Validate file is not empty
   if (markdownContent.trim() === '') {

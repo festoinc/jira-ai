@@ -4,28 +4,16 @@ import { searchIssuesByJql } from '../lib/jira-client.js';
 import { formatJqlResults } from '../lib/formatters.js';
 import { CliError } from '../types/errors.js';
 
-export async function runJqlCommand(jqlQuery: string, options: { limit: string }): Promise<void> {
-  // Validate JQL query is not empty
-  if (!jqlQuery || jqlQuery.trim() === '') {
-    throw new CliError('JQL query cannot be empty');
-  }
-
+export async function runJqlCommand(jqlQuery: string, options: { limit?: number }): Promise<void> {
   // Parse and validate limit parameter
-  let maxResults = 50; // default
-  if (options.limit) {
-    const parsedLimit = parseInt(options.limit, 10);
-    if (isNaN(parsedLimit) || parsedLimit < 1) {
-      throw new CliError('Limit must be a positive number');
-    }
-    if (parsedLimit > 1000) {
-      console.warn(chalk.yellow('\nWarning: Limit is very high. Using 1000 as maximum.'));
-      maxResults = 1000;
-    } else {
-      maxResults = parsedLimit;
-    }
+  let maxResults = options.limit || 50;
+  if (maxResults > 1000) {
+    console.warn(chalk.yellow('\nWarning: Limit is very high. Using 1000 as maximum.'));
+    maxResults = 1000;
   }
 
   const spinner = ora('Executing JQL query...').start();
+
 
   try {
     const issues = await searchIssuesByJql(jqlQuery, maxResults);
