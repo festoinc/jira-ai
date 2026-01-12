@@ -1,20 +1,23 @@
-import { taskWithDetailsCommand } from '../src/commands/task-with-details';
-import * as jiraClient from '../src/lib/jira-client';
-import * as formatters from '../src/lib/formatters';
+import { vi, describe, it, expect, beforeEach, afterEach, beforeAll, afterAll, test } from 'vitest';
+import { taskWithDetailsCommand } from '../src/commands/task-with-details.js';
+import * as jiraClient from '../src/lib/jira-client.js';
+import * as formatters from '../src/lib/formatters.js';
 
 // Mock dependencies
-jest.mock('../src/lib/jira-client');
-jest.mock('../src/lib/formatters');
-jest.mock('ora', () => {
-  return jest.fn(() => ({
-    start: jest.fn().mockReturnThis(),
-    succeed: jest.fn().mockReturnThis(),
-    fail: jest.fn().mockReturnThis()
-  }));
+vi.mock('../src/lib/jira-client.js');
+vi.mock('../src/lib/formatters.js');
+vi.mock('ora', () => {
+  return {
+    default: vi.fn(() => ({
+      start: vi.fn().mockReturnThis(),
+      succeed: vi.fn().mockReturnThis(),
+      fail: vi.fn().mockReturnThis(),
+    })),
+  };
 });
 
-const mockJiraClient = jiraClient as jest.Mocked<typeof jiraClient>;
-const mockFormatters = formatters as jest.Mocked<typeof formatters>;
+const mockJiraClient = jiraClient as vi.Mocked<typeof jiraClient>;
+const mockFormatters = formatters as vi.Mocked<typeof formatters>;
 
 describe('Task With Details Command', () => {
   const mockTask: jiraClient.TaskDetails = {
@@ -52,9 +55,9 @@ describe('Task With Details Command', () => {
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
-    console.log = jest.fn();
-    console.error = jest.fn();
+    vi.clearAllMocks();
+    console.log = vi.fn();
+    console.error = vi.fn();
   });
 
   it('should fetch and display task details with parent and subtasks', async () => {
@@ -71,7 +74,7 @@ describe('Task With Details Command', () => {
   it('should handle errors gracefully', async () => {
     const mockError = new Error('Task not found');
     mockJiraClient.getTaskWithDetails.mockRejectedValue(mockError);
-    const processExitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {
+    const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
       throw new Error('Process exit');
     });
 

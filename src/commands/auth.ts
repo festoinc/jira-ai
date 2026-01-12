@@ -3,8 +3,8 @@ import chalk from 'chalk';
 import ora from 'ora';
 import fs from 'fs';
 import dotenv from 'dotenv';
-import { createTemporaryClient } from '../lib/jira-client';
-import { saveCredentials } from '../lib/auth-storage';
+import { createTemporaryClient } from '../lib/jira-client.js';
+import { saveCredentials } from '../lib/auth-storage.js';
 
 const rl = readline.createInterface({
   input: process.stdin,

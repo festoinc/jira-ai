@@ -1,6 +1,6 @@
 import chalk from 'chalk';
 import ora from 'ora';
-import { removeIssueLabels } from '../lib/jira-client';
+import { removeIssueLabels } from '../lib/jira-client.js';
 
 export async function deleteLabelCommand(
   taskId: string,

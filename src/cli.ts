@@ -3,21 +3,21 @@
 import { Command } from 'commander';
 import dotenv from 'dotenv';
 import chalk from 'chalk';
-import { validateEnvVars } from './lib/utils';
-import { meCommand } from './commands/me';
-import { projectsCommand } from './commands/projects';
-import { taskWithDetailsCommand } from './commands/task-with-details';
-import { projectStatusesCommand } from './commands/project-statuses';
-import { listIssueTypesCommand } from './commands/list-issue-types';
-import { runJqlCommand } from './commands/run-jql';
-import { updateDescriptionCommand } from './commands/update-description';
-import { addCommentCommand } from './commands/add-comment';
-import { addLabelCommand } from './commands/add-label';
-import { deleteLabelCommand } from './commands/delete-label';
-import { createTaskCommand } from './commands/create-task';
-import { aboutCommand } from './commands/about';
-import { authCommand } from './commands/auth';
-import { isCommandAllowed, getAllowedCommands } from './lib/settings';
+import { validateEnvVars } from './lib/utils.js';
+import { meCommand } from './commands/me.js';
+import { projectsCommand } from './commands/projects.js';
+import { taskWithDetailsCommand } from './commands/task-with-details.js';
+import { projectStatusesCommand } from './commands/project-statuses.js';
+import { listIssueTypesCommand } from './commands/list-issue-types.js';
+import { runJqlCommand } from './commands/run-jql.js';
+import { updateDescriptionCommand } from './commands/update-description.js';
+import { addCommentCommand } from './commands/add-comment.js';
+import { addLabelCommand } from './commands/add-label.js';
+import { deleteLabelCommand } from './commands/delete-label.js';
+import { createTaskCommand } from './commands/create-task.js';
+import { aboutCommand } from './commands/about.js';
+import { authCommand } from './commands/auth.js';
+import { isCommandAllowed, getAllowedCommands } from './lib/settings.js';
 
 // Load environment variables
 dotenv.config();

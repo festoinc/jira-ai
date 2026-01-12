@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import ora from 'ora';
-import { getTaskWithDetails } from '../lib/jira-client';
-import { formatTaskDetails } from '../lib/formatters';
+import { getTaskWithDetails } from '../lib/jira-client.js';
+import { formatTaskDetails } from '../lib/formatters.js';
 
 export async function taskWithDetailsCommand(taskId: string): Promise<void> {
   const spinner = ora(`Fetching details for ${taskId}...`).start();

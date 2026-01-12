@@ -1,18 +1,21 @@
-import { addLabelCommand } from '../src/commands/add-label';
-import { deleteLabelCommand } from '../src/commands/delete-label';
-import * as jiraClient from '../src/lib/jira-client';
+import { vi, describe, it, expect, beforeEach, afterEach, beforeAll, afterAll, test } from 'vitest';
+import { addLabelCommand } from '../src/commands/add-label.js';
+import { deleteLabelCommand } from '../src/commands/delete-label.js';
+import * as jiraClient from '../src/lib/jira-client.js';
 
 // Mock dependencies
-jest.mock('../src/lib/jira-client');
-jest.mock('ora', () => {
-  return jest.fn(() => ({
-    start: jest.fn().mockReturnThis(),
-    succeed: jest.fn().mockReturnThis(),
-    fail: jest.fn().mockReturnThis()
-  }));
+vi.mock('../src/lib/jira-client.js');
+vi.mock('ora', () => {
+  return {
+    default: vi.fn(() => ({
+      start: vi.fn().mockReturnThis(),
+      succeed: vi.fn().mockReturnThis(),
+      fail: vi.fn().mockReturnThis(),
+    })),
+  };
 });
 
-const mockJiraClient = jiraClient as jest.Mocked<typeof jiraClient>;
+const mockJiraClient = jiraClient as vi.Mocked<typeof jiraClient>;
 
 describe('Label Commands', () => {
   const mockTaskId = 'TEST-123';
@@ -20,12 +23,12 @@ describe('Label Commands', () => {
   const mockLabelsArray = ['bug', 'critical'];
 
   beforeEach(() => {
-    jest.clearAllMocks();
-    console.log = jest.fn();
-    console.error = jest.fn();
+    vi.clearAllMocks();
+    console.log = vi.fn();
+    console.error = vi.fn();
     
-    mockJiraClient.addIssueLabels = jest.fn().mockResolvedValue(undefined);
-    mockJiraClient.removeIssueLabels = jest.fn().mockResolvedValue(undefined);
+    mockJiraClient.addIssueLabels = vi.fn().mockResolvedValue(undefined);
+    mockJiraClient.removeIssueLabels = vi.fn().mockResolvedValue(undefined);
   });
 
   describe('add-label-to-issue', () => {
@@ -40,7 +43,7 @@ describe('Label Commands', () => {
     });
 
     it('should exit with error when task ID is empty', async () => {
-      const processExitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {
+      const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
         throw new Error('Process exit');
       });
 
@@ -54,7 +57,7 @@ describe('Label Commands', () => {
     });
 
     it('should exit with error when labels string is empty', async () => {
-      const processExitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {
+      const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
         throw new Error('Process exit');
       });
 
@@ -70,7 +73,7 @@ describe('Label Commands', () => {
     it('should handle API errors and show hints', async () => {
       const apiError = new Error('Not Found (404)');
       mockJiraClient.addIssueLabels.mockRejectedValue(apiError);
-      const processExitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {
+      const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
         throw new Error('Process exit');
       });
 
@@ -95,7 +98,7 @@ describe('Label Commands', () => {
     });
 
     it('should exit with error when task ID is empty', async () => {
-      const processExitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {
+      const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
         throw new Error('Process exit');
       });
 
@@ -111,7 +114,7 @@ describe('Label Commands', () => {
     it('should handle API errors', async () => {
       const apiError = new Error('Some error');
       mockJiraClient.removeIssueLabels.mockRejectedValue(apiError);
-      const processExitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {
+      const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
         throw new Error('Process exit');
       });
 

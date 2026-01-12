@@ -1,20 +1,26 @@
-import { getTaskWithDetails, addIssueLabels, removeIssueLabels } from '../src/lib/jira-client';
+import { vi, describe, it, expect, beforeEach, afterEach, beforeAll, afterAll, test } from 'vitest';
+import { getTaskWithDetails, addIssueLabels, removeIssueLabels } from '../src/lib/jira-client.js';
 import { Version3Client } from 'jira.js';
 
 // Mock dependencies
-const mockGetIssue = jest.fn();
-const mockEditIssue = jest.fn();
-jest.mock('jira.js', () => ({
-  Version3Client: jest.fn().mockImplementation(() => ({
-    issues: {
-      getIssue: mockGetIssue,
-      editIssue: mockEditIssue
-    }
-  }))
+const { mockGetIssue, mockEditIssue } = vi.hoisted(() => ({
+  mockGetIssue: vi.fn(),
+  mockEditIssue: vi.fn(),
 }));
 
-jest.mock('../src/lib/utils', () => ({
-  convertADFToMarkdown: jest.fn(val => val ? 'mocked markdown' : undefined)
+vi.mock('jira.js', () => ({
+  Version3Client: vi.fn().mockImplementation(function() {
+    return {
+      issues: {
+        getIssue: mockGetIssue,
+        editIssue: mockEditIssue
+      }
+    };
+  })
+}));
+
+vi.mock('../src/lib/utils.js', () => ({
+  convertADFToMarkdown: vi.fn(val => val ? 'mocked markdown' : undefined)
 }));
 
 describe('Jira Client', () => {
@@ -26,11 +32,7 @@ describe('Jira Client', () => {
   });
 
   beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
-  beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('getTaskWithDetails', () => {

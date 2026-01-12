@@ -3,7 +3,7 @@ import ora from 'ora';
 import * as fs from 'fs';
 import * as path from 'path';
 import { markdownToAdf } from 'marklassian';
-import { updateIssueDescription } from '../lib/jira-client';
+import { updateIssueDescription } from '../lib/jira-client.js';
 
 export async function updateDescriptionCommand(
   taskId: string,

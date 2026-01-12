@@ -1,23 +1,26 @@
-import { projectsCommand } from '../src/commands/projects';
-import * as jiraClient from '../src/lib/jira-client';
-import * as settings from '../src/lib/settings';
-import * as formatters from '../src/lib/formatters';
+import { vi, describe, it, expect, beforeEach, afterEach, beforeAll, afterAll, test } from 'vitest';
+import { projectsCommand } from '../src/commands/projects.js';
+import * as jiraClient from '../src/lib/jira-client.js';
+import * as settings from '../src/lib/settings.js';
+import * as formatters from '../src/lib/formatters.js';
 
 // Mock dependencies
-jest.mock('../src/lib/jira-client');
-jest.mock('../src/lib/settings');
-jest.mock('../src/lib/formatters');
-jest.mock('ora', () => {
-  return jest.fn(() => ({
-    start: jest.fn().mockReturnThis(),
-    succeed: jest.fn().mockReturnThis(),
-    fail: jest.fn().mockReturnThis()
-  }));
+vi.mock('../src/lib/jira-client.js');
+vi.mock('../src/lib/settings.js');
+vi.mock('../src/lib/formatters.js');
+vi.mock('ora', () => {
+  return {
+    default: vi.fn(() => ({
+      start: vi.fn().mockReturnThis(),
+      succeed: vi.fn().mockReturnThis(),
+      fail: vi.fn().mockReturnThis(),
+    })),
+  };
 });
 
-const mockJiraClient = jiraClient as jest.Mocked<typeof jiraClient>;
-const mockSettings = settings as jest.Mocked<typeof settings>;
-const mockFormatters = formatters as jest.Mocked<typeof formatters>;
+const mockJiraClient = jiraClient as vi.Mocked<typeof jiraClient>;
+const mockSettings = settings as vi.Mocked<typeof settings>;
+const mockFormatters = formatters as vi.Mocked<typeof formatters>;
 
 describe('Projects Command', () => {
   const mockProjects = [
@@ -59,9 +62,9 @@ describe('Projects Command', () => {
   ];
 
   beforeEach(() => {
-    jest.clearAllMocks();
-    console.log = jest.fn();
-    console.error = jest.fn();
+    vi.clearAllMocks();
+    console.log = vi.fn();
+    console.error = vi.fn();
   });
 
   it('should display all projects when "all" is allowed', async () => {
@@ -135,7 +138,7 @@ describe('Projects Command', () => {
   it('should handle API errors gracefully', async () => {
     const mockError = new Error('API connection failed');
     mockJiraClient.getProjects.mockRejectedValue(mockError);
-    const processExitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {
+    const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
       throw new Error('Process exit');
     });
 
