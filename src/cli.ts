@@ -33,7 +33,7 @@ import {
 } from './lib/validation.js';
 
 // Load environment variables
-dotenv.config();
+dotenv.config({ quiet: true } as any);
 
 // Create CLI program
 const program = new Command();
