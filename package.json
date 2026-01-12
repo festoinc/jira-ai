@@ -1,6 +1,6 @@
 {
   "name": "jira-ai",
-  "version": "0.3.6",
+  "version": "0.3.7",
   "description": "AI friendly Jira CLI to save context",
   "main": "dist/cli.js",
   "bin": {
