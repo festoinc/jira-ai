@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import ora from 'ora';
-import { getCurrentUser } from '../lib/jira-client';
-import { formatUserInfo } from '../lib/formatters';
+import { getCurrentUser } from '../lib/jira-client.js';
+import { formatUserInfo } from '../lib/formatters.js';
 
 export async function meCommand(): Promise<void> {
   const spinner = ora('Fetching user information...').start();

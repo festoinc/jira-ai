@@ -1,8 +1,8 @@
 import chalk from 'chalk';
 import ora from 'ora';
-import { getProjects } from '../lib/jira-client';
-import { formatProjects } from '../lib/formatters';
-import { getAllowedProjects, isProjectAllowed } from '../lib/settings';
+import { getProjects } from '../lib/jira-client.js';
+import { formatProjects } from '../lib/formatters.js';
+import { getAllowedProjects, isProjectAllowed } from '../lib/settings.js';
 
 export async function projectsCommand(): Promise<void> {
   const spinner = ora('Fetching projects...').start();

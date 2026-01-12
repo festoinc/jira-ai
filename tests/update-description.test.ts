@@ -1,25 +1,28 @@
-import { updateDescriptionCommand } from '../src/commands/update-description';
-import * as jiraClient from '../src/lib/jira-client';
+import { vi, describe, it, expect, beforeEach, afterEach, beforeAll, afterAll, test } from 'vitest';
+import { updateDescriptionCommand } from '../src/commands/update-description.js';
+import * as jiraClient from '../src/lib/jira-client.js';
 import * as fs from 'fs';
 import * as path from 'path';
 import { markdownToAdf } from 'marklassian';
 
 // Mock dependencies
-jest.mock('fs');
-jest.mock('marklassian');
-jest.mock('../src/lib/jira-client');
-jest.mock('../src/lib/utils');
-jest.mock('ora', () => {
-  return jest.fn(() => ({
-    start: jest.fn().mockReturnThis(),
-    succeed: jest.fn().mockReturnThis(),
-    fail: jest.fn().mockReturnThis()
-  }));
+vi.mock('fs');
+vi.mock('marklassian');
+vi.mock('../src/lib/jira-client.js');
+vi.mock('../src/lib/utils.js');
+vi.mock('ora', () => {
+  return {
+    default: vi.fn(() => ({
+      start: vi.fn().mockReturnThis(),
+      succeed: vi.fn().mockReturnThis(),
+      fail: vi.fn().mockReturnThis(),
+    })),
+  };
 });
 
-const mockJiraClient = jiraClient as jest.Mocked<typeof jiraClient>;
-const mockFs = fs as jest.Mocked<typeof fs>;
-const mockMarkdownToAdf = markdownToAdf as jest.MockedFunction<typeof markdownToAdf>;
+const mockJiraClient = jiraClient as vi.Mocked<typeof jiraClient>;
+const mockFs = fs as vi.Mocked<typeof fs>;
+const mockMarkdownToAdf = markdownToAdf as vi.MockedFunction<typeof markdownToAdf>;
 
 describe('Update Description Command', () => {
   const mockTaskId = 'TEST-123';
@@ -38,15 +41,15 @@ describe('Update Description Command', () => {
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
-    console.log = jest.fn();
-    console.error = jest.fn();
+    vi.clearAllMocks();
+    console.log = vi.fn();
+    console.error = vi.fn();
 
     // Setup default mocks
-    jest.spyOn(mockFs, 'existsSync').mockReturnValue(true);
-    jest.spyOn(mockFs, 'readFileSync').mockReturnValue(mockMarkdownContent);
+    vi.spyOn(mockFs, 'existsSync').mockReturnValue(true);
+    vi.spyOn(mockFs, 'readFileSync').mockReturnValue(mockMarkdownContent);
     mockMarkdownToAdf.mockReturnValue(mockAdfContent);
-    mockJiraClient.updateIssueDescription = jest.fn().mockResolvedValue(undefined);
+    mockJiraClient.updateIssueDescription = vi.fn().mockResolvedValue(undefined);
   });
 
   it('should successfully update issue description', async () => {
@@ -63,7 +66,7 @@ describe('Update Description Command', () => {
   });
 
   it('should exit with error when task ID is empty', async () => {
-    const processExitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {
+    const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
       throw new Error('Process exit');
     });
 
@@ -80,8 +83,8 @@ describe('Update Description Command', () => {
   });
 
   it('should exit with error when file does not exist', async () => {
-    jest.spyOn(mockFs, 'existsSync').mockReturnValue(false);
-    const processExitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {
+    vi.spyOn(mockFs, 'existsSync').mockReturnValue(false);
+    const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
       throw new Error('Process exit');
     });
 
@@ -99,10 +102,10 @@ describe('Update Description Command', () => {
 
   it('should exit with error when file read fails', async () => {
     const readError = new Error('Permission denied');
-    jest.spyOn(mockFs, 'readFileSync').mockImplementation(() => {
+    vi.spyOn(mockFs, 'readFileSync').mockImplementation(() => {
       throw readError;
     });
-    const processExitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {
+    const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
       throw new Error('Process exit');
     });
 
@@ -122,8 +125,8 @@ describe('Update Description Command', () => {
   });
 
   it('should exit with error when file is empty', async () => {
-    jest.spyOn(mockFs, 'readFileSync').mockReturnValue('   \n  \t  ');
-    const processExitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {
+    vi.spyOn(mockFs, 'readFileSync').mockReturnValue('   \n  \t  ');
+    const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
       throw new Error('Process exit');
     });
 
@@ -144,7 +147,7 @@ describe('Update Description Command', () => {
     mockMarkdownToAdf.mockImplementation(() => {
       throw conversionError;
     });
-    const processExitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {
+    const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
       throw new Error('Process exit');
     });
 
@@ -165,8 +168,8 @@ describe('Update Description Command', () => {
 
   it('should exit with error and hint when issue not found (404)', async () => {
     const apiError = new Error('Issue not found (404)');
-    mockJiraClient.updateIssueDescription = jest.fn().mockRejectedValue(apiError);
-    const processExitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {
+    mockJiraClient.updateIssueDescription = vi.fn().mockRejectedValue(apiError);
+    const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
       throw new Error('Process exit');
     });
 
@@ -187,8 +190,8 @@ describe('Update Description Command', () => {
 
   it('should exit with error and hint when permission denied (403)', async () => {
     const apiError = new Error('Permission denied (403)');
-    mockJiraClient.updateIssueDescription = jest.fn().mockRejectedValue(apiError);
-    const processExitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {
+    mockJiraClient.updateIssueDescription = vi.fn().mockRejectedValue(apiError);
+    const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
       throw new Error('Process exit');
     });
 
@@ -209,8 +212,8 @@ describe('Update Description Command', () => {
 
   it('should exit with error for other API errors', async () => {
     const apiError = new Error('Network connection failed');
-    mockJiraClient.updateIssueDescription = jest.fn().mockRejectedValue(apiError);
-    const processExitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {
+    mockJiraClient.updateIssueDescription = vi.fn().mockRejectedValue(apiError);
+    const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
       throw new Error('Process exit');
     });
 
@@ -252,7 +255,7 @@ const example = "code block";
 
 [Link](https://example.com)`;
 
-    jest.spyOn(mockFs, 'readFileSync').mockReturnValue(complexMarkdown);
+    vi.spyOn(mockFs, 'readFileSync').mockReturnValue(complexMarkdown);
 
     await updateDescriptionCommand(mockTaskId, { fromFile: mockFilePath });
 

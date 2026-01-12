@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import Table from 'cli-table3';
-import { UserInfo, Project, TaskDetails, Status, JqlIssue, IssueType } from './jira-client';
-import { formatTimestamp, truncate } from './utils';
+import { UserInfo, Project, TaskDetails, Status, JqlIssue, IssueType } from './jira-client.js';
+import { formatTimestamp, truncate } from './utils.js';
 
 /**
  * Create a styled table

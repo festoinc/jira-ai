@@ -1,6 +1,7 @@
+import { vi, describe, it, expect, beforeEach, afterEach, beforeAll, afterAll, test } from 'vitest';
 import chalk from 'chalk';
-import { formatTaskDetails } from '../src/lib/formatters';
-import { TaskDetails } from '../src/lib/jira-client';
+import { formatTaskDetails } from '../src/lib/formatters.js';
+import { TaskDetails } from '../src/lib/jira-client.js';
 
 describe('Formatters', () => {
   const mockTask: TaskDetails = {

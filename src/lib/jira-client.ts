@@ -1,6 +1,6 @@
 import { Version3Client } from 'jira.js';
-import { convertADFToMarkdown } from './utils';
-import { loadCredentials } from './auth-storage';
+import { convertADFToMarkdown } from './utils.js';
+import { loadCredentials } from './auth-storage.js';
 
 export interface UserInfo {
   accountId: string;
