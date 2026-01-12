@@ -1,8 +1,7 @@
-import chalk from 'chalk';
 import { fromADF } from 'mdast-util-from-adf';
 import { toMarkdown } from 'mdast-util-to-markdown';
 import { hasCredentials } from './auth-storage.js';
-import { CliError } from '../types/errors.js';
+import { CommandError } from './errors.js';
 
 /**
  * Validate required environment variables or stored credentials
@@ -17,12 +16,12 @@ export function validateEnvVars(): void {
   const missing = required.filter((key) => !process.env[key]);
 
   if (missing.length > 0 && !hasCredentials()) {
-    throw new CliError(
-      `Jira credentials not found.\n\n` +
-      `Please run ${chalk.cyan('jira-ai auth')} to set up your credentials.\n` +
-      `Alternatively, you can set the following environment variables:\n` +
-      required.map(key => `  - ${key}`).join('\n')
-    );
+    throw new CommandError('Jira credentials not found.', {
+      hints: [
+        'Run jira-ai auth to set up your credentials.',
+        'Alternatively, set environment variables: ' + required.join(', ')
+      ]
+    });
   }
 }
 

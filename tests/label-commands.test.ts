@@ -1,8 +1,8 @@
-import { vi, describe, it, expect, beforeEach, afterEach, beforeAll, afterAll, test } from 'vitest';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { addLabelCommand } from '../src/commands/add-label.js';
 import { deleteLabelCommand } from '../src/commands/delete-label.js';
 import * as jiraClient from '../src/lib/jira-client.js';
-import { CliError } from '../src/types/errors.js';
+import { CommandError } from '../src/lib/errors.js';
 
 // Mock dependencies
 vi.mock('../src/lib/jira-client.js');
@@ -12,6 +12,7 @@ vi.mock('ora', () => {
       start: vi.fn().mockReturnThis(),
       succeed: vi.fn().mockReturnThis(),
       fail: vi.fn().mockReturnThis(),
+      stop: vi.fn().mockReturnThis(),
     })),
   };
 });
@@ -44,12 +45,12 @@ describe('Label Commands', () => {
     });
 
     it('should throw error when task ID is empty', async () => {
-      await expect(addLabelCommand('', mockLabelsString)).rejects.toThrow(CliError);
+      await expect(addLabelCommand('', mockLabelsString)).rejects.toThrow(CommandError);
       await expect(addLabelCommand('', mockLabelsString)).rejects.toThrow('Task ID is required');
     });
 
     it('should throw error when labels string is empty', async () => {
-      await expect(addLabelCommand(mockTaskId, '')).rejects.toThrow(CliError);
+      await expect(addLabelCommand(mockTaskId, '')).rejects.toThrow(CommandError);
       await expect(addLabelCommand(mockTaskId, '')).rejects.toThrow('Labels are required');
     });
 
@@ -57,9 +58,10 @@ describe('Label Commands', () => {
       const apiError = new Error('Not Found (404)');
       mockJiraClient.addIssueLabels.mockRejectedValue(apiError);
 
-      await expect(addLabelCommand(mockTaskId, mockLabelsString)).rejects.toThrow('Not Found (404)');
-
-      expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Hint: Check that the issue ID/key is correct'));
+      const promise = addLabelCommand(mockTaskId, mockLabelsString);
+      await expect(promise).rejects.toThrow('Not Found (404)');
+      const error = await promise.catch(e => e);
+      expect(error.hints).toContain('Check that the issue ID/key is correct');
     });
   });
 
@@ -75,7 +77,7 @@ describe('Label Commands', () => {
     });
 
     it('should throw error when task ID is empty', async () => {
-      await expect(deleteLabelCommand('', mockLabelsString)).rejects.toThrow(CliError);
+      await expect(deleteLabelCommand('', mockLabelsString)).rejects.toThrow(CommandError);
       await expect(deleteLabelCommand('', mockLabelsString)).rejects.toThrow('Task ID is required');
     });
 

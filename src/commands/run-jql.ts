@@ -1,8 +1,7 @@
 import chalk from 'chalk';
-import ora from 'ora';
 import { searchIssuesByJql } from '../lib/jira-client.js';
 import { formatJqlResults } from '../lib/formatters.js';
-import { CliError } from '../types/errors.js';
+import { ui } from '../lib/ui.js';
 
 export async function runJqlCommand(jqlQuery: string, options: { limit?: number }): Promise<void> {
   // Parse and validate limit parameter
@@ -12,15 +11,9 @@ export async function runJqlCommand(jqlQuery: string, options: { limit?: number 
     maxResults = 1000;
   }
 
-  const spinner = ora('Executing JQL query...').start();
+  ui.startSpinner('Executing JQL query...');
 
-
-  try {
-    const issues = await searchIssuesByJql(jqlQuery, maxResults);
-    spinner.succeed(chalk.green('Query executed successfully'));
-    console.log(formatJqlResults(issues));
-  } catch (error) {
-    spinner.fail(chalk.red('Failed to execute JQL query'));
-    throw error;
-  }
+  const issues = await searchIssuesByJql(jqlQuery, maxResults);
+  ui.succeedSpinner(chalk.green('Query executed successfully'));
+  console.log(formatJqlResults(issues));
 }

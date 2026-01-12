@@ -14,6 +14,7 @@ vi.mock('ora', () => {
       start: vi.fn().mockReturnThis(),
       succeed: vi.fn().mockReturnThis(),
       fail: vi.fn().mockReturnThis(),
+      stop: vi.fn().mockReturnThis(),
     })),
   };
 });

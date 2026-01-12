@@ -1,17 +1,12 @@
 import chalk from 'chalk';
-import ora from 'ora';
 import { getCurrentUser } from '../lib/jira-client.js';
 import { formatUserInfo } from '../lib/formatters.js';
+import { ui } from '../lib/ui.js';
 
 export async function meCommand(): Promise<void> {
-  const spinner = ora('Fetching user information...').start();
+  ui.startSpinner('Fetching user information...');
 
-  try {
-    const user = await getCurrentUser();
-    spinner.succeed(chalk.green('User information retrieved'));
-    console.log(formatUserInfo(user));
-  } catch (error) {
-    spinner.fail(chalk.red('Failed to fetch user information'));
-    throw error;
-  }
+  const user = await getCurrentUser();
+  ui.succeedSpinner(chalk.green('User information retrieved'));
+  console.log(formatUserInfo(user));
 }

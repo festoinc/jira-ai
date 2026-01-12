@@ -1,11 +1,10 @@
-import { vi, describe, it, expect, beforeEach, afterEach, beforeAll, afterAll, test } from 'vitest';
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { authCommand } from '../src/commands/auth.js';
 import * as jiraClient from '../src/lib/jira-client.js';
 import * as authStorage from '../src/lib/auth-storage.js';
-import { CliError } from '../src/types/errors.js';
+import { CommandError } from '../src/lib/errors.js';
 import ora from 'ora';
 import fs from 'fs';
-import path from 'path';
 
 vi.mock('ora');
 vi.mock('../src/lib/jira-client.js');
@@ -30,6 +29,7 @@ describe('authCommand non-interactive', () => {
       start: vi.fn().mockReturnThis(),
       succeed: vi.fn().mockReturnThis(),
       fail: vi.fn().mockReturnThis(),
+      stop: vi.fn().mockReturnThis(),
     };
     (ora as unknown as vi.Mock).mockReturnValue(mockSpinner);
     consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
@@ -106,7 +106,7 @@ JIRA_API_TOKEN=file-token
 
   it('should fail when --from-json has invalid JSON', async () => {
     await expect(authCommand({ fromJson: '{ invalid json }' }))
-        .rejects.toThrow(CliError);
+        .rejects.toThrow(CommandError);
   });
 
   it('should fail when --from-json is missing fields', async () => {
@@ -116,12 +116,12 @@ JIRA_API_TOKEN=file-token
     });
 
     await expect(authCommand({ fromJson: incompleteJson }))
-        .rejects.toThrow(CliError);
+        .rejects.toThrow(CommandError);
   });
 
   it('should fail when --from-file points to non-existent file', async () => {
     await expect(authCommand({ fromFile: 'non-existent.env' }))
-        .rejects.toThrow(CliError);
+        .rejects.toThrow(CommandError);
   });
 
   it('should fail when authentication fails', async () => {
@@ -138,8 +138,8 @@ JIRA_API_TOKEN=file-token
     };
     (jiraClient.createTemporaryClient as vi.Mock).mockReturnValue(mockClient);
 
-    await expect(authCommand({ fromJson: validJson }))
-        .rejects.toThrow('Unauthorized');
-    expect(mockSpinner.fail).toHaveBeenCalledWith(expect.stringContaining('Authentication failed'));
+    const promise = authCommand({ fromJson: validJson });
+    await expect(promise).rejects.toThrow('Unauthorized');
+    await expect(promise).rejects.toBeInstanceOf(CommandError);
   });
 });

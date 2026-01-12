@@ -1,10 +1,10 @@
-import { vi, describe, it, expect, beforeEach, afterEach, beforeAll, afterAll, test } from 'vitest';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { addCommentCommand } from '../src/commands/add-comment.js';
 import * as jiraClient from '../src/lib/jira-client.js';
 import * as fs from 'fs';
 import * as path from 'path';
 import { markdownToAdf } from 'marklassian';
-import { CliError } from '../src/types/errors.js';
+import { CommandError } from '../src/lib/errors.js';
 
 // Mock dependencies
 vi.mock('fs');
@@ -17,6 +17,7 @@ vi.mock('ora', () => {
       start: vi.fn().mockReturnThis(),
       succeed: vi.fn().mockReturnThis(),
       fail: vi.fn().mockReturnThis(),
+      stop: vi.fn().mockReturnThis(),
     })),
   };
 });
@@ -68,7 +69,7 @@ describe('Add Comment Command', () => {
 
   it('should throw error when issue key is empty', async () => {
     await expect(addCommentCommand({ filePath: mockFilePath, issueKey: '' })).rejects.toThrow(
-      CliError
+      CommandError
     );
     await expect(addCommentCommand({ filePath: mockFilePath, issueKey: '' })).rejects.toThrow(
       'Issue key is required'
@@ -77,7 +78,7 @@ describe('Add Comment Command', () => {
 
   it('should throw error when file path is empty', async () => {
     await expect(addCommentCommand({ filePath: '', issueKey: mockIssueKey })).rejects.toThrow(
-      CliError
+      CommandError
     );
     await expect(addCommentCommand({ filePath: '', issueKey: mockIssueKey })).rejects.toThrow(
       'File path is required'
@@ -89,7 +90,7 @@ describe('Add Comment Command', () => {
 
     await expect(
       addCommentCommand({ filePath: mockFilePath, issueKey: mockIssueKey })
-    ).rejects.toThrow(CliError);
+    ).rejects.toThrow(CommandError);
     await expect(
       addCommentCommand({ filePath: mockFilePath, issueKey: mockIssueKey })
     ).rejects.toThrow('File not found');
@@ -103,7 +104,7 @@ describe('Add Comment Command', () => {
 
     await expect(
       addCommentCommand({ filePath: mockFilePath, issueKey: mockIssueKey })
-    ).rejects.toThrow(CliError);
+    ).rejects.toThrow(CommandError);
     await expect(
       addCommentCommand({ filePath: mockFilePath, issueKey: mockIssueKey })
     ).rejects.toThrow('Error reading file');
@@ -114,7 +115,7 @@ describe('Add Comment Command', () => {
 
     await expect(
       addCommentCommand({ filePath: mockFilePath, issueKey: mockIssueKey })
-    ).rejects.toThrow(CliError);
+    ).rejects.toThrow(CommandError);
     await expect(
       addCommentCommand({ filePath: mockFilePath, issueKey: mockIssueKey })
     ).rejects.toThrow('File is empty');
@@ -128,7 +129,7 @@ describe('Add Comment Command', () => {
 
     await expect(
       addCommentCommand({ filePath: mockFilePath, issueKey: mockIssueKey })
-    ).rejects.toThrow(CliError);
+    ).rejects.toThrow(CommandError);
     await expect(
       addCommentCommand({ filePath: mockFilePath, issueKey: mockIssueKey })
     ).rejects.toThrow('Error converting Markdown to ADF');
@@ -138,25 +139,19 @@ describe('Add Comment Command', () => {
     const apiError = new Error('Issue not found (404)');
     mockJiraClient.addIssueComment = vi.fn().mockRejectedValue(apiError);
 
-    await expect(
-      addCommentCommand({ filePath: mockFilePath, issueKey: mockIssueKey })
-    ).rejects.toThrow('Issue not found (404)');
-
-    expect(console.log).toHaveBeenCalledWith(
-      expect.stringContaining('Check that the issue key is correct')
-    );
+    const promise = addCommentCommand({ filePath: mockFilePath, issueKey: mockIssueKey });
+    await expect(promise).rejects.toThrow('Issue not found (404)');
+    const error = await promise.catch(e => e);
+    expect(error.hints).toContain('Check that the issue key is correct');
   });
 
   it('should throw error and hint when permission denied (403)', async () => {
     const apiError = new Error('Permission denied (403)');
     mockJiraClient.addIssueComment = vi.fn().mockRejectedValue(apiError);
 
-    await expect(
-      addCommentCommand({ filePath: mockFilePath, issueKey: mockIssueKey })
-    ).rejects.toThrow('Permission denied (403)');
-
-    expect(console.log).toHaveBeenCalledWith(
-      expect.stringContaining('You may not have permission to comment on this issue')
-    );
+    const promise = addCommentCommand({ filePath: mockFilePath, issueKey: mockIssueKey });
+    await expect(promise).rejects.toThrow('Permission denied (403)');
+    const error = await promise.catch(e => e);
+    expect(error.hints).toContain('You may not have permission to comment on this issue');
   });
 });

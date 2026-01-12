@@ -1,10 +1,10 @@
 import chalk from 'chalk';
-import ora from 'ora';
 import * as fs from 'fs';
 import * as path from 'path';
 import { markdownToAdf } from 'marklassian';
 import { updateIssueDescription } from '../lib/jira-client.js';
-import { CliError } from '../types/errors.js';
+import { CommandError } from '../lib/errors.js';
+import { ui } from '../lib/ui.js';
 import { validateOptions, UpdateDescriptionSchema, IssueKeySchema } from '../lib/validation.js';
 
 export async function updateDescriptionCommand(
@@ -26,43 +26,43 @@ export async function updateDescriptionCommand(
   let markdownContent: string;
   try {
     markdownContent = fs.readFileSync(absolutePath, 'utf-8');
-  } catch (error) {
-    throw new CliError(`Error reading file: ${error instanceof Error ? error.message : String(error)}`);
+  } catch (error: any) {
+    throw new CommandError(`Error reading file: ${error.message}`, {
+      hints: ['Make sure the file exists and you have permission to read it.']
+    });
   }
 
 
   // Validate file is not empty
   if (markdownContent.trim() === '') {
-    throw new CliError('File is empty');
+    throw new CommandError('File is empty');
   }
 
   // Convert Markdown to ADF
   let adfContent: any;
   try {
     adfContent = markdownToAdf(markdownContent);
-  } catch (error) {
-    throw new CliError(`Error converting Markdown to ADF: ${error instanceof Error ? error.message : String(error)}`);
+  } catch (error: any) {
+    throw new CommandError(`Error converting Markdown to ADF: ${error.message}`, {
+      hints: ['Ensure the Markdown content is valid.']
+    });
   }
 
   // Update issue description with spinner
-  const spinner = ora(`Updating description for ${taskId}...`).start();
+  ui.startSpinner(`Updating description for ${taskId}...`);
 
   try {
     await updateIssueDescription(taskId, adfContent);
-    spinner.succeed(chalk.green(`Description updated successfully for ${taskId}`));
+    ui.succeedSpinner(chalk.green(`Description updated successfully for ${taskId}`));
     console.log(chalk.gray(`\nFile: ${absolutePath}`));
-  } catch (error) {
-    spinner.fail(chalk.red('Failed to update description'));
-
-    // Provide helpful hints based on error
-    if (error instanceof Error && error.message.includes('404')) {
-      console.log(chalk.yellow('\nHint: Check that the task ID is correct'));
-    } else if (error instanceof Error && error.message.includes('403')) {
-      console.log(
-        chalk.yellow('\nHint: You may not have permission to edit this issue')
-      );
+  } catch (error: any) {
+    const hints: string[] = [];
+    if (error.message?.includes('404')) {
+      hints.push('Check that the task ID is correct');
+    } else if (error.message?.includes('403')) {
+      hints.push('You may not have permission to edit this issue');
     }
 
-    throw error;
+    throw new CommandError(`Failed to update description: ${error.message}`, { hints });
   }
 }
