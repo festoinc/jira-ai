@@ -12,6 +12,8 @@ import { listIssueTypesCommand } from './commands/list-issue-types';
 import { runJqlCommand } from './commands/run-jql';
 import { updateDescriptionCommand } from './commands/update-description';
 import { addCommentCommand } from './commands/add-comment';
+import { addLabelCommand } from './commands/add-label';
+import { deleteLabelCommand } from './commands/delete-label';
 import { createTaskCommand } from './commands/create-task';
 import { aboutCommand } from './commands/about';
 import { authCommand } from './commands/auth';
@@ -109,6 +111,18 @@ program
   .requiredOption('--file-path <path>', 'Path to Markdown file')
   .requiredOption('--issue-key <key>', 'Jira issue key (e.g., PS-123)')
   .action(withPermission('add-comment', addCommentCommand));
+
+// Add label command
+program
+  .command('add-label-to-issue <task-id> <labels>')
+  .description('Add one or more labels to a Jira issue (comma-separated)')
+  .action(withPermission('add-label-to-issue', addLabelCommand));
+
+// Delete label command
+program
+  .command('delete-label-from-issue <task-id> <labels>')
+  .description('Remove one or more labels from a Jira issue (comma-separated)')
+  .action(withPermission('delete-label-from-issue', deleteLabelCommand));
 
 // Create task command
 program

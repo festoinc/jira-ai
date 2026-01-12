@@ -428,3 +428,43 @@ export async function createIssue(
     id: response.id || '',
   };
 }
+
+/**
+ * Add labels to a Jira issue
+ * @param taskId - The issue key (e.g., "PROJ-123")
+ * @param labels - Array of labels to add
+ */
+export async function addIssueLabels(
+  taskId: string,
+  labels: string[]
+): Promise<void> {
+  const client = getJiraClient();
+  await client.issues.editIssue({
+    issueIdOrKey: taskId,
+    update: {
+      labels: labels.map(label => ({
+        add: label,
+      })),
+    },
+  });
+}
+
+/**
+ * Remove labels from a Jira issue
+ * @param taskId - The issue key (e.g., "PROJ-123")
+ * @param labels - Array of labels to remove
+ */
+export async function removeIssueLabels(
+  taskId: string,
+  labels: string[]
+): Promise<void> {
+  const client = getJiraClient();
+  await client.issues.editIssue({
+    issueIdOrKey: taskId,
+    update: {
+      labels: labels.map(label => ({
+        remove: label,
+      })),
+    },
+  });
+}

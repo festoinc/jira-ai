@@ -1,12 +1,14 @@
-import { getTaskWithDetails } from '../src/lib/jira-client';
+import { getTaskWithDetails, addIssueLabels, removeIssueLabels } from '../src/lib/jira-client';
 import { Version3Client } from 'jira.js';
 
 // Mock dependencies
 const mockGetIssue = jest.fn();
+const mockEditIssue = jest.fn();
 jest.mock('jira.js', () => ({
   Version3Client: jest.fn().mockImplementation(() => ({
     issues: {
-      getIssue: mockGetIssue
+      getIssue: mockGetIssue,
+      editIssue: mockEditIssue
     }
   }))
 }));
@@ -122,6 +124,44 @@ describe('Jira Client', () => {
       expect(result.parent).toBeUndefined();
       expect(result.subtasks).toEqual([]);
       expect(result.labels).toEqual([]);
+    });
+  });
+
+  describe('addIssueLabels', () => {
+    it('should call editIssue with correct add operations', async () => {
+      mockEditIssue.mockResolvedValue({});
+      const labels = ['label1', 'label2'];
+      
+      await addIssueLabels('PROJ-123', labels);
+
+      expect(mockEditIssue).toHaveBeenCalledWith({
+        issueIdOrKey: 'PROJ-123',
+        update: {
+          labels: [
+            { add: 'label1' },
+            { add: 'label2' }
+          ]
+        }
+      });
+    });
+  });
+
+  describe('removeIssueLabels', () => {
+    it('should call editIssue with correct remove operations', async () => {
+      mockEditIssue.mockResolvedValue({});
+      const labels = ['label1', 'label2'];
+      
+      await removeIssueLabels('PROJ-123', labels);
+
+      expect(mockEditIssue).toHaveBeenCalledWith({
+        issueIdOrKey: 'PROJ-123',
+        update: {
+          labels: [
+            { remove: 'label1' },
+            { remove: 'label2' }
+          ]
+        }
+      });
     });
   });
 });
