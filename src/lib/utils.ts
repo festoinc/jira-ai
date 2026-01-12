@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import { fromADF } from 'mdast-util-from-adf';
 import { toMarkdown } from 'mdast-util-to-markdown';
-import { hasCredentials } from './auth-storage';
+import { hasCredentials } from './auth-storage.js';
 
 /**
  * Validate required environment variables or stored credentials

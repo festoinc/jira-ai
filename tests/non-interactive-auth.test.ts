@@ -1,39 +1,42 @@
-import { authCommand } from '../src/commands/auth';
-import * as jiraClient from '../src/lib/jira-client';
-import * as authStorage from '../src/lib/auth-storage';
+import { vi, describe, it, expect, beforeEach, afterEach, beforeAll, afterAll, test } from 'vitest';
+import { authCommand } from '../src/commands/auth.js';
+import * as jiraClient from '../src/lib/jira-client.js';
+import * as authStorage from '../src/lib/auth-storage.js';
 import ora from 'ora';
 import fs from 'fs';
 import path from 'path';
 
-jest.mock('ora');
-jest.mock('../src/lib/jira-client');
-jest.mock('../src/lib/auth-storage');
-jest.mock('readline', () => ({
-  createInterface: jest.fn().mockReturnValue({
-    question: jest.fn(),
-    close: jest.fn(),
-  }),
+vi.mock('ora');
+vi.mock('../src/lib/jira-client.js');
+vi.mock('../src/lib/auth-storage.js');
+vi.mock('readline', () => ({
+  default: {
+    createInterface: vi.fn().mockReturnValue({
+      question: vi.fn(),
+      close: vi.fn(),
+    }),
+  }
 }));
 
 describe('authCommand non-interactive', () => {
   let mockSpinner: any;
-  let exitSpy: jest.SpyInstance;
-  let consoleSpy: jest.SpyInstance;
-  let errorSpy: jest.SpyInstance;
+  let exitSpy: vi.SpyInstance;
+  let consoleSpy: vi.SpyInstance;
+  let errorSpy: vi.SpyInstance;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     mockSpinner = {
-      start: jest.fn().mockReturnThis(),
-      succeed: jest.fn().mockReturnThis(),
-      fail: jest.fn().mockReturnThis(),
+      start: vi.fn().mockReturnThis(),
+      succeed: vi.fn().mockReturnThis(),
+      fail: vi.fn().mockReturnThis(),
     };
-    (ora as unknown as jest.Mock).mockReturnValue(mockSpinner);
-    exitSpy = jest.spyOn(process, 'exit').mockImplementation((code?: number | string | null | undefined) => {
+    (ora as unknown as vi.Mock).mockReturnValue(mockSpinner);
+    exitSpy = vi.spyOn(process, 'exit').mockImplementation((code?: number | string | null | undefined) => {
         throw new Error(`process.exit: ${code}`);
     });
-    consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
-    errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -55,10 +58,10 @@ describe('authCommand non-interactive', () => {
     const mockUser = { displayName: 'Test User', emailAddress: 'test@example.com' };
     const mockClient = {
       myself: {
-        getCurrentUser: jest.fn().mockResolvedValue(mockUser)
+        getCurrentUser: vi.fn().mockResolvedValue(mockUser)
       }
     };
-    (jiraClient.createTemporaryClient as jest.Mock).mockReturnValue(mockClient);
+    (jiraClient.createTemporaryClient as vi.Mock).mockReturnValue(mockClient);
 
     await authCommand({ fromJson: validJson });
 
@@ -86,10 +89,10 @@ JIRA_API_TOKEN=file-token
     const mockUser = { displayName: 'File User', emailAddress: 'file@example.com' };
     const mockClient = {
       myself: {
-        getCurrentUser: jest.fn().mockResolvedValue(mockUser)
+        getCurrentUser: vi.fn().mockResolvedValue(mockUser)
       }
     };
-    (jiraClient.createTemporaryClient as jest.Mock).mockReturnValue(mockClient);
+    (jiraClient.createTemporaryClient as vi.Mock).mockReturnValue(mockClient);
 
     await authCommand({ fromFile: 'test.env' });
 
@@ -137,10 +140,10 @@ JIRA_API_TOKEN=file-token
 
     const mockClient = {
       myself: {
-        getCurrentUser: jest.fn().mockRejectedValue(new Error('Unauthorized'))
+        getCurrentUser: vi.fn().mockRejectedValue(new Error('Unauthorized'))
       }
     };
-    (jiraClient.createTemporaryClient as jest.Mock).mockReturnValue(mockClient);
+    (jiraClient.createTemporaryClient as vi.Mock).mockReturnValue(mockClient);
 
     await expect(authCommand({ fromJson: validJson }))
         .rejects.toThrow('process.exit: 1');

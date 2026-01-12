@@ -1,13 +1,19 @@
+import { describe, it, expect, vi, beforeAll, afterAll, beforeEach, test } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // Mock os.homedir()
 const tempDir = path.join(__dirname, 'temp-home');
-const homedirSpy = jest.spyOn(os, 'homedir').mockReturnValue(tempDir);
+const homedirSpy = vi.spyOn(os, 'homedir').mockReturnValue(tempDir);
 
 // Now import the module under test
-import { saveCredentials, loadCredentials, hasCredentials, clearCredentials } from '../src/lib/auth-storage';
+import { saveCredentials, loadCredentials, hasCredentials, clearCredentials } from '../src/lib/auth-storage.js';
 
 describe('auth-storage', () => {
   beforeAll(() => {
@@ -26,7 +32,6 @@ describe('auth-storage', () => {
   beforeEach(() => {
     clearCredentials();
   });
-// ...
 
   test('should save and load credentials', () => {
     const creds = {

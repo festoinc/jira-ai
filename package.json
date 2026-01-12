@@ -1,10 +1,11 @@
 {
   "name": "jira-ai",
-  "version": "0.3.8",
+  "version": "0.3.9",
   "description": "AI friendly Jira CLI to save context",
+  "type": "module",
   "main": "dist/cli.js",
   "bin": {
-    "jira-ai": "./dist/cli.js"
+    "jira-ai": "dist/cli.js"
   },
   "files": [
     "dist",
@@ -13,22 +14,22 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/festoinc/jira-ai.git"
+    "url": "git+https://github.com/festoinc/jira-ai.git"
   },
   "bugs": {
     "url": "https://github.com/festoinc/jira-ai/issues"
   },
   "homepage": "https://github.com/festoinc/jira-ai#readme",
   "scripts": {
-    "dev": "ts-node src/cli.ts",
+    "dev": "tsx src/cli.ts",
     "build": "tsc && chmod +x dist/cli.js",
     "start": "node dist/cli.js",
     "link": "npm run build && npm link",
     "prepublishOnly": "npm run build && npm test",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
-    "test:verbose": "jest --verbose"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:ui": "vitest --ui"
   },
   "keywords": [
     "jira",
@@ -43,28 +44,28 @@
   "author": "Anatolii Fesiuk",
   "license": "Apache-2.0",
   "engines": {
-    "node": ">=14.0.0"
+    "node": ">=18.0.0"
   },
   "dependencies": {
-    "chalk": "^4.1.2",
+    "chalk": "^5.6.2",
     "cli-table3": "^0.6.5",
     "commander": "^11.0.0",
     "dotenv": "^17.2.3",
+    "inquirer": "^9.3.8",
     "jira.js": "^5.2.2",
     "js-yaml": "^4.1.1",
     "marklassian": "^1.0.0",
     "mdast-util-from-adf": "^2.2.0",
     "mdast-util-to-markdown": "^2.1.2",
-    "ora": "^5.4.1"
+    "ora": "^6.3.1"
   },
   "devDependencies": {
-    "@types/jest": "^30.0.0",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^25.0.3",
-    "jest": "^30.2.0",
-    "ts-jest": "^29.4.6",
-    "ts-node": "^10.9.2",
-    "typescript": "^5.9.3"
+    "@vitest/coverage-v8": "^4.0.17",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.17"
   },
   "overrides": {
     "adf-builder": "npm:@atlaskit/adf-utils@^19.26.4",

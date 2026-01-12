@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import ora from 'ora';
-import { getProjectStatuses } from '../lib/jira-client';
-import { formatProjectStatuses } from '../lib/formatters';
+import { getProjectStatuses } from '../lib/jira-client.js';
+import { formatProjectStatuses } from '../lib/formatters.js';
 
 export async function projectStatusesCommand(projectId: string): Promise<void> {
   const spinner = ora(`Fetching statuses for project ${projectId}...`).start();

@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import ora from 'ora';
-import { searchIssuesByJql } from '../lib/jira-client';
-import { formatJqlResults } from '../lib/formatters';
+import { searchIssuesByJql } from '../lib/jira-client.js';
+import { formatJqlResults } from '../lib/formatters.js';
 
 export async function runJqlCommand(jqlQuery: string, options: { limit: string }): Promise<void> {
   // Validate JQL query is not empty

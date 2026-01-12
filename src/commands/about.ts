@@ -1,5 +1,5 @@
 import chalk from 'chalk';
-import { getAllowedCommands, getAllowedProjects, isCommandAllowed, getSettingsPath } from '../lib/settings';
+import { getAllowedCommands, getAllowedProjects, isCommandAllowed, getSettingsPath } from '../lib/settings.js';
 
 interface CommandInfo {
   name: string;

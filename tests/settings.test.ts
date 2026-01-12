@@ -1,3 +1,4 @@
+import { vi, describe, it, expect, beforeEach, afterEach, beforeAll, afterAll, test } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
@@ -8,11 +9,11 @@ import {
   getAllowedProjects,
   getAllowedCommands,
   __resetCache__
-} from '../src/lib/settings';
+} from '../src/lib/settings.js';
 
 // Mock fs module
-jest.mock('fs');
-const mockFs = fs as jest.Mocked<typeof fs>;
+vi.mock('fs');
+const mockFs = fs as vi.Mocked<typeof fs>;
 
 describe('Settings Module', () => {
   const mockConfigDir = path.join(os.homedir(), '.jira-ai');
@@ -20,7 +21,7 @@ describe('Settings Module', () => {
   const mockLocalSettingsPath = path.join(process.cwd(), 'settings.yaml');
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     // Reset the settings cache before each test
     __resetCache__();
   });
@@ -96,8 +97,8 @@ commands:
       });
       mockFs.readFileSync.mockReturnValue('invalid: yaml: content:');
 
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
-      const processExitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation();
+      const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
         throw new Error('Process exit');
       });
 

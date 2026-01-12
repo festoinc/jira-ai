@@ -1,6 +1,6 @@
 import chalk from 'chalk';
 import ora from 'ora';
-import { addIssueLabels } from '../lib/jira-client';
+import { addIssueLabels } from '../lib/jira-client.js';
 
 export async function addLabelCommand(
   taskId: string,
