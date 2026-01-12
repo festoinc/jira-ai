@@ -73,3 +73,82 @@ export function convertADFToMarkdown(content: any): string {
     return JSON.stringify(content, null, 2);
   }
 }
+
+/**
+ * Calculate time spent in each status
+ */
+export function calculateStatusStatistics(
+  created: string,
+  histories: any[],
+  currentStatus: string,
+  now: number = Date.now()
+): Record<string, number> {
+  const stats: Record<string, number> = {};
+
+  // Sort histories by date
+  const sortedHistories = [...histories].sort((a, b) =>
+    new Date(a.created).getTime() - new Date(b.created).getTime()
+  );
+
+  let lastTransitionTime = new Date(created).getTime();
+  let lastStatus = '';
+
+  const statusHistories = sortedHistories.filter(h =>
+    h.items.some((item: any) => item.field === 'status')
+  );
+
+  if (statusHistories.length > 0) {
+    const firstStatusItem = statusHistories[0].items.find((item: any) => item.field === 'status');
+    lastStatus = firstStatusItem.fromString;
+  } else {
+    lastStatus = currentStatus;
+  }
+
+  for (const history of statusHistories) {
+    const statusItem = history.items.find((item: any) => item.field === 'status');
+    if (!statusItem) continue;
+
+    const transitionTime = new Date(history.created).getTime();
+    const durationSeconds = Math.max(0, Math.floor((transitionTime - lastTransitionTime) / 1000));
+
+    stats[lastStatus] = (stats[lastStatus] || 0) + durationSeconds;
+
+    lastStatus = statusItem.toString;
+    lastTransitionTime = transitionTime;
+  }
+
+  // Add time for the current status
+  const finalDurationSeconds = Math.max(0, Math.floor((now - lastTransitionTime) / 1000));
+  stats[lastStatus] = (stats[lastStatus] || 0) + finalDurationSeconds;
+
+  return stats;
+}
+
+/**
+ * Format duration in seconds to Jira human-readable format
+ * @param seconds - Duration in seconds
+ * @param hoursPerDay - Hours in a working day (default 24 for brutto time)
+ */
+export function formatDuration(seconds: number, hoursPerDay: number = 24): string {
+  if (seconds <= 0) return '0m';
+
+  const daysPerWeek = hoursPerDay === 24 ? 7 : 5;
+  const secondsInDay = hoursPerDay * 3600;
+  const secondsInWeek = daysPerWeek * secondsInDay;
+
+  const w = Math.floor(seconds / secondsInWeek);
+  seconds %= secondsInWeek;
+  const d = Math.floor(seconds / secondsInDay);
+  seconds %= secondsInDay;
+  const h = Math.floor(seconds / 3600);
+  seconds %= 3600;
+  const m = Math.floor(seconds / 60);
+
+  const parts = [];
+  if (w > 0) parts.push(`${w}w`);
+  if (d > 0) parts.push(`${d}d`);
+  if (h > 0) parts.push(`${h}h`);
+  if (m > 0) parts.push(`${m}m`);
+
+  return parts.length > 0 ? parts.join(' ') : '0m';
+}

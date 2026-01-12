@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import Table from 'cli-table3';
-import { UserInfo, Project, TaskDetails, Status, JqlIssue, IssueType } from './jira-client.js';
-import { formatTimestamp, truncate } from './utils.js';
+import { UserInfo, Project, TaskDetails, Status, JqlIssue, IssueType, IssueStatistics } from './jira-client.js';
+import { formatTimestamp, truncate, formatDuration } from './utils.js';
 
 /**
  * Create a styled table
@@ -280,6 +280,51 @@ export function formatProjectIssueTypes(projectKey: string, issueTypes: IssueTyp
 
     output += subtaskTable.toString() + '\n';
   }
+
+  return output;
+}
+
+/**
+ * Format issue statistics
+ */
+export function formatIssueStatistics(statsList: IssueStatistics[]): string {
+  if (statsList.length === 0) {
+    return chalk.yellow('No statistics to display.');
+  }
+
+  const table = createTable([
+    'Key',
+    'Summary',
+    'Time Logged',
+    'Estimate',
+    'Status Breakdown'
+  ], [12, 30, 15, 15, 40]);
+
+  statsList.forEach((stats) => {
+    // Breakdown of time spent in each unique status
+    const breakdown = Object.entries(stats.statusDurations)
+      .map(([status, seconds]) => `${status}: ${formatDuration(seconds, 24)}`)
+      .join('\n');
+
+    const timeSpentStr = formatDuration(stats.timeSpentSeconds, 8);
+    const estimateStr = formatDuration(stats.originalEstimateSeconds, 8);
+
+    // Highlight if time spent exceeds estimate
+    const timeSpentFormatted = stats.timeSpentSeconds > stats.originalEstimateSeconds && stats.originalEstimateSeconds > 0
+      ? chalk.red(timeSpentStr)
+      : chalk.green(timeSpentStr);
+
+    table.push([
+      chalk.cyan(stats.key),
+      truncate(stats.summary, 30),
+      timeSpentFormatted,
+      estimateStr,
+      breakdown
+    ]);
+  });
+
+  let output = '\n' + chalk.bold('Issue Statistics') + '\n\n';
+  output += table.toString() + '\n';
 
   return output;
 }
