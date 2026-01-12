@@ -1,7 +1,7 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { validateEnvVars } from '../src/lib/utils.js';
 import * as authStorage from '../src/lib/auth-storage.js';
-import { CliError } from '../src/types/errors.js';
+import { CommandError } from '../src/lib/errors.js';
 
 vi.mock('../src/lib/auth-storage.js');
 
@@ -18,7 +18,7 @@ describe('Utils Module', () => {
   });
 
   describe('validateEnvVars', () => {
-    it('should throw CliError if credentials are missing', () => {
+    it('should throw CommandError if credentials are missing', () => {
       // Clear environment variables
       delete process.env.JIRA_HOST;
       delete process.env.JIRA_USER_EMAIL;
@@ -26,8 +26,7 @@ describe('Utils Module', () => {
 
       vi.spyOn(authStorage, 'hasCredentials').mockReturnValue(false);
 
-      // This is expected to fail initially because validateEnvVars calls process.exit(1)
-      expect(() => validateEnvVars()).toThrow(CliError);
+      expect(() => validateEnvVars()).toThrow(CommandError);
     });
 
     it('should not throw if environment variables are present', () => {

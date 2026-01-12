@@ -19,6 +19,8 @@ import { aboutCommand } from './commands/about.js';
 import { authCommand } from './commands/auth.js';
 import { isCommandAllowed, getAllowedCommands } from './lib/settings.js';
 import { CliError } from './types/errors.js';
+import { CommandError } from './lib/errors.js';
+import { ui } from './lib/ui.js';
 import { 
   validateOptions, 
   CreateTaskSchema, 
@@ -38,7 +40,7 @@ const program = new Command();
 program
   .name('jira-ai')
   .description('CLI tool for interacting with Atlassian Jira')
-  .version('0.3.10');
+  .version('0.3.12');
 
 // Middleware to validate credentials for commands that need them
 const validateCredentials = () => {
@@ -57,10 +59,14 @@ function withPermission(
     }
     
     if (!isCommandAllowed(commandName)) {
-      throw new CliError(
-        `Command '${commandName}' is not allowed.\n` +
-        `Allowed commands: ${getAllowedCommands().join(', ')}\n` +
-        `Update settings.yaml to enable this command.`
+      throw new CommandError(
+        `Command '${commandName}' is not allowed.`,
+        {
+          hints: [
+            `Allowed commands: ${getAllowedCommands().join(', ')}`,
+            `Update settings.yaml to enable this command.`
+          ]
+        }
       );
     }
 
@@ -208,18 +214,31 @@ async function main() {
   try {
     await program.parseAsync(process.argv);
   } catch (error) {
-    if (error instanceof CliError) {
+    ui.failSpinner();
+    
+    if (error instanceof CommandError) {
+      console.error(chalk.red(`\n❌ Error: ${error.message}`));
+      if (error.hints.length > 0) {
+        error.hints.forEach(hint => {
+          console.error(chalk.yellow(`   Hint: ${hint}`));
+        });
+      }
+      console.log(); // Add a newline
+      process.exit(error.exitCode);
+    } else if (error instanceof CliError) {
       console.error(chalk.red(`\n❌ ${error.message}\n`));
+      process.exit(1);
     } else if (error instanceof Error) {
       console.error(chalk.red(`\n💥 Unexpected Error: ${error.message}`));
       if (process.env.DEBUG) {
         console.error(chalk.gray(error.stack));
       }
       console.error(chalk.gray('\nPlease report this issue if it persists.\n'));
+      process.exit(1);
     } else {
       console.error(chalk.red(`\n💥 An unknown error occurred: ${String(error)}\n`));
+      process.exit(1);
     }
-    process.exit(1);
   }
 }
 
