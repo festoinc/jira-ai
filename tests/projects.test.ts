@@ -138,15 +138,8 @@ describe('Projects Command', () => {
   it('should handle API errors gracefully', async () => {
     const mockError = new Error('API connection failed');
     mockJiraClient.getProjects.mockRejectedValue(mockError);
-    const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
-      throw new Error('Process exit');
-    });
 
-    await expect(projectsCommand()).rejects.toThrow('Process exit');
-    expect(console.error).toHaveBeenCalled();
-    expect(processExitSpy).toHaveBeenCalledWith(1);
-
-    processExitSpy.mockRestore();
+    await expect(projectsCommand()).rejects.toThrow('API connection failed');
   });
 
   it('should filter out projects not in the allowed list', async () => {

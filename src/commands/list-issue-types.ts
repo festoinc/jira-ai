@@ -12,7 +12,6 @@ export async function listIssueTypesCommand(projectKey: string): Promise<void> {
     console.log(formatProjectIssueTypes(projectKey, issueTypes));
   } catch (error) {
     spinner.fail(chalk.red('Failed to fetch issue types'));
-    console.error(chalk.red('\nError: ' + (error instanceof Error ? error.message : 'Unknown error')));
-    process.exit(1);
+    throw error;
   }
 }

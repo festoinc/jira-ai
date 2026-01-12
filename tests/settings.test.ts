@@ -2,14 +2,8 @@ import { vi, describe, it, expect, beforeEach, afterEach, beforeAll, afterAll, t
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
-import {
-  loadSettings,
-  isProjectAllowed,
-  isCommandAllowed,
-  getAllowedProjects,
-  getAllowedCommands,
-  __resetCache__
-} from '../src/lib/settings.js';
+import { loadSettings, isProjectAllowed, isCommandAllowed, getAllowedProjects, getAllowedCommands, __resetCache__ } from '../src/lib/settings.js';
+import { CliError } from '../src/types/errors.js';
 
 // Mock fs module
 vi.mock('fs');
@@ -89,7 +83,7 @@ commands:
       expect(settings.commands).toEqual(['all']);
     });
 
-    it('should exit process on invalid YAML', () => {
+    it('should throw CliError on invalid YAML', () => {
       mockFs.existsSync.mockImplementation((path) => {
         if (path === mockConfigDir) return true;
         if (path === mockSettingsPath) return true;
@@ -97,17 +91,7 @@ commands:
       });
       mockFs.readFileSync.mockReturnValue('invalid: yaml: content:');
 
-      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation();
-      const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
-        throw new Error('Process exit');
-      });
-
-      expect(() => loadSettings()).toThrow('Process exit');
-      expect(consoleErrorSpy).toHaveBeenCalled();
-      expect(processExitSpy).toHaveBeenCalledWith(1);
-
-      consoleErrorSpy.mockRestore();
-      processExitSpy.mockRestore();
+      expect(() => loadSettings()).toThrow(CliError);
     });
   });
 

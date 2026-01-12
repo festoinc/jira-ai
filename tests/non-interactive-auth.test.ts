@@ -2,6 +2,7 @@ import { vi, describe, it, expect, beforeEach, afterEach, beforeAll, afterAll, t
 import { authCommand } from '../src/commands/auth.js';
 import * as jiraClient from '../src/lib/jira-client.js';
 import * as authStorage from '../src/lib/auth-storage.js';
+import { CliError } from '../src/types/errors.js';
 import ora from 'ora';
 import fs from 'fs';
 import path from 'path';
@@ -20,7 +21,6 @@ vi.mock('readline', () => ({
 
 describe('authCommand non-interactive', () => {
   let mockSpinner: any;
-  let exitSpy: vi.SpyInstance;
   let consoleSpy: vi.SpyInstance;
   let errorSpy: vi.SpyInstance;
 
@@ -32,15 +32,11 @@ describe('authCommand non-interactive', () => {
       fail: vi.fn().mockReturnThis(),
     };
     (ora as unknown as vi.Mock).mockReturnValue(mockSpinner);
-    exitSpy = vi.spyOn(process, 'exit').mockImplementation((code?: number | string | null | undefined) => {
-        throw new Error(`process.exit: ${code}`);
-    });
     consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
     errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
-    exitSpy.mockRestore();
     consoleSpy.mockRestore();
     errorSpy.mockRestore();
     if (fs.existsSync('test.env')) {
@@ -110,8 +106,7 @@ JIRA_API_TOKEN=file-token
 
   it('should fail when --from-json has invalid JSON', async () => {
     await expect(authCommand({ fromJson: '{ invalid json }' }))
-        .rejects.toThrow('process.exit: 1');
-    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('Invalid JSON'));
+        .rejects.toThrow(CliError);
   });
 
   it('should fail when --from-json is missing fields', async () => {
@@ -121,14 +116,12 @@ JIRA_API_TOKEN=file-token
     });
 
     await expect(authCommand({ fromJson: incompleteJson }))
-        .rejects.toThrow('process.exit: 1');
-    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('Missing required fields'));
+        .rejects.toThrow(CliError);
   });
 
   it('should fail when --from-file points to non-existent file', async () => {
     await expect(authCommand({ fromFile: 'non-existent.env' }))
-        .rejects.toThrow('process.exit: 1');
-    expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('File not found'));
+        .rejects.toThrow(CliError);
   });
 
   it('should fail when authentication fails', async () => {
@@ -146,7 +139,7 @@ JIRA_API_TOKEN=file-token
     (jiraClient.createTemporaryClient as vi.Mock).mockReturnValue(mockClient);
 
     await expect(authCommand({ fromJson: validJson }))
-        .rejects.toThrow('process.exit: 1');
+        .rejects.toThrow('Unauthorized');
     expect(mockSpinner.fail).toHaveBeenCalledWith(expect.stringContaining('Authentication failed'));
   });
 });

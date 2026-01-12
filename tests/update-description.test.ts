@@ -4,6 +4,7 @@ import * as jiraClient from '../src/lib/jira-client.js';
 import * as fs from 'fs';
 import * as path from 'path';
 import { markdownToAdf } from 'marklassian';
+import { CliError } from '../src/types/errors.js';
 
 // Mock dependencies
 vi.mock('fs');
@@ -21,7 +22,7 @@ vi.mock('ora', () => {
 });
 
 const mockJiraClient = jiraClient as vi.Mocked<typeof jiraClient>;
-const mockFs = fs as vi.Mocked<typeof fs>;
+const mockFs = fs as vi.Mocked<typeof mockFs>;
 const mockMarkdownToAdf = markdownToAdf as vi.MockedFunction<typeof markdownToAdf>;
 
 describe('Update Description Command', () => {
@@ -65,168 +66,98 @@ describe('Update Description Command', () => {
     expect(console.log).toHaveBeenCalled();
   });
 
-  it('should exit with error when task ID is empty', async () => {
-    const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
-      throw new Error('Process exit');
-    });
-
+  it('should throw error when task ID is empty', async () => {
     await expect(updateDescriptionCommand('', { fromFile: mockFilePath })).rejects.toThrow(
-      'Process exit'
+      CliError
     );
-
-    expect(console.error).toHaveBeenCalledWith(
-      expect.stringContaining('Task ID cannot be empty')
+    await expect(updateDescriptionCommand('', { fromFile: mockFilePath })).rejects.toThrow(
+      'Task ID cannot be empty'
     );
-    expect(processExitSpy).toHaveBeenCalledWith(1);
-
-    processExitSpy.mockRestore();
   });
 
-  it('should exit with error when file does not exist', async () => {
+  it('should throw error when file does not exist', async () => {
     vi.spyOn(mockFs, 'existsSync').mockReturnValue(false);
-    const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
-      throw new Error('Process exit');
-    });
 
     await expect(
       updateDescriptionCommand(mockTaskId, { fromFile: mockFilePath })
-    ).rejects.toThrow('Process exit');
-
-    expect(console.error).toHaveBeenCalledWith(
-      expect.stringContaining('File not found')
-    );
-    expect(processExitSpy).toHaveBeenCalledWith(1);
-
-    processExitSpy.mockRestore();
+    ).rejects.toThrow(CliError);
+    await expect(
+      updateDescriptionCommand(mockTaskId, { fromFile: mockFilePath })
+    ).rejects.toThrow('File not found');
   });
 
-  it('should exit with error when file read fails', async () => {
+  it('should throw error when file read fails', async () => {
     const readError = new Error('Permission denied');
     vi.spyOn(mockFs, 'readFileSync').mockImplementation(() => {
       throw readError;
     });
-    const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
-      throw new Error('Process exit');
-    });
 
     await expect(
       updateDescriptionCommand(mockTaskId, { fromFile: mockFilePath })
-    ).rejects.toThrow('Process exit');
-
-    expect(console.error).toHaveBeenCalledWith(
-      expect.stringContaining('Error reading file')
-    );
-    expect(console.error).toHaveBeenCalledWith(
-      expect.stringContaining('Permission denied')
-    );
-    expect(processExitSpy).toHaveBeenCalledWith(1);
-
-    processExitSpy.mockRestore();
+    ).rejects.toThrow(CliError);
+    await expect(
+      updateDescriptionCommand(mockTaskId, { fromFile: mockFilePath })
+    ).rejects.toThrow('Error reading file');
   });
 
-  it('should exit with error when file is empty', async () => {
+  it('should throw error when file is empty', async () => {
     vi.spyOn(mockFs, 'readFileSync').mockReturnValue('   \n  \t  ');
-    const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
-      throw new Error('Process exit');
-    });
 
     await expect(
       updateDescriptionCommand(mockTaskId, { fromFile: mockFilePath })
-    ).rejects.toThrow('Process exit');
-
-    expect(console.error).toHaveBeenCalledWith(
-      expect.stringContaining('File is empty')
-    );
-    expect(processExitSpy).toHaveBeenCalledWith(1);
-
-    processExitSpy.mockRestore();
+    ).rejects.toThrow(CliError);
+    await expect(
+      updateDescriptionCommand(mockTaskId, { fromFile: mockFilePath })
+    ).rejects.toThrow('File is empty');
   });
 
-  it('should exit with error when markdown conversion fails', async () => {
+  it('should throw error when markdown conversion fails', async () => {
     const conversionError = new Error('Invalid markdown syntax');
     mockMarkdownToAdf.mockImplementation(() => {
       throw conversionError;
     });
-    const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
-      throw new Error('Process exit');
-    });
 
     await expect(
       updateDescriptionCommand(mockTaskId, { fromFile: mockFilePath })
-    ).rejects.toThrow('Process exit');
-
-    expect(console.error).toHaveBeenCalledWith(
-      expect.stringContaining('Error converting Markdown to ADF')
-    );
-    expect(console.error).toHaveBeenCalledWith(
-      expect.stringContaining('Invalid markdown syntax')
-    );
-    expect(processExitSpy).toHaveBeenCalledWith(1);
-
-    processExitSpy.mockRestore();
+    ).rejects.toThrow(CliError);
+    await expect(
+      updateDescriptionCommand(mockTaskId, { fromFile: mockFilePath })
+    ).rejects.toThrow('Error converting Markdown to ADF');
   });
 
-  it('should exit with error and hint when issue not found (404)', async () => {
+  it('should throw error and hint when issue not found (404)', async () => {
     const apiError = new Error('Issue not found (404)');
     mockJiraClient.updateIssueDescription = vi.fn().mockRejectedValue(apiError);
-    const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
-      throw new Error('Process exit');
-    });
 
     await expect(
       updateDescriptionCommand(mockTaskId, { fromFile: mockFilePath })
-    ).rejects.toThrow('Process exit');
+    ).rejects.toThrow('Issue not found (404)');
 
-    expect(console.error).toHaveBeenCalledWith(
-      expect.stringContaining('Issue not found (404)')
-    );
     expect(console.log).toHaveBeenCalledWith(
       expect.stringContaining('Check that the task ID is correct')
     );
-    expect(processExitSpy).toHaveBeenCalledWith(1);
-
-    processExitSpy.mockRestore();
   });
 
-  it('should exit with error and hint when permission denied (403)', async () => {
+  it('should throw error and hint when permission denied (403)', async () => {
     const apiError = new Error('Permission denied (403)');
     mockJiraClient.updateIssueDescription = vi.fn().mockRejectedValue(apiError);
-    const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
-      throw new Error('Process exit');
-    });
 
     await expect(
       updateDescriptionCommand(mockTaskId, { fromFile: mockFilePath })
-    ).rejects.toThrow('Process exit');
+    ).rejects.toThrow('Permission denied (403)');
 
-    expect(console.error).toHaveBeenCalledWith(
-      expect.stringContaining('Permission denied (403)')
-    );
     expect(console.log).toHaveBeenCalledWith(
       expect.stringContaining('You may not have permission to edit this issue')
     );
-    expect(processExitSpy).toHaveBeenCalledWith(1);
-
-    processExitSpy.mockRestore();
   });
 
-  it('should exit with error for other API errors', async () => {
+  it('should throw error for other API errors', async () => {
     const apiError = new Error('Network connection failed');
     mockJiraClient.updateIssueDescription = vi.fn().mockRejectedValue(apiError);
-    const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
-      throw new Error('Process exit');
-    });
 
     await expect(
       updateDescriptionCommand(mockTaskId, { fromFile: mockFilePath })
-    ).rejects.toThrow('Process exit');
-
-    expect(console.error).toHaveBeenCalledWith(
-      expect.stringContaining('Network connection failed')
-    );
-    expect(processExitSpy).toHaveBeenCalledWith(1);
-
-    processExitSpy.mockRestore();
+    ).rejects.toThrow('Network connection failed');
   });
 
   it('should resolve relative file paths to absolute paths', async () => {
@@ -240,20 +171,7 @@ describe('Update Description Command', () => {
   });
 
   it('should handle complex markdown content', async () => {
-    const complexMarkdown = `# Heading 1
-
-## Heading 2
-
-This is **bold** and *italic* text.
-
-- List item 1
-- List item 2
-
-\`\`\`javascript
-const example = "code block";
-\`\`\`
-
-[Link](https://example.com)`;
+    const complexMarkdown = '# Heading 1\n\n## Heading 2\n\nThis is **bold** and *italic* text.\n\n- List item 1\n- List item 2\n\n```javascript\nconst example = "code block";\n```\n\n[Link](https://example.com)';
 
     vi.spyOn(mockFs, 'readFileSync').mockReturnValue(complexMarkdown);
 

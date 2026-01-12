@@ -74,14 +74,7 @@ describe('Task With Details Command', () => {
   it('should handle errors gracefully', async () => {
     const mockError = new Error('Task not found');
     mockJiraClient.getTaskWithDetails.mockRejectedValue(mockError);
-    const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
-      throw new Error('Process exit');
-    });
 
-    await expect(taskWithDetailsCommand('INVALID-1')).rejects.toThrow('Process exit');
-    expect(console.error).toHaveBeenCalledWith(expect.stringContaining('Error: Task not found'));
-    expect(processExitSpy).toHaveBeenCalledWith(1);
-
-    processExitSpy.mockRestore();
+    await expect(taskWithDetailsCommand('INVALID-1')).rejects.toThrow('Task not found');
   });
 });

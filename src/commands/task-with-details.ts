@@ -12,7 +12,6 @@ export async function taskWithDetailsCommand(taskId: string): Promise<void> {
     console.log(formatTaskDetails(task));
   } catch (error) {
     spinner.fail(chalk.red('Failed to fetch task details'));
-    console.error(chalk.red('\nError: ' + (error instanceof Error ? error.message : 'Unknown error')));
-    process.exit(1);
+    throw error;
   }
 }

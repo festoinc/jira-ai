@@ -18,6 +18,7 @@ import { createTaskCommand } from './commands/create-task.js';
 import { aboutCommand } from './commands/about.js';
 import { authCommand } from './commands/auth.js';
 import { isCommandAllowed, getAllowedCommands } from './lib/settings.js';
+import { CliError } from './types/errors.js';
 
 // Load environment variables
 dotenv.config();
@@ -28,7 +29,7 @@ const program = new Command();
 program
   .name('jira-ai')
   .description('CLI tool for interacting with Atlassian Jira')
-  .version('1.0.0');
+  .version('0.3.10');
 
 // Middleware to validate credentials for commands that need them
 const validateCredentials = () => {
@@ -43,10 +44,11 @@ function withPermission(commandName: string, commandFn: (...args: any[]) => Prom
     }
     
     if (!isCommandAllowed(commandName)) {
-      console.error(chalk.red(`\n❌ Command '${commandName}' is not allowed.`));
-      console.log(chalk.gray('Allowed commands: ' + getAllowedCommands().join(', ')));
-      console.log(chalk.gray('Update settings.yaml to enable this command.\n'));
-      process.exit(1);
+      throw new CliError(
+        `Command '${commandName}' is not allowed.\n` +
+        `Allowed commands: ${getAllowedCommands().join(', ')}\n` +
+        `Update settings.yaml to enable this command.`
+      );
     }
     return commandFn(...args);
   };
@@ -141,4 +143,23 @@ program
   .action(aboutCommand);
 
 // Parse command line arguments
-program.parse();
+async function main() {
+  try {
+    await program.parseAsync(process.argv);
+  } catch (error) {
+    if (error instanceof CliError) {
+      console.error(chalk.red(`\n❌ ${error.message}\n`));
+    } else if (error instanceof Error) {
+      console.error(chalk.red(`\n💥 Unexpected Error: ${error.message}`));
+      if (process.env.DEBUG) {
+        console.error(chalk.gray(error.stack));
+      }
+      console.error(chalk.gray('\nPlease report this issue if it persists.\n'));
+    } else {
+      console.error(chalk.red(`\n💥 An unknown error occurred: ${String(error)}\n`));
+    }
+    process.exit(1);
+  }
+}
+
+main();

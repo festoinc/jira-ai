@@ -1,6 +1,7 @@
 import chalk from 'chalk';
 import ora from 'ora';
 import { createIssue } from '../lib/jira-client.js';
+import { CliError } from '../types/errors.js';
 
 export async function createTaskCommand(
   options: {
@@ -14,18 +15,15 @@ export async function createTaskCommand(
 
   // Validate required fields
   if (!title || title.trim() === '') {
-    console.error(chalk.red('\nError: Title is required (use --title)'));
-    process.exit(1);
+    throw new CliError('Title is required (use --title)');
   }
 
   if (!project || project.trim() === '') {
-    console.error(chalk.red('\nError: Project is required (use --project)'));
-    process.exit(1);
+    throw new CliError('Project is required (use --project)');
   }
 
   if (!issueType || issueType.trim() === '') {
-    console.error(chalk.red('\nError: Issue type is required (use --issue-type)'));
-    process.exit(1);
+    throw new CliError('Issue type is required (use --issue-type)');
   }
 
   // Create issue with spinner
@@ -44,11 +42,6 @@ export async function createTaskCommand(
     console.log(chalk.cyan(`\nIssue Key: ${result.key}`));
   } catch (error) {
     spinner.fail(chalk.red('Failed to create issue'));
-    console.error(
-      chalk.red(
-        '\nError: ' + (error instanceof Error ? error.message : 'Unknown error')
-      )
-    );
 
     // Provide helpful hints based on error
     if (error instanceof Error) {
@@ -68,6 +61,6 @@ export async function createTaskCommand(
       }
     }
 
-    process.exit(1);
+    throw error;
   }
 }

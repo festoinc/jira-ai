@@ -2,12 +2,12 @@ import chalk from 'chalk';
 import ora from 'ora';
 import { searchIssuesByJql } from '../lib/jira-client.js';
 import { formatJqlResults } from '../lib/formatters.js';
+import { CliError } from '../types/errors.js';
 
 export async function runJqlCommand(jqlQuery: string, options: { limit: string }): Promise<void> {
   // Validate JQL query is not empty
   if (!jqlQuery || jqlQuery.trim() === '') {
-    console.error(chalk.red('\nError: JQL query cannot be empty'));
-    process.exit(1);
+    throw new CliError('JQL query cannot be empty');
   }
 
   // Parse and validate limit parameter
@@ -15,8 +15,7 @@ export async function runJqlCommand(jqlQuery: string, options: { limit: string }
   if (options.limit) {
     const parsedLimit = parseInt(options.limit, 10);
     if (isNaN(parsedLimit) || parsedLimit < 1) {
-      console.error(chalk.red('\nError: Limit must be a positive number'));
-      process.exit(1);
+      throw new CliError('Limit must be a positive number');
     }
     if (parsedLimit > 1000) {
       console.warn(chalk.yellow('\nWarning: Limit is very high. Using 1000 as maximum.'));
@@ -34,7 +33,6 @@ export async function runJqlCommand(jqlQuery: string, options: { limit: string }
     console.log(formatJqlResults(issues));
   } catch (error) {
     spinner.fail(chalk.red('Failed to execute JQL query'));
-    console.error(chalk.red('\nError: ' + (error instanceof Error ? error.message : 'Unknown error')));
-    process.exit(1);
+    throw error;
   }
 }
