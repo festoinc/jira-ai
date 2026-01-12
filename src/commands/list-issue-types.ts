@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import ora from 'ora';
-import { getProjectIssueTypes } from '../lib/jira-client';
-import { formatProjectIssueTypes } from '../lib/formatters';
+import { getProjectIssueTypes } from '../lib/jira-client.js';
+import { formatProjectIssueTypes } from '../lib/formatters.js';
 
 export async function listIssueTypesCommand(projectKey: string): Promise<void> {
   const spinner = ora(`Fetching issue types for project ${projectKey}...`).start();

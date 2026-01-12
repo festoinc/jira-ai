@@ -1,25 +1,28 @@
-import { addCommentCommand } from '../src/commands/add-comment';
-import * as jiraClient from '../src/lib/jira-client';
+import { vi, describe, it, expect, beforeEach, afterEach, beforeAll, afterAll, test } from 'vitest';
+import { addCommentCommand } from '../src/commands/add-comment.js';
+import * as jiraClient from '../src/lib/jira-client.js';
 import * as fs from 'fs';
 import * as path from 'path';
 import { markdownToAdf } from 'marklassian';
 
 // Mock dependencies
-jest.mock('fs');
-jest.mock('marklassian');
-jest.mock('../src/lib/jira-client');
-jest.mock('../src/lib/utils');
-jest.mock('ora', () => {
-  return jest.fn(() => ({
-    start: jest.fn().mockReturnThis(),
-    succeed: jest.fn().mockReturnThis(),
-    fail: jest.fn().mockReturnThis()
-  }));
+vi.mock('fs');
+vi.mock('marklassian');
+vi.mock('../src/lib/jira-client.js');
+vi.mock('../src/lib/utils.js');
+vi.mock('ora', () => {
+  return {
+    default: vi.fn(() => ({
+      start: vi.fn().mockReturnThis(),
+      succeed: vi.fn().mockReturnThis(),
+      fail: vi.fn().mockReturnThis(),
+    })),
+  };
 });
 
-const mockJiraClient = jiraClient as jest.Mocked<typeof jiraClient>;
-const mockFs = fs as jest.Mocked<typeof fs>;
-const mockMarkdownToAdf = markdownToAdf as jest.MockedFunction<typeof markdownToAdf>;
+const mockJiraClient = jiraClient as vi.Mocked<typeof jiraClient>;
+const mockFs = fs as vi.Mocked<typeof fs>;
+const mockMarkdownToAdf = markdownToAdf as vi.MockedFunction<typeof markdownToAdf>;
 
 describe('Add Comment Command', () => {
   const mockIssueKey = 'TEST-123';
@@ -38,15 +41,15 @@ describe('Add Comment Command', () => {
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
-    console.log = jest.fn();
-    console.error = jest.fn();
+    vi.clearAllMocks();
+    console.log = vi.fn();
+    console.error = vi.fn();
 
     // Setup default mocks
-    jest.spyOn(mockFs, 'existsSync').mockReturnValue(true);
-    jest.spyOn(mockFs, 'readFileSync').mockReturnValue(mockMarkdownContent);
+    vi.spyOn(mockFs, 'existsSync').mockReturnValue(true);
+    vi.spyOn(mockFs, 'readFileSync').mockReturnValue(mockMarkdownContent);
     mockMarkdownToAdf.mockReturnValue(mockAdfContent);
-    mockJiraClient.addIssueComment = jest.fn().mockResolvedValue(undefined);
+    mockJiraClient.addIssueComment = vi.fn().mockResolvedValue(undefined);
   });
 
   it('should successfully add a comment to a Jira issue', async () => {
@@ -63,7 +66,7 @@ describe('Add Comment Command', () => {
   });
 
   it('should exit with error when issue key is empty', async () => {
-    const processExitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {
+    const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
       throw new Error('Process exit');
     });
 
@@ -80,7 +83,7 @@ describe('Add Comment Command', () => {
   });
 
   it('should exit with error when file path is empty', async () => {
-    const processExitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {
+    const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
       throw new Error('Process exit');
     });
 
@@ -97,8 +100,8 @@ describe('Add Comment Command', () => {
   });
 
   it('should exit with error when file does not exist', async () => {
-    jest.spyOn(mockFs, 'existsSync').mockReturnValue(false);
-    const processExitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {
+    vi.spyOn(mockFs, 'existsSync').mockReturnValue(false);
+    const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
       throw new Error('Process exit');
     });
 
@@ -116,10 +119,10 @@ describe('Add Comment Command', () => {
 
   it('should exit with error when file read fails', async () => {
     const readError = new Error('Permission denied');
-    jest.spyOn(mockFs, 'readFileSync').mockImplementation(() => {
+    vi.spyOn(mockFs, 'readFileSync').mockImplementation(() => {
       throw readError;
     });
-    const processExitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {
+    const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
       throw new Error('Process exit');
     });
 
@@ -139,8 +142,8 @@ describe('Add Comment Command', () => {
   });
 
   it('should exit with error when file is empty', async () => {
-    jest.spyOn(mockFs, 'readFileSync').mockReturnValue('   \n  \t  ');
-    const processExitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {
+    vi.spyOn(mockFs, 'readFileSync').mockReturnValue('   \n  \t  ');
+    const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
       throw new Error('Process exit');
     });
 
@@ -161,7 +164,7 @@ describe('Add Comment Command', () => {
     mockMarkdownToAdf.mockImplementation(() => {
       throw conversionError;
     });
-    const processExitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {
+    const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
       throw new Error('Process exit');
     });
 
@@ -182,8 +185,8 @@ describe('Add Comment Command', () => {
 
   it('should exit with error and hint when issue not found (404)', async () => {
     const apiError = new Error('Issue not found (404)');
-    mockJiraClient.addIssueComment = jest.fn().mockRejectedValue(apiError);
-    const processExitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {
+    mockJiraClient.addIssueComment = vi.fn().mockRejectedValue(apiError);
+    const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
       throw new Error('Process exit');
     });
 
@@ -204,8 +207,8 @@ describe('Add Comment Command', () => {
 
   it('should exit with error and hint when permission denied (403)', async () => {
     const apiError = new Error('Permission denied (403)');
-    mockJiraClient.addIssueComment = jest.fn().mockRejectedValue(apiError);
-    const processExitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {
+    mockJiraClient.addIssueComment = vi.fn().mockRejectedValue(apiError);
+    const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
       throw new Error('Process exit');
     });
 

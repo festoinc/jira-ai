@@ -1,18 +1,19 @@
-import { createTaskCommand } from '../src/commands/create-task';
-import * as jiraClient from '../src/lib/jira-client';
+import { vi, describe, it, expect, beforeEach, afterEach, beforeAll, afterAll, test } from 'vitest';
+import { createTaskCommand } from '../src/commands/create-task.js';
+import * as jiraClient from '../src/lib/jira-client.js';
 
 // Mock dependencies
-jest.mock('../src/lib/jira-client');
-jest.mock('../src/lib/utils');
-jest.mock('ora', () => {
-  return jest.fn(() => ({
-    start: jest.fn().mockReturnThis(),
-    succeed: jest.fn().mockReturnThis(),
-    fail: jest.fn().mockReturnThis()
-  }));
-});
+vi.mock('../src/lib/jira-client.js');
+vi.mock('../src/lib/utils.js');
+vi.mock('ora', () => ({
+  default: vi.fn(() => ({
+    start: vi.fn().mockReturnThis(),
+    succeed: vi.fn().mockReturnThis(),
+    fail: vi.fn().mockReturnThis()
+  }))
+}));
 
-const mockJiraClient = jiraClient as jest.Mocked<typeof jiraClient>;
+const mockJiraClient = jiraClient as vi.Mocked<typeof jiraClient>;
 
 describe('Create Task Command', () => {
   const mockOptions = {
@@ -27,12 +28,12 @@ describe('Create Task Command', () => {
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
-    console.log = jest.fn();
-    console.error = jest.fn();
+    vi.clearAllMocks();
+    console.log = vi.fn();
+    console.error = vi.fn();
 
     // Setup default mock
-    mockJiraClient.createIssue = jest.fn().mockResolvedValue(mockResponse);
+    mockJiraClient.createIssue = vi.fn().mockResolvedValue(mockResponse);
   });
 
   it('should successfully create a task', async () => {
@@ -65,7 +66,7 @@ describe('Create Task Command', () => {
   });
 
   it('should exit with error when title is empty', async () => {
-    const processExitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {
+    const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
       throw new Error('Process exit');
     });
 
@@ -82,7 +83,7 @@ describe('Create Task Command', () => {
   });
 
   it('should exit with error when project is empty', async () => {
-    const processExitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {
+    const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
       throw new Error('Process exit');
     });
 
@@ -99,7 +100,7 @@ describe('Create Task Command', () => {
   });
 
   it('should exit with error when issue type is empty', async () => {
-    const processExitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {
+    const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
       throw new Error('Process exit');
     });
 
@@ -117,8 +118,8 @@ describe('Create Task Command', () => {
 
   it('should exit with error and hint when project not found', async () => {
     const apiError = new Error('Project does not exist');
-    mockJiraClient.createIssue = jest.fn().mockRejectedValue(apiError);
-    const processExitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {
+    mockJiraClient.createIssue = vi.fn().mockRejectedValue(apiError);
+    const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
       throw new Error('Process exit');
     });
 
@@ -137,8 +138,8 @@ describe('Create Task Command', () => {
 
   it('should exit with error and hint when issue type is invalid', async () => {
     const apiError = new Error('Invalid issue type specified');
-    mockJiraClient.createIssue = jest.fn().mockRejectedValue(apiError);
-    const processExitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {
+    mockJiraClient.createIssue = vi.fn().mockRejectedValue(apiError);
+    const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
       throw new Error('Process exit');
     });
 
@@ -157,8 +158,8 @@ describe('Create Task Command', () => {
 
   it('should exit with error and hint when parent issue is invalid', async () => {
     const apiError = new Error('Parent issue not found');
-    mockJiraClient.createIssue = jest.fn().mockRejectedValue(apiError);
-    const processExitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {
+    mockJiraClient.createIssue = vi.fn().mockRejectedValue(apiError);
+    const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
       throw new Error('Process exit');
     });
 
@@ -179,8 +180,8 @@ describe('Create Task Command', () => {
 
   it('should exit with error and hint when permission denied (403)', async () => {
     const apiError = new Error('Permission denied (403)');
-    mockJiraClient.createIssue = jest.fn().mockRejectedValue(apiError);
-    const processExitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {
+    mockJiraClient.createIssue = vi.fn().mockRejectedValue(apiError);
+    const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
       throw new Error('Process exit');
     });
 

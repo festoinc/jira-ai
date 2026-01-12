@@ -1,26 +1,27 @@
-import * as settings from '../src/lib/settings';
+import { vi, describe, it, expect, beforeEach, afterEach, beforeAll, afterAll, test } from 'vitest';
+import * as settings from '../src/lib/settings.js';
 
 // Mock all dependencies
-jest.mock('../src/lib/settings');
-jest.mock('../src/commands/me');
-jest.mock('../src/commands/projects');
-jest.mock('../src/commands/task-with-details');
-jest.mock('../src/commands/project-statuses');
-jest.mock('../src/commands/about');
-jest.mock('../src/lib/utils', () => ({
-  validateEnvVars: jest.fn()
+vi.mock('../src/lib/settings.js');
+vi.mock('../src/commands/me.js');
+vi.mock('../src/commands/projects.js');
+vi.mock('../src/commands/task-with-details.js');
+vi.mock('../src/commands/project-statuses.js');
+vi.mock('../src/commands/about.js');
+vi.mock('../src/lib/utils', () => ({
+  validateEnvVars: vi.fn()
 }));
-jest.mock('dotenv', () => ({
-  config: jest.fn()
+vi.mock('dotenv', () => ({
+  config: vi.fn()
 }));
 
-const mockSettings = settings as jest.Mocked<typeof settings>;
+const mockSettings = settings as vi.Mocked<typeof settings>;
 
 describe('CLI Command Permissions', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
-    console.log = jest.fn();
-    console.error = jest.fn();
+    vi.clearAllMocks();
+    console.log = vi.fn();
+    console.error = vi.fn();
   });
 
   describe('Command permission checks', () => {
@@ -57,7 +58,7 @@ describe('CLI Command Permissions', () => {
     it('should execute command when permission is granted', async () => {
       mockSettings.isCommandAllowed.mockReturnValue(true);
 
-      const mockCommand = jest.fn().mockResolvedValue(undefined);
+      const mockCommand = vi.fn().mockResolvedValue(undefined);
       const wrappedCommand = async (...args: any[]) => {
         if (!mockSettings.isCommandAllowed('me')) {
           console.error('Command not allowed');
@@ -76,8 +77,8 @@ describe('CLI Command Permissions', () => {
       mockSettings.isCommandAllowed.mockReturnValue(false);
       mockSettings.getAllowedCommands.mockReturnValue(['me', 'projects']);
 
-      const mockCommand = jest.fn().mockResolvedValue(undefined);
-      const processExitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {
+      const mockCommand = vi.fn().mockResolvedValue(undefined);
+      const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
         throw new Error('Process exit');
       });
 
@@ -103,7 +104,7 @@ describe('CLI Command Permissions', () => {
     it('should pass arguments correctly to allowed commands', async () => {
       mockSettings.isCommandAllowed.mockReturnValue(true);
 
-      const mockCommand = jest.fn().mockResolvedValue(undefined);
+      const mockCommand = vi.fn().mockResolvedValue(undefined);
       const wrappedCommand = async (...args: any[]) => {
         if (!mockSettings.isCommandAllowed('task-with-details')) {
           process.exit(1);

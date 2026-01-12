@@ -1,6 +1,6 @@
 import chalk from 'chalk';
 import ora from 'ora';
-import { createIssue } from '../lib/jira-client';
+import { createIssue } from '../lib/jira-client.js';
 
 export async function createTaskCommand(
   options: {
