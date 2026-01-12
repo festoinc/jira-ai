@@ -16,6 +16,6 @@ module.exports = {
     '^jira\\.js$': '<rootDir>/tests/__mocks__/jira.js.ts',
     '^mdast-util-from-adf$': '<rootDir>/tests/__mocks__/mdast-util-from-adf.ts',
     '^mdast-util-to-markdown$': '<rootDir>/tests/__mocks__/mdast-util-to-markdown.ts',
-    '^md-to-adf$': '<rootDir>/tests/__mocks__/md-to-adf.ts'
+    '^marklassian$': '<rootDir>/tests/__mocks__/marklassian.ts'
   }
 };

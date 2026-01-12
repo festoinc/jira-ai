@@ -2,11 +2,11 @@ import { updateDescriptionCommand } from '../src/commands/update-description';
 import * as jiraClient from '../src/lib/jira-client';
 import * as fs from 'fs';
 import * as path from 'path';
-import mdToAdf from 'md-to-adf';
+import { markdownToAdf } from 'marklassian';
 
 // Mock dependencies
 jest.mock('fs');
-jest.mock('md-to-adf');
+jest.mock('marklassian');
 jest.mock('../src/lib/jira-client');
 jest.mock('../src/lib/utils');
 jest.mock('ora', () => {
@@ -19,7 +19,7 @@ jest.mock('ora', () => {
 
 const mockJiraClient = jiraClient as jest.Mocked<typeof jiraClient>;
 const mockFs = fs as jest.Mocked<typeof fs>;
-const mockMdToAdf = mdToAdf as jest.MockedFunction<typeof mdToAdf>;
+const mockMarkdownToAdf = markdownToAdf as jest.MockedFunction<typeof markdownToAdf>;
 
 describe('Update Description Command', () => {
   const mockTaskId = 'TEST-123';
@@ -45,7 +45,7 @@ describe('Update Description Command', () => {
     // Setup default mocks
     jest.spyOn(mockFs, 'existsSync').mockReturnValue(true);
     jest.spyOn(mockFs, 'readFileSync').mockReturnValue(mockMarkdownContent);
-    mockMdToAdf.mockReturnValue(mockAdfContent);
+    mockMarkdownToAdf.mockReturnValue(mockAdfContent);
     mockJiraClient.updateIssueDescription = jest.fn().mockResolvedValue(undefined);
   });
 
@@ -54,7 +54,7 @@ describe('Update Description Command', () => {
 
     expect(mockFs.existsSync).toHaveBeenCalledWith(path.resolve(mockFilePath));
     expect(mockFs.readFileSync).toHaveBeenCalledWith(path.resolve(mockFilePath), 'utf-8');
-    expect(mockMdToAdf).toHaveBeenCalledWith(mockMarkdownContent);
+    expect(mockMarkdownToAdf).toHaveBeenCalledWith(mockMarkdownContent);
     expect(mockJiraClient.updateIssueDescription).toHaveBeenCalledWith(
       mockTaskId,
       mockAdfContent
@@ -141,7 +141,7 @@ describe('Update Description Command', () => {
 
   it('should exit with error when markdown conversion fails', async () => {
     const conversionError = new Error('Invalid markdown syntax');
-    mockMdToAdf.mockImplementation(() => {
+    mockMarkdownToAdf.mockImplementation(() => {
       throw conversionError;
     });
     const processExitSpy = jest.spyOn(process, 'exit').mockImplementation(() => {
@@ -256,7 +256,7 @@ const example = "code block";
 
     await updateDescriptionCommand(mockTaskId, { fromFile: mockFilePath });
 
-    expect(mockMdToAdf).toHaveBeenCalledWith(complexMarkdown);
+    expect(mockMarkdownToAdf).toHaveBeenCalledWith(complexMarkdown);
     expect(mockJiraClient.updateIssueDescription).toHaveBeenCalled();
   });
 });

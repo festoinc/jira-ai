@@ -4,6 +4,7 @@ tests/
 
 # Config files
 .env
+.env.*
 .env.example
 tsconfig.json
 jest.config.js

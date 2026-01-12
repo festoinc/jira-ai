@@ -1,7 +1,7 @@
 {
   "name": "jira-ai",
-  "version": "0.3.1",
-  "description": "CLI tool for interacting with Atlassian Jira",
+  "version": "0.3.6",
+  "description": "AI friendly Jira CLI to save context",
   "main": "dist/cli.js",
   "bin": {
     "jira-ai": "./dist/cli.js"
@@ -13,12 +13,12 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/jira-ai.git"
+    "url": "https://github.com/festoinc/jira-ai.git"
   },
   "bugs": {
-    "url": "https://github.com/yourusername/jira-ai/issues"
+    "url": "https://github.com/festoinc/jira-ai/issues"
   },
-  "homepage": "https://github.com/yourusername/jira-ai#readme",
+  "homepage": "https://github.com/festoinc/jira-ai#readme",
   "scripts": {
     "dev": "ts-node src/cli.ts",
     "build": "tsc && chmod +x dist/cli.js",
@@ -40,8 +40,8 @@
     "command-line",
     "typescript"
   ],
-  "author": "Your Name <your.email@example.com>",
-  "license": "ISC",
+  "author": "Anatolii Fesiuk",
+  "license": "Apache-2.0",
   "engines": {
     "node": ">=14.0.0"
   },
@@ -52,7 +52,7 @@
     "dotenv": "^17.2.3",
     "jira.js": "^5.2.2",
     "js-yaml": "^4.1.1",
-    "md-to-adf": "^0.6.4",
+    "marklassian": "^1.0.0",
     "mdast-util-from-adf": "^2.2.0",
     "mdast-util-to-markdown": "^2.1.2",
     "ora": "^5.4.1"

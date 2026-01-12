@@ -9,24 +9,29 @@ interface CommandInfo {
 
 const ALL_COMMANDS: CommandInfo[] = [
   {
+    name: 'auth',
+    description: 'Set up Jira authentication credentials',
+    usage: 'jira-ai auth'
+  },
+  {
     name: 'me',
     description: 'Show details of current user',
-    usage: 'jira-ai me --help'
+    usage: 'jira-ai me'
   },
   {
     name: 'projects',
     description: 'List available projects',
-    usage: 'jira-ai projects --help'
+    usage: 'jira-ai projects'
   },
   {
     name: 'task-with-details',
     description: 'Show task title, body, and comments',
-    usage: 'jira-ai task-with-details --help'
+    usage: 'jira-ai task-with-details <task-id>'
   },
   {
     name: 'project-statuses',
     description: 'Show all possible statuses for a project',
-    usage: 'jira-ai project-statuses --help'
+    usage: 'jira-ai project-statuses <project-id>'
   },
   {
     name: 'list-issue-types',
@@ -49,8 +54,13 @@ const ALL_COMMANDS: CommandInfo[] = [
     usage: 'jira-ai add-comment --file-path <path> --issue-key <key>'
   },
   {
+    name: 'create-task',
+    description: 'Create a new Jira issue',
+    usage: 'jira-ai create-task --title <title> --project <project> --issue-type <type> [--parent <key>]'
+  },
+  {
     name: 'about',
-    description: 'Show this help message',
+    description: 'Show information about available commands and current configuration',
     usage: 'jira-ai about'
   }
 ];

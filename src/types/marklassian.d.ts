@@ -1,14 +1,12 @@
-declare module 'md-to-adf' {
+declare module 'marklassian' {
   /**
    * Convert Markdown to Atlassian Document Format (ADF)
    * @param markdown - GitHub Flavored Markdown text
    * @returns ADF document object
    */
-  function mdToAdf(markdown: string): {
+  export function markdownToAdf(markdown: string): {
     version: number;
     type: string;
     content: any[];
   };
-
-  export = mdToAdf;
 }

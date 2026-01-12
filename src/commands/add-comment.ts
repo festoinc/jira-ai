@@ -2,7 +2,7 @@ import chalk from 'chalk';
 import ora from 'ora';
 import * as fs from 'fs';
 import * as path from 'path';
-import mdToAdf from 'md-to-adf';
+import { markdownToAdf } from 'marklassian';
 import { addIssueComment } from '../lib/jira-client';
 
 export async function addCommentCommand(
@@ -54,7 +54,7 @@ export async function addCommentCommand(
   // Convert Markdown to ADF
   let adfContent: any;
   try {
-    adfContent = mdToAdf(markdownContent);
+    adfContent = markdownToAdf(markdownContent);
   } catch (error) {
     console.error(
       chalk.red(
