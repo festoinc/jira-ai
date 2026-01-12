@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import * as fs from 'fs';
-import chalk from 'chalk';
-import { CliError } from '../types/errors.js';
+import { CommandError } from './errors.js';
 
 import * as path from 'path';
 
@@ -43,7 +42,7 @@ export const NumericStringSchema = z
   .refine((n) => n > 0, 'Must be greater than 0');
 
 /**
- * Validates data against a schema and throws CliError with formatted message on failure
+ * Validates data against a schema and throws CommandError with formatted message on failure
  */
 export function validateOptions<T>(schema: z.ZodSchema<T>, data: unknown): T {
   const result = schema.safeParse(data);
@@ -58,7 +57,7 @@ export function validateOptions<T>(schema: z.ZodSchema<T>, data: unknown): T {
       })
       .join('\n');
 
-    throw new CliError(chalk.red(simpleErrorMessages));
+    throw new CommandError(simpleErrorMessages);
   }
   return result.data;
 }

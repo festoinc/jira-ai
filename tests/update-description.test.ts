@@ -1,10 +1,10 @@
-import { vi, describe, it, expect, beforeEach, afterEach, beforeAll, afterAll, test } from 'vitest';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { updateDescriptionCommand } from '../src/commands/update-description.js';
 import * as jiraClient from '../src/lib/jira-client.js';
 import * as fs from 'fs';
 import * as path from 'path';
 import { markdownToAdf } from 'marklassian';
-import { CliError } from '../src/types/errors.js';
+import { CommandError } from '../src/lib/errors.js';
 
 // Mock dependencies
 vi.mock('fs');
@@ -17,10 +17,10 @@ vi.mock('ora', () => {
       start: vi.fn().mockReturnThis(),
       succeed: vi.fn().mockReturnThis(),
       fail: vi.fn().mockReturnThis(),
+      stop: vi.fn().mockReturnThis(),
     })),
   };
 });
-
 const mockJiraClient = jiraClient as vi.Mocked<typeof jiraClient>;
 const mockFs = fs as vi.Mocked<typeof mockFs>;
 const mockMarkdownToAdf = markdownToAdf as vi.MockedFunction<typeof markdownToAdf>;
@@ -68,7 +68,7 @@ describe('Update Description Command', () => {
 
   it('should throw error when task ID is empty', async () => {
     await expect(updateDescriptionCommand('', { fromFile: mockFilePath })).rejects.toThrow(
-      CliError
+      CommandError
     );
     await expect(updateDescriptionCommand('', { fromFile: mockFilePath })).rejects.toThrow(
       'Task ID is required'
@@ -81,7 +81,7 @@ describe('Update Description Command', () => {
 
     await expect(
       updateDescriptionCommand(mockTaskId, { fromFile: mockFilePath })
-    ).rejects.toThrow(CliError);
+    ).rejects.toThrow(CommandError);
     await expect(
       updateDescriptionCommand(mockTaskId, { fromFile: mockFilePath })
     ).rejects.toThrow('File not found');
@@ -95,7 +95,7 @@ describe('Update Description Command', () => {
 
     await expect(
       updateDescriptionCommand(mockTaskId, { fromFile: mockFilePath })
-    ).rejects.toThrow(CliError);
+    ).rejects.toThrow(CommandError);
     await expect(
       updateDescriptionCommand(mockTaskId, { fromFile: mockFilePath })
     ).rejects.toThrow('Error reading file');
@@ -106,7 +106,7 @@ describe('Update Description Command', () => {
 
     await expect(
       updateDescriptionCommand(mockTaskId, { fromFile: mockFilePath })
-    ).rejects.toThrow(CliError);
+    ).rejects.toThrow(CommandError);
     await expect(
       updateDescriptionCommand(mockTaskId, { fromFile: mockFilePath })
     ).rejects.toThrow('File is empty');
@@ -120,7 +120,7 @@ describe('Update Description Command', () => {
 
     await expect(
       updateDescriptionCommand(mockTaskId, { fromFile: mockFilePath })
-    ).rejects.toThrow(CliError);
+    ).rejects.toThrow(CommandError);
     await expect(
       updateDescriptionCommand(mockTaskId, { fromFile: mockFilePath })
     ).rejects.toThrow('Error converting Markdown to ADF');
@@ -130,26 +130,20 @@ describe('Update Description Command', () => {
     const apiError = new Error('Issue not found (404)');
     mockJiraClient.updateIssueDescription = vi.fn().mockRejectedValue(apiError);
 
-    await expect(
-      updateDescriptionCommand(mockTaskId, { fromFile: mockFilePath })
-    ).rejects.toThrow('Issue not found (404)');
-
-    expect(console.log).toHaveBeenCalledWith(
-      expect.stringContaining('Check that the task ID is correct')
-    );
+    const promise = updateDescriptionCommand(mockTaskId, { fromFile: mockFilePath });
+    await expect(promise).rejects.toThrow('Issue not found (404)');
+    const error = await promise.catch(e => e);
+    expect(error.hints).toContain('Check that the task ID is correct');
   });
 
   it('should throw error and hint when permission denied (403)', async () => {
     const apiError = new Error('Permission denied (403)');
     mockJiraClient.updateIssueDescription = vi.fn().mockRejectedValue(apiError);
 
-    await expect(
-      updateDescriptionCommand(mockTaskId, { fromFile: mockFilePath })
-    ).rejects.toThrow('Permission denied (403)');
-
-    expect(console.log).toHaveBeenCalledWith(
-      expect.stringContaining('You may not have permission to edit this issue')
-    );
+    const promise = updateDescriptionCommand(mockTaskId, { fromFile: mockFilePath });
+    await expect(promise).rejects.toThrow('Permission denied (403)');
+    const error = await promise.catch(e => e);
+    expect(error.hints).toContain('You may not have permission to edit this issue');
   });
 
   it('should throw error for other API errors', async () => {
