@@ -12,7 +12,6 @@ export async function meCommand(): Promise<void> {
     console.log(formatUserInfo(user));
   } catch (error) {
     spinner.fail(chalk.red('Failed to fetch user information'));
-    console.error(chalk.red('\nError: ' + (error instanceof Error ? error.message : 'Unknown error')));
-    process.exit(1);
+    throw error;
   }
 }

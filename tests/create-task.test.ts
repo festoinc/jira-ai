@@ -1,6 +1,7 @@
 import { vi, describe, it, expect, beforeEach, afterEach, beforeAll, afterAll, test } from 'vitest';
 import { createTaskCommand } from '../src/commands/create-task.js';
 import * as jiraClient from '../src/lib/jira-client.js';
+import { CliError } from '../src/types/errors.js';
 
 // Mock dependencies
 vi.mock('../src/lib/jira-client.js');
@@ -65,136 +66,76 @@ describe('Create Task Command', () => {
     expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Parent: TEST-100'));
   });
 
-  it('should exit with error when title is empty', async () => {
-    const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
-      throw new Error('Process exit');
-    });
-
+  it('should throw error when title is empty', async () => {
     await expect(
       createTaskCommand({ ...mockOptions, title: '' })
-    ).rejects.toThrow('Process exit');
-
-    expect(console.error).toHaveBeenCalledWith(
-      expect.stringContaining('Title is required')
-    );
-    expect(processExitSpy).toHaveBeenCalledWith(1);
-
-    processExitSpy.mockRestore();
+    ).rejects.toThrow(CliError);
+    await expect(
+      createTaskCommand({ ...mockOptions, title: '' })
+    ).rejects.toThrow('Title is required');
   });
 
-  it('should exit with error when project is empty', async () => {
-    const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
-      throw new Error('Process exit');
-    });
-
+  it('should throw error when project is empty', async () => {
     await expect(
       createTaskCommand({ ...mockOptions, project: '' })
-    ).rejects.toThrow('Process exit');
-
-    expect(console.error).toHaveBeenCalledWith(
-      expect.stringContaining('Project is required')
-    );
-    expect(processExitSpy).toHaveBeenCalledWith(1);
-
-    processExitSpy.mockRestore();
+    ).rejects.toThrow(CliError);
+    await expect(
+      createTaskCommand({ ...mockOptions, project: '' })
+    ).rejects.toThrow('Project is required');
   });
 
-  it('should exit with error when issue type is empty', async () => {
-    const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
-      throw new Error('Process exit');
-    });
-
+  it('should throw error when issue type is empty', async () => {
     await expect(
       createTaskCommand({ ...mockOptions, issueType: '' })
-    ).rejects.toThrow('Process exit');
-
-    expect(console.error).toHaveBeenCalledWith(
-      expect.stringContaining('Issue type is required')
-    );
-    expect(processExitSpy).toHaveBeenCalledWith(1);
-
-    processExitSpy.mockRestore();
+    ).rejects.toThrow(CliError);
+    await expect(
+      createTaskCommand({ ...mockOptions, issueType: '' })
+    ).rejects.toThrow('Issue type is required');
   });
 
-  it('should exit with error and hint when project not found', async () => {
+  it('should throw error and hint when project not found', async () => {
     const apiError = new Error('Project does not exist');
     mockJiraClient.createIssue = vi.fn().mockRejectedValue(apiError);
-    const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
-      throw new Error('Process exit');
-    });
 
-    await expect(createTaskCommand(mockOptions)).rejects.toThrow('Process exit');
+    await expect(createTaskCommand(mockOptions)).rejects.toThrow('Project does not exist');
 
-    expect(console.error).toHaveBeenCalledWith(
-      expect.stringContaining('Project does not exist')
-    );
     expect(console.log).toHaveBeenCalledWith(
       expect.stringContaining('Check that the project key is correct')
     );
-    expect(processExitSpy).toHaveBeenCalledWith(1);
-
-    processExitSpy.mockRestore();
   });
 
-  it('should exit with error and hint when issue type is invalid', async () => {
+  it('should throw error and hint when issue type is invalid', async () => {
     const apiError = new Error('Invalid issue type specified');
     mockJiraClient.createIssue = vi.fn().mockRejectedValue(apiError);
-    const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
-      throw new Error('Process exit');
-    });
 
-    await expect(createTaskCommand(mockOptions)).rejects.toThrow('Process exit');
+    await expect(createTaskCommand(mockOptions)).rejects.toThrow('Invalid issue type specified');
 
-    expect(console.error).toHaveBeenCalledWith(
-      expect.stringContaining('Invalid issue type specified')
-    );
     expect(console.log).toHaveBeenCalledWith(
       expect.stringContaining('Check that the issue type is correct')
     );
-    expect(processExitSpy).toHaveBeenCalledWith(1);
-
-    processExitSpy.mockRestore();
   });
 
-  it('should exit with error and hint when parent issue is invalid', async () => {
+  it('should throw error and hint when parent issue is invalid', async () => {
     const apiError = new Error('Parent issue not found');
     mockJiraClient.createIssue = vi.fn().mockRejectedValue(apiError);
-    const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
-      throw new Error('Process exit');
-    });
 
     await expect(
       createTaskCommand({ ...mockOptions, parent: 'TEST-999' })
-    ).rejects.toThrow('Process exit');
+    ).rejects.toThrow('Parent issue not found');
 
-    expect(console.error).toHaveBeenCalledWith(
-      expect.stringContaining('Parent issue not found')
-    );
     expect(console.log).toHaveBeenCalledWith(
       expect.stringContaining('Check that the parent issue key is correct')
     );
-    expect(processExitSpy).toHaveBeenCalledWith(1);
-
-    processExitSpy.mockRestore();
   });
 
-  it('should exit with error and hint when permission denied (403)', async () => {
+  it('should throw error and hint when permission denied (403)', async () => {
     const apiError = new Error('Permission denied (403)');
     mockJiraClient.createIssue = vi.fn().mockRejectedValue(apiError);
-    const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
-      throw new Error('Process exit');
-    });
 
-    await expect(createTaskCommand(mockOptions)).rejects.toThrow('Process exit');
+    await expect(createTaskCommand(mockOptions)).rejects.toThrow('Permission denied (403)');
 
-    expect(console.error).toHaveBeenCalledWith(
-      expect.stringContaining('Permission denied (403)')
-    );
     expect(console.log).toHaveBeenCalledWith(
       expect.stringContaining('You may not have permission to create issues')
     );
-    expect(processExitSpy).toHaveBeenCalledWith(1);
-
-    processExitSpy.mockRestore();
   });
 });

@@ -4,6 +4,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { markdownToAdf } from 'marklassian';
 import { updateIssueDescription } from '../lib/jira-client.js';
+import { CliError } from '../types/errors.js';
 
 export async function updateDescriptionCommand(
   taskId: string,
@@ -11,15 +12,13 @@ export async function updateDescriptionCommand(
 ): Promise<void> {
   // Validate taskId
   if (!taskId || taskId.trim() === '') {
-    console.error(chalk.red('\nError: Task ID cannot be empty'));
-    process.exit(1);
+    throw new CliError('Task ID cannot be empty');
   }
 
   // Validate file path
   const filePath = options.fromFile;
   if (!filePath || filePath.trim() === '') {
-    console.error(chalk.red('\nError: File path is required (use --from-file)'));
-    process.exit(1);
+    throw new CliError('File path is required (use --from-file)');
   }
 
   // Resolve file path to absolute
@@ -27,8 +26,7 @@ export async function updateDescriptionCommand(
 
   // Check file exists
   if (!fs.existsSync(absolutePath)) {
-    console.error(chalk.red(`\nError: File not found: ${absolutePath}`));
-    process.exit(1);
+    throw new CliError(`File not found: ${absolutePath}`);
   }
 
   // Read file
@@ -36,19 +34,12 @@ export async function updateDescriptionCommand(
   try {
     markdownContent = fs.readFileSync(absolutePath, 'utf-8');
   } catch (error) {
-    console.error(
-      chalk.red(
-        '\nError reading file: ' +
-          (error instanceof Error ? error.message : 'Unknown error')
-      )
-    );
-    process.exit(1);
+    throw new CliError(`Error reading file: ${error instanceof Error ? error.message : String(error)}`);
   }
 
   // Validate file is not empty
   if (markdownContent.trim() === '') {
-    console.error(chalk.red('\nError: File is empty'));
-    process.exit(1);
+    throw new CliError('File is empty');
   }
 
   // Convert Markdown to ADF
@@ -56,13 +47,7 @@ export async function updateDescriptionCommand(
   try {
     adfContent = markdownToAdf(markdownContent);
   } catch (error) {
-    console.error(
-      chalk.red(
-        '\nError converting Markdown to ADF: ' +
-          (error instanceof Error ? error.message : 'Unknown error')
-      )
-    );
-    process.exit(1);
+    throw new CliError(`Error converting Markdown to ADF: ${error instanceof Error ? error.message : String(error)}`);
   }
 
   // Update issue description with spinner
@@ -74,11 +59,6 @@ export async function updateDescriptionCommand(
     console.log(chalk.gray(`\nFile: ${absolutePath}`));
   } catch (error) {
     spinner.fail(chalk.red('Failed to update description'));
-    console.error(
-      chalk.red(
-        '\nError: ' + (error instanceof Error ? error.message : 'Unknown error')
-      )
-    );
 
     // Provide helpful hints based on error
     if (error instanceof Error && error.message.includes('404')) {
@@ -89,6 +69,6 @@ export async function updateDescriptionCommand(
       );
     }
 
-    process.exit(1);
+    throw error;
   }
 }

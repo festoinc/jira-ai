@@ -26,7 +26,6 @@ export async function projectsCommand(): Promise<void> {
     }
   } catch (error) {
     spinner.fail(chalk.red('Failed to fetch projects'));
-    console.error(chalk.red('\nError: ' + (error instanceof Error ? error.message : 'Unknown error')));
-    process.exit(1);
+    throw error;
   }
 }

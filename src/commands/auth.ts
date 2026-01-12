@@ -5,6 +5,7 @@ import fs from 'fs';
 import dotenv from 'dotenv';
 import { createTemporaryClient } from '../lib/jira-client.js';
 import { saveCredentials } from '../lib/auth-storage.js';
+import { CliError } from '../types/errors.js';
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -52,17 +53,15 @@ export async function authCommand(options: AuthOptions = {}): Promise<void> {
       apiToken = data.apikey || data.apiToken;
 
       if (!host || !email || !apiToken) {
-        console.error(chalk.red('Error: Missing required fields in JSON. Required: url/host, email, apikey/apiToken.'));
-        process.exit(1);
+        throw new CliError('Missing required fields in JSON. Required: url/host, email, apikey/apiToken.');
       }
     } catch (error: any) {
-      console.error(chalk.red(`Error: Invalid JSON string: ${error.message}`));
-      process.exit(1);
+      if (error instanceof CliError) throw error;
+      throw new CliError(`Invalid JSON string: ${error.message}`);
     }
   } else if (options.fromFile) {
     if (!fs.existsSync(options.fromFile)) {
-      console.error(chalk.red(`Error: File not found: ${options.fromFile}`));
-      process.exit(1);
+      throw new CliError(`File not found: ${options.fromFile}`);
     }
 
     try {
@@ -74,12 +73,11 @@ export async function authCommand(options: AuthOptions = {}): Promise<void> {
       apiToken = config.JIRA_API_TOKEN;
 
       if (!host || !email || !apiToken) {
-        console.error(chalk.red('Error: Missing required environment variables in file. Required: JIRA_HOST, JIRA_USER_EMAIL, JIRA_API_TOKEN.'));
-        process.exit(1);
+        throw new CliError('Missing required environment variables in file. Required: JIRA_HOST, JIRA_USER_EMAIL, JIRA_API_TOKEN.');
       }
     } catch (error: any) {
-      console.error(chalk.red(`Error: Failed to parse file: ${error.message}`));
-      process.exit(1);
+      if (error instanceof CliError) throw error;
+      throw new CliError(`Failed to parse file: ${error.message}`);
     }
   }
 
@@ -89,21 +87,18 @@ export async function authCommand(options: AuthOptions = {}): Promise<void> {
     try {
       host = await ask('Jira URL (e.g., https://your-domain.atlassian.net): ');
       if (!host) {
-        console.error(chalk.red('URL is required.'));
-        process.exit(1);
+        throw new CliError('URL is required.');
       }
 
       email = await ask('Email: ');
       if (!email) {
-        console.error(chalk.red('Email is required.'));
-        process.exit(1);
+        throw new CliError('Email is required.');
       }
 
       console.log(chalk.gray('Get your API token from: https://id.atlassian.com/manage-profile/security/api-tokens'));
       apiToken = await ask('API Token: ');
       if (!apiToken) {
-        console.error(chalk.red('API Token is required.'));
-        process.exit(1);
+        throw new CliError('API Token is required.');
       }
     } finally {
       rl.close();
@@ -127,10 +122,9 @@ export async function authCommand(options: AuthOptions = {}): Promise<void> {
     console.log(chalk.gray('These credentials will be used for future commands on this machine.'));
   } catch (error: any) {
     spinner.fail(chalk.red('Authentication failed.'));
-    console.error(chalk.red(`Error: ${error.message || 'Invalid credentials'}`));
     if (error.response && error.response.status === 401) {
       console.error(chalk.yellow('Hint: Check if your email and API token are correct.'));
     }
-    process.exit(1);
+    throw error;
   }
 }

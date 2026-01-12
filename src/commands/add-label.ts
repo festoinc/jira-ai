@@ -1,6 +1,7 @@
 import chalk from 'chalk';
 import ora from 'ora';
 import { addIssueLabels } from '../lib/jira-client.js';
+import { CliError } from '../types/errors.js';
 
 export async function addLabelCommand(
   taskId: string,
@@ -8,21 +9,18 @@ export async function addLabelCommand(
 ): Promise<void> {
   // Validate input
   if (!taskId || taskId.trim() === '') {
-    console.error(chalk.red('\nError: Task ID is required'));
-    process.exit(1);
+    throw new CliError('Task ID is required');
   }
 
   if (!labelsString || labelsString.trim() === '') {
-    console.error(chalk.red('\nError: Labels are required (comma-separated)'));
-    process.exit(1);
+    throw new CliError('Labels are required (comma-separated)');
   }
 
   // Parse labels
   const labels = labelsString.split(',').map(l => l.trim()).filter(l => l !== '');
 
   if (labels.length === 0) {
-    console.error(chalk.red('\nError: No valid labels provided'));
-    process.exit(1);
+    throw new CliError('No valid labels provided');
   }
 
   const spinner = ora(`Adding labels to ${taskId}...`).start();
@@ -33,16 +31,11 @@ export async function addLabelCommand(
     console.log(chalk.gray(`\nLabels: ${labels.join(', ')}`));
   } catch (error) {
     spinner.fail(chalk.red('Failed to add labels'));
-    console.error(
-      chalk.red(
-        '\nError: ' + (error instanceof Error ? error.message : 'Unknown error')
-      )
-    );
 
     if (error instanceof Error && error.message.includes('404')) {
       console.log(chalk.yellow('\nHint: Check that the issue ID/key is correct'));
     }
 
-    process.exit(1);
+    throw error;
   }
 }

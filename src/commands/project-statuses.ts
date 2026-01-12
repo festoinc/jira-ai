@@ -12,7 +12,6 @@ export async function projectStatusesCommand(projectId: string): Promise<void> {
     console.log(formatProjectStatuses(projectId, statuses));
   } catch (error) {
     spinner.fail(chalk.red('Failed to fetch project statuses'));
-    console.error(chalk.red('\nError: ' + (error instanceof Error ? error.message : 'Unknown error')));
-    process.exit(1);
+    throw error;
   }
 }

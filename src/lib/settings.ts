@@ -3,6 +3,7 @@ import path from 'path';
 import os from 'os';
 import yaml from 'js-yaml';
 import chalk from 'chalk';
+import { CliError } from '../types/errors.js';
 
 export interface Settings {
   projects: string[];
@@ -68,8 +69,7 @@ export function loadSettings(): Settings {
 
     return cachedSettings;
   } catch (error) {
-    console.error(`Error loading ${SETTINGS_FILE}:`, error);
-    process.exit(1);
+    throw new CliError(`Error loading ${SETTINGS_FILE}: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 

@@ -4,6 +4,7 @@ import * as jiraClient from '../src/lib/jira-client.js';
 import * as fs from 'fs';
 import * as path from 'path';
 import { markdownToAdf } from 'marklassian';
+import { CliError } from '../src/types/errors.js';
 
 // Mock dependencies
 vi.mock('fs');
@@ -65,165 +66,97 @@ describe('Add Comment Command', () => {
     expect(console.log).toHaveBeenCalled();
   });
 
-  it('should exit with error when issue key is empty', async () => {
-    const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
-      throw new Error('Process exit');
-    });
-
+  it('should throw error when issue key is empty', async () => {
     await expect(addCommentCommand({ filePath: mockFilePath, issueKey: '' })).rejects.toThrow(
-      'Process exit'
+      CliError
     );
-
-    expect(console.error).toHaveBeenCalledWith(
-      expect.stringContaining('Issue key is required')
+    await expect(addCommentCommand({ filePath: mockFilePath, issueKey: '' })).rejects.toThrow(
+      'Issue key is required'
     );
-    expect(processExitSpy).toHaveBeenCalledWith(1);
-
-    processExitSpy.mockRestore();
   });
 
-  it('should exit with error when file path is empty', async () => {
-    const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
-      throw new Error('Process exit');
-    });
-
+  it('should throw error when file path is empty', async () => {
     await expect(addCommentCommand({ filePath: '', issueKey: mockIssueKey })).rejects.toThrow(
-      'Process exit'
+      CliError
     );
-
-    expect(console.error).toHaveBeenCalledWith(
-      expect.stringContaining('File path is required')
+    await expect(addCommentCommand({ filePath: '', issueKey: mockIssueKey })).rejects.toThrow(
+      'File path is required'
     );
-    expect(processExitSpy).toHaveBeenCalledWith(1);
-
-    processExitSpy.mockRestore();
   });
 
-  it('should exit with error when file does not exist', async () => {
+  it('should throw error when file does not exist', async () => {
     vi.spyOn(mockFs, 'existsSync').mockReturnValue(false);
-    const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
-      throw new Error('Process exit');
-    });
 
     await expect(
       addCommentCommand({ filePath: mockFilePath, issueKey: mockIssueKey })
-    ).rejects.toThrow('Process exit');
-
-    expect(console.error).toHaveBeenCalledWith(
-      expect.stringContaining('File not found')
-    );
-    expect(processExitSpy).toHaveBeenCalledWith(1);
-
-    processExitSpy.mockRestore();
+    ).rejects.toThrow(CliError);
+    await expect(
+      addCommentCommand({ filePath: mockFilePath, issueKey: mockIssueKey })
+    ).rejects.toThrow('File not found');
   });
 
-  it('should exit with error when file read fails', async () => {
+  it('should throw error when file read fails', async () => {
     const readError = new Error('Permission denied');
     vi.spyOn(mockFs, 'readFileSync').mockImplementation(() => {
       throw readError;
     });
-    const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
-      throw new Error('Process exit');
-    });
 
     await expect(
       addCommentCommand({ filePath: mockFilePath, issueKey: mockIssueKey })
-    ).rejects.toThrow('Process exit');
-
-    expect(console.error).toHaveBeenCalledWith(
-      expect.stringContaining('Error reading file')
-    );
-    expect(console.error).toHaveBeenCalledWith(
-      expect.stringContaining('Permission denied')
-    );
-    expect(processExitSpy).toHaveBeenCalledWith(1);
-
-    processExitSpy.mockRestore();
+    ).rejects.toThrow(CliError);
+    await expect(
+      addCommentCommand({ filePath: mockFilePath, issueKey: mockIssueKey })
+    ).rejects.toThrow('Error reading file');
   });
 
-  it('should exit with error when file is empty', async () => {
+  it('should throw error when file is empty', async () => {
     vi.spyOn(mockFs, 'readFileSync').mockReturnValue('   \n  \t  ');
-    const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
-      throw new Error('Process exit');
-    });
 
     await expect(
       addCommentCommand({ filePath: mockFilePath, issueKey: mockIssueKey })
-    ).rejects.toThrow('Process exit');
-
-    expect(console.error).toHaveBeenCalledWith(
-      expect.stringContaining('File is empty')
-    );
-    expect(processExitSpy).toHaveBeenCalledWith(1);
-
-    processExitSpy.mockRestore();
+    ).rejects.toThrow(CliError);
+    await expect(
+      addCommentCommand({ filePath: mockFilePath, issueKey: mockIssueKey })
+    ).rejects.toThrow('File is empty');
   });
 
-  it('should exit with error when markdown conversion fails', async () => {
+  it('should throw error when markdown conversion fails', async () => {
     const conversionError = new Error('Invalid markdown syntax');
     mockMarkdownToAdf.mockImplementation(() => {
       throw conversionError;
     });
-    const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
-      throw new Error('Process exit');
-    });
 
     await expect(
       addCommentCommand({ filePath: mockFilePath, issueKey: mockIssueKey })
-    ).rejects.toThrow('Process exit');
-
-    expect(console.error).toHaveBeenCalledWith(
-      expect.stringContaining('Error converting Markdown to ADF')
-    );
-    expect(console.error).toHaveBeenCalledWith(
-      expect.stringContaining('Invalid markdown syntax')
-    );
-    expect(processExitSpy).toHaveBeenCalledWith(1);
-
-    processExitSpy.mockRestore();
+    ).rejects.toThrow(CliError);
+    await expect(
+      addCommentCommand({ filePath: mockFilePath, issueKey: mockIssueKey })
+    ).rejects.toThrow('Error converting Markdown to ADF');
   });
 
-  it('should exit with error and hint when issue not found (404)', async () => {
+  it('should throw error and hint when issue not found (404)', async () => {
     const apiError = new Error('Issue not found (404)');
     mockJiraClient.addIssueComment = vi.fn().mockRejectedValue(apiError);
-    const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
-      throw new Error('Process exit');
-    });
 
     await expect(
       addCommentCommand({ filePath: mockFilePath, issueKey: mockIssueKey })
-    ).rejects.toThrow('Process exit');
+    ).rejects.toThrow('Issue not found (404)');
 
-    expect(console.error).toHaveBeenCalledWith(
-      expect.stringContaining('Issue not found (404)')
-    );
     expect(console.log).toHaveBeenCalledWith(
       expect.stringContaining('Check that the issue key is correct')
     );
-    expect(processExitSpy).toHaveBeenCalledWith(1);
-
-    processExitSpy.mockRestore();
   });
 
-  it('should exit with error and hint when permission denied (403)', async () => {
+  it('should throw error and hint when permission denied (403)', async () => {
     const apiError = new Error('Permission denied (403)');
     mockJiraClient.addIssueComment = vi.fn().mockRejectedValue(apiError);
-    const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
-      throw new Error('Process exit');
-    });
 
     await expect(
       addCommentCommand({ filePath: mockFilePath, issueKey: mockIssueKey })
-    ).rejects.toThrow('Process exit');
+    ).rejects.toThrow('Permission denied (403)');
 
-    expect(console.error).toHaveBeenCalledWith(
-      expect.stringContaining('Permission denied (403)')
-    );
     expect(console.log).toHaveBeenCalledWith(
       expect.stringContaining('You may not have permission to comment on this issue')
     );
-    expect(processExitSpy).toHaveBeenCalledWith(1);
-
-    processExitSpy.mockRestore();
   });
 });

@@ -1,5 +1,6 @@
 import { vi, describe, it, expect, beforeEach, afterEach, beforeAll, afterAll, test } from 'vitest';
 import * as settings from '../src/lib/settings.js';
+import { CliError } from '../src/types/errors.js';
 
 // Mock all dependencies
 vi.mock('../src/lib/settings.js');
@@ -61,8 +62,7 @@ describe('CLI Command Permissions', () => {
       const mockCommand = vi.fn().mockResolvedValue(undefined);
       const wrappedCommand = async (...args: any[]) => {
         if (!mockSettings.isCommandAllowed('me')) {
-          console.error('Command not allowed');
-          process.exit(1);
+          throw new CliError('Command not allowed');
         }
         return mockCommand(...args);
       };
@@ -78,27 +78,21 @@ describe('CLI Command Permissions', () => {
       mockSettings.getAllowedCommands.mockReturnValue(['me', 'projects']);
 
       const mockCommand = vi.fn().mockResolvedValue(undefined);
-      const processExitSpy = vi.spyOn(process, 'exit').mockImplementation(() => {
-        throw new Error('Process exit');
-      });
 
       const wrappedCommand = async (...args: any[]) => {
         if (!mockSettings.isCommandAllowed('task-with-details')) {
-          console.error("Command 'task-with-details' is not allowed.");
-          console.log('Allowed commands: ' + mockSettings.getAllowedCommands().join(', '));
-          process.exit(1);
+          throw new CliError(
+            `Command 'task-with-details' is not allowed.\n` +
+            `Allowed commands: ${mockSettings.getAllowedCommands().join(', ')}`
+          );
         }
         return mockCommand(...args);
       };
 
-      await expect(wrappedCommand()).rejects.toThrow('Process exit');
+      await expect(wrappedCommand()).rejects.toThrow(CliError);
+      await expect(wrappedCommand()).rejects.toThrow(/not allowed/);
 
       expect(mockCommand).not.toHaveBeenCalled();
-      expect(console.error).toHaveBeenCalledWith(expect.stringContaining('not allowed'));
-      expect(console.log).toHaveBeenCalledWith(expect.stringContaining('me, projects'));
-      expect(processExitSpy).toHaveBeenCalledWith(1);
-
-      processExitSpy.mockRestore();
     });
 
     it('should pass arguments correctly to allowed commands', async () => {
@@ -107,7 +101,7 @@ describe('CLI Command Permissions', () => {
       const mockCommand = vi.fn().mockResolvedValue(undefined);
       const wrappedCommand = async (...args: any[]) => {
         if (!mockSettings.isCommandAllowed('task-with-details')) {
-          process.exit(1);
+          throw new CliError('Not allowed');
         }
         return mockCommand(...args);
       };

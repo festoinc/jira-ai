@@ -4,6 +4,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { markdownToAdf } from 'marklassian';
 import { addIssueComment } from '../lib/jira-client.js';
+import { CliError } from '../types/errors.js';
 
 export async function addCommentCommand(
   options: { filePath: string; issueKey: string }
@@ -12,14 +13,12 @@ export async function addCommentCommand(
 
   // Validate issueKey
   if (!issueKey || issueKey.trim() === '') {
-    console.error(chalk.red('\nError: Issue key is required (use --issue-key)'));
-    process.exit(1);
+    throw new CliError('Issue key is required (use --issue-key)');
   }
 
   // Validate file path
   if (!filePath || filePath.trim() === '') {
-    console.error(chalk.red('\nError: File path is required (use --file-path)'));
-    process.exit(1);
+    throw new CliError('File path is required (use --file-path)');
   }
 
   // Resolve file path to absolute
@@ -27,8 +26,7 @@ export async function addCommentCommand(
 
   // Check file exists
   if (!fs.existsSync(absolutePath)) {
-    console.error(chalk.red(`\nError: File not found: ${absolutePath}`));
-    process.exit(1);
+    throw new CliError(`File not found: ${absolutePath}`);
   }
 
   // Read file
@@ -36,19 +34,12 @@ export async function addCommentCommand(
   try {
     markdownContent = fs.readFileSync(absolutePath, 'utf-8');
   } catch (error) {
-    console.error(
-      chalk.red(
-        '\nError reading file: ' +
-          (error instanceof Error ? error.message : 'Unknown error')
-      )
-    );
-    process.exit(1);
+    throw new CliError(`Error reading file: ${error instanceof Error ? error.message : String(error)}`);
   }
 
   // Validate file is not empty
   if (markdownContent.trim() === '') {
-    console.error(chalk.red('\nError: File is empty'));
-    process.exit(1);
+    throw new CliError('File is empty');
   }
 
   // Convert Markdown to ADF
@@ -56,13 +47,7 @@ export async function addCommentCommand(
   try {
     adfContent = markdownToAdf(markdownContent);
   } catch (error) {
-    console.error(
-      chalk.red(
-        '\nError converting Markdown to ADF: ' +
-          (error instanceof Error ? error.message : 'Unknown error')
-      )
-    );
-    process.exit(1);
+    throw new CliError(`Error converting Markdown to ADF: ${error instanceof Error ? error.message : String(error)}`);
   }
 
   // Add comment with spinner
@@ -74,11 +59,6 @@ export async function addCommentCommand(
     console.log(chalk.gray(`\nFile: ${absolutePath}`));
   } catch (error) {
     spinner.fail(chalk.red('Failed to add comment'));
-    console.error(
-      chalk.red(
-        '\nError: ' + (error instanceof Error ? error.message : 'Unknown error')
-      )
-    );
 
     // Provide helpful hints based on error
     if (error instanceof Error && error.message.includes('404')) {
@@ -89,6 +69,6 @@ export async function addCommentCommand(
       );
     }
 
-    process.exit(1);
+    throw error;
   }
 }
