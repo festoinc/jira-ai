@@ -5,29 +5,22 @@ import * as path from 'path';
 import { markdownToAdf } from 'marklassian';
 import { updateIssueDescription } from '../lib/jira-client.js';
 import { CliError } from '../types/errors.js';
+import { validateOptions, UpdateDescriptionSchema, IssueKeySchema } from '../lib/validation.js';
 
 export async function updateDescriptionCommand(
   taskId: string,
   options: { fromFile: string }
 ): Promise<void> {
-  // Validate taskId
-  if (!taskId || taskId.trim() === '') {
-    throw new CliError('Task ID cannot be empty');
-  }
+  // Validate taskId (positional)
+  validateOptions(IssueKeySchema, taskId);
+  
+  // Validate options
+  validateOptions(UpdateDescriptionSchema, options);
 
-  // Validate file path
   const filePath = options.fromFile;
-  if (!filePath || filePath.trim() === '') {
-    throw new CliError('File path is required (use --from-file)');
-  }
 
   // Resolve file path to absolute
   const absolutePath = path.resolve(filePath);
-
-  // Check file exists
-  if (!fs.existsSync(absolutePath)) {
-    throw new CliError(`File not found: ${absolutePath}`);
-  }
 
   // Read file
   let markdownContent: string;
@@ -36,6 +29,7 @@ export async function updateDescriptionCommand(
   } catch (error) {
     throw new CliError(`Error reading file: ${error instanceof Error ? error.message : String(error)}`);
   }
+
 
   // Validate file is not empty
   if (markdownContent.trim() === '') {

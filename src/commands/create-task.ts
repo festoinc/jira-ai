@@ -2,6 +2,7 @@ import chalk from 'chalk';
 import ora from 'ora';
 import { createIssue } from '../lib/jira-client.js';
 import { CliError } from '../types/errors.js';
+import { validateOptions, CreateTaskSchema } from '../lib/validation.js';
 
 export async function createTaskCommand(
   options: {
@@ -11,23 +12,14 @@ export async function createTaskCommand(
     parent?: string;
   }
 ): Promise<void> {
+  // Validate options
+  validateOptions(CreateTaskSchema, options);
+
   const { title, project, issueType, parent } = options;
-
-  // Validate required fields
-  if (!title || title.trim() === '') {
-    throw new CliError('Title is required (use --title)');
-  }
-
-  if (!project || project.trim() === '') {
-    throw new CliError('Project is required (use --project)');
-  }
-
-  if (!issueType || issueType.trim() === '') {
-    throw new CliError('Issue type is required (use --issue-type)');
-  }
 
   // Create issue with spinner
   const spinner = ora(`Creating ${issueType} in project ${project}...`).start();
+
 
   try {
     const result = await createIssue(project, title, issueType, parent);

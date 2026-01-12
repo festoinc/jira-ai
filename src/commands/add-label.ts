@@ -2,16 +2,14 @@ import chalk from 'chalk';
 import ora from 'ora';
 import { addIssueLabels } from '../lib/jira-client.js';
 import { CliError } from '../types/errors.js';
+import { validateOptions, IssueKeySchema } from '../lib/validation.js';
 
 export async function addLabelCommand(
   taskId: string,
   labelsString: string
 ): Promise<void> {
   // Validate input
-  if (!taskId || taskId.trim() === '') {
-    throw new CliError('Task ID is required');
-  }
-
+  validateOptions(IssueKeySchema, taskId);
   if (!labelsString || labelsString.trim() === '') {
     throw new CliError('Labels are required (comma-separated)');
   }
@@ -22,6 +20,7 @@ export async function addLabelCommand(
   if (labels.length === 0) {
     throw new CliError('No valid labels provided');
   }
+
 
   const spinner = ora(`Adding labels to ${taskId}...`).start();
 
