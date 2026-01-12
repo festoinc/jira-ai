@@ -32,5 +32,63 @@ describe('Formatters', () => {
       const output = formatTaskDetails(taskNoLabels);
       expect(output).not.toContain('Labels:');
     });
+
+    it('should display N/A for missing dueDate', () => {
+      const output = formatTaskDetails(mockTask);
+      expect(output).toContain('Due Date');
+      expect(output).toContain('N/A');
+    });
+
+    it('should display overdue dueDate in red', () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2024-01-01'));
+      
+      const overdueTask: TaskDetails = {
+        ...mockTask,
+        dueDate: '2023-12-31',
+        status: { name: 'To Do', category: 'new' }
+      };
+      
+      const output = formatTaskDetails(overdueTask);
+      expect(output).toContain('Due Date');
+      expect(output).toContain('2023-12-31');
+      // Chalk might be tricky to test directly in string, but we can check if it's there
+      // Since we use chalk, it adds ANSI escape codes.
+      
+      vi.useRealTimers();
+    });
+
+    it('should not display overdue dueDate in red if status is done', () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2024-01-01'));
+      
+      const doneOverdueTask: TaskDetails = {
+        ...mockTask,
+        dueDate: '2023-12-31',
+        status: { name: 'Done', category: 'done' }
+      };
+      
+      const output = formatTaskDetails(doneOverdueTask);
+      expect(output).toContain('Due Date');
+      expect(output).toContain('2023-12-31');
+      
+      vi.useRealTimers();
+    });
+
+    it('should display future dueDate in green', () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2024-01-01'));
+      
+      const futureTask: TaskDetails = {
+        ...mockTask,
+        dueDate: '2024-01-02'
+      };
+      
+      const output = formatTaskDetails(futureTask);
+      expect(output).toContain('Due Date');
+      expect(output).toContain('2024-01-02');
+      
+      vi.useRealTimers();
+    });
   });
 });

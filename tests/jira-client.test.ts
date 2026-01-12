@@ -48,6 +48,7 @@ describe('Jira Client', () => {
           reporter: { displayName: 'Jane Smith' },
           created: '2023-01-01T10:00:00.000Z',
           updated: '2023-01-02T10:00:00.000Z',
+          duedate: '2023-12-31',
           labels: ['bug', 'urgent'],
           comment: {
             comments: [
@@ -90,6 +91,7 @@ describe('Jira Client', () => {
       });
 
       expect(result.key).toBe('PROJ-123');
+      expect(result.dueDate).toBe('2023-12-31');
       expect(result.labels).toEqual(['bug', 'urgent']);
       expect(result.parent).toEqual({
         id: '10000',

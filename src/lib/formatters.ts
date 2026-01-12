@@ -78,6 +78,25 @@ export function formatTaskDetails(task: TaskDetails): string {
     ['Updated', formatTimestamp(task.updated)]
   );
 
+  // Add Due Date
+  let dueDateValue = chalk.gray('N/A');
+  if (task.dueDate) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const dueDate = new Date(task.dueDate);
+    dueDate.setHours(0, 0, 0, 0);
+
+    if (dueDate < today) {
+      // Overdue
+      const isDone = task.status.category?.toLowerCase() === 'done';
+      dueDateValue = isDone ? task.dueDate : chalk.red(task.dueDate);
+    } else {
+      // Today or future
+      dueDateValue = chalk.green(task.dueDate);
+    }
+  }
+  infoTable.push(['Due Date', dueDateValue]);
+
   // Add labels to basic info table if present
   if (task.labels && task.labels.length > 0) {
     const labelsString = task.labels
