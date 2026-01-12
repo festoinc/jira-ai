@@ -1,5 +1,5 @@
 import { Version3Client } from 'jira.js';
-import { convertADFToMarkdown } from './utils.js';
+import { calculateStatusStatistics, convertADFToMarkdown } from './utils.js';
 import { loadCredentials } from './auth-storage.js';
 
 export interface UserInfo {
@@ -8,6 +8,15 @@ export interface UserInfo {
   emailAddress: string;
   active: boolean;
   timeZone: string;
+}
+
+export interface IssueStatistics {
+  key: string;
+  summary: string;
+  timeSpentSeconds: number;
+  originalEstimateSeconds: number;
+  statusDurations: Record<string, number>;
+  currentStatus: string;
 }
 // ... (rest of interfaces)
 
@@ -467,4 +476,34 @@ export async function removeIssueLabels(
       })),
     },
   });
+}
+
+/**
+ * Get issue statistics including status transitions and time tracking
+ */
+export async function getIssueStatistics(issueIdOrKey: string): Promise<IssueStatistics> {
+  const client = getJiraClient();
+
+  const issue = await client.issues.getIssue({
+    issueIdOrKey,
+    expand: 'changelog',
+    fields: ['summary', 'status', 'timetracking', 'created'],
+  });
+
+  const histories = issue.changelog?.histories || [];
+  const statusName = issue.fields.status?.name || 'Unknown';
+  const statusDurations = calculateStatusStatistics(
+    issue.fields.created,
+    histories,
+    statusName
+  );
+
+  return {
+    key: issue.key || '',
+    summary: issue.fields.summary || '',
+    timeSpentSeconds: issue.fields.timetracking?.timeSpentSeconds || 0,
+    originalEstimateSeconds: issue.fields.timetracking?.originalEstimateSeconds || 0,
+    statusDurations,
+    currentStatus: statusName,
+  };
 }

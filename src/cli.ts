@@ -15,6 +15,7 @@ import { addCommentCommand } from './commands/add-comment.js';
 import { addLabelCommand } from './commands/add-label.js';
 import { deleteLabelCommand } from './commands/delete-label.js';
 import { createTaskCommand } from './commands/create-task.js';
+import { getIssueStatisticsCommand } from './commands/get-issue-statistics.js';
 import { aboutCommand } from './commands/about.js';
 import { authCommand } from './commands/auth.js';
 import { isCommandAllowed, getAllowedCommands } from './lib/settings.js';
@@ -201,6 +202,12 @@ program
   .requiredOption('--issue-type <type>', 'Issue type (e.g., Task, Epic, Subtask)')
   .option('--parent <key>', 'Parent issue key (required for subtasks)')
   .action(withPermission('create-task', createTaskCommand, { schema: CreateTaskSchema }));
+
+// Get issue statistics command
+program
+  .command('get-issue-statistics <task-ids>')
+  .description('Show time metrics and lifecycle of issues (comma-separated keys)')
+  .action(withPermission('get-issue-statistics', getIssueStatisticsCommand));
 
 
 // About command (always allowed)
