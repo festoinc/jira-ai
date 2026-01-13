@@ -48,7 +48,7 @@ const program = new Command();
 program
   .name('jira-ai')
   .description('CLI tool for interacting with Atlassian Jira')
-  .version('0.3.18')
+  .version('0.3.19')
   .option('-o, --organization <alias>', 'Override the active Jira organization');
 
 // Hook to handle the global option before any command runs
@@ -153,6 +153,9 @@ program
 program
   .command('task-with-details <task-id>')
   .description('Show task title, body, and comments')
+  .option('--include-detailed-history', 'Include the full history of task actions')
+  .option('--history-limit <number>', 'Number of history entries to show (default: 50)', '50')
+  .option('--history-offset <number>', 'Number of history entries to skip (default: 0)', '0')
   .action(withPermission('task-with-details', taskWithDetailsCommand, {
     validateArgs: (args) => validateOptions(IssueKeySchema, args[0])
   }));

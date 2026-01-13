@@ -129,6 +129,60 @@ describe('Jira Client', () => {
       expect(result.subtasks).toEqual([]);
       expect(result.labels).toEqual([]);
     });
+
+    it('should fetch history when includeHistory is true', async () => {
+      const mockRawIssue = {
+        id: '10001',
+        key: 'PROJ-123',
+        fields: {
+          summary: 'Test summary',
+          status: { name: 'In Progress' },
+          created: '2023-01-01T10:00:00.000Z',
+          updated: '2023-01-02T10:00:00.000Z',
+        },
+        changelog: {
+          histories: [
+            {
+              id: '101',
+              author: { displayName: 'John Doe' },
+              created: '2023-01-01T12:00:00.000Z',
+              items: [
+                {
+                  field: 'status',
+                  fromString: 'To Do',
+                  toString: 'In Progress'
+                }
+              ]
+            }
+          ]
+        }
+      };
+
+      mockGetIssue.mockResolvedValue(mockRawIssue);
+
+      // @ts-ignore - testing new functionality
+      const result = await getTaskWithDetails('PROJ-123', { includeHistory: true });
+
+      expect(mockGetIssue).toHaveBeenCalledWith(expect.objectContaining({
+        issueIdOrKey: 'PROJ-123',
+        expand: 'changelog'
+      }));
+
+      expect(result.history).toBeDefined();
+      expect(result.history).toHaveLength(1);
+      expect(result.history![0]).toEqual({
+        id: '101',
+        author: 'John Doe',
+        created: '2023-01-01T12:00:00.000Z',
+        items: [
+          {
+            field: 'status',
+            from: 'To Do',
+            to: 'In Progress'
+          }
+        ]
+      });
+    });
   });
 
   describe('addIssueLabels', () => {
