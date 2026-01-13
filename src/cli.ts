@@ -43,7 +43,8 @@ import {
 import { realpathSync } from 'fs';
 
 // Load environment variables
-dotenv.config({ quiet: true } as any);
+// @ts-ignore - quiet option exists but is not in types
+dotenv.config({ quiet: true });
 
 // Create CLI program
 const program = new Command();

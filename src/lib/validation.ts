@@ -47,12 +47,11 @@ export const NumericStringSchema = z
 export function validateOptions<T>(schema: z.ZodSchema<T>, data: unknown): T {
   const result = schema.safeParse(data);
   if (!result.success) {
-    const issues = result.error.issues || [];
-    const simpleErrorMessages = issues
+    const simpleErrorMessages = result.error.issues
       .map((err) => {
-        // If it's a simple string validation (no object path), just return the message
-        if (err.path.length === 0) return err.message;
-        // For object validation, include the field name
+        if (err.path.length === 0) {
+          return err.message;
+        }
         return `${err.path.join('.')}: ${err.message}`;
       })
       .join('\n');

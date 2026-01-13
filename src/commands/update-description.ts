@@ -56,10 +56,12 @@ export async function updateDescriptionCommand(
     ui.succeedSpinner(chalk.green(`Description updated successfully for ${taskId}`));
     console.log(chalk.gray(`\nFile: ${absolutePath}`));
   } catch (error: any) {
+    const errorMsg = error.message?.toLowerCase() || '';
     const hints: string[] = [];
-    if (error.message?.includes('404')) {
+
+    if (errorMsg.includes('404')) {
       hints.push('Check that the task ID is correct');
-    } else if (error.message?.includes('403')) {
+    } else if (errorMsg.includes('403')) {
       hints.push('You may not have permission to edit this issue');
     }
 

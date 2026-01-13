@@ -29,8 +29,10 @@ export async function deleteLabelCommand(
     ui.succeedSpinner(chalk.green(`Labels removed successfully from ${taskId}`));
     console.log(chalk.gray(`\nLabels: ${labels.join(', ')}`));
   } catch (error: any) {
+    const errorMsg = error.message?.toLowerCase() || '';
     const hints: string[] = [];
-    if (error.message?.includes('404')) {
+
+    if (errorMsg.includes('404')) {
       hints.push('Check that the issue ID/key is correct');
     }
 

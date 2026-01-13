@@ -17,9 +17,9 @@ describe('About Command', () => {
     await aboutCommand();
     
     const output = consoleSpy.mock.calls.map(call => call[0]).join('\n');
-    
-    // Check for version (current is 0.3.17)
-    expect(output).toContain('0.3.17');
+
+    // Check for version (current is 0.4.0)
+    expect(output).toContain('0.4.0');
     // Check for GitHub URL
     expect(output).toContain('https://github.com/festoinc/jira-ai');
   });

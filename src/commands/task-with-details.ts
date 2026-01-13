@@ -16,13 +16,15 @@ export async function taskWithDetailsCommand(taskId: string, options: any = {}):
     ui.succeedSpinner(chalk.green('Task details retrieved'));
     console.log(formatTaskDetails(task));
   } catch (error: any) {
+    const errorMsg = error.message?.toLowerCase() || '';
     const hints: string[] = [];
-    if (error.response?.status === 404 || error.message?.includes('404')) {
+
+    if (error.response?.status === 404 || errorMsg.includes('404')) {
       hints.push('Check that the task ID is correct');
-    } else if (error.response?.status === 403 || error.message?.includes('403')) {
+    } else if (error.response?.status === 403 || errorMsg.includes('403')) {
       hints.push('You may not have permission to view this issue');
     }
-    
+
     throw new CommandError(`Failed to fetch task details: ${error.message}`, { hints });
   }
 }
