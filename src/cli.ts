@@ -47,7 +47,7 @@ const program = new Command();
 program
   .name('jira-ai')
   .description('CLI tool for interacting with Atlassian Jira')
-  .version('0.3.16')
+  .version('0.3.17')
   .option('-o, --organization <alias>', 'Override the active Jira organization');
 
 // Hook to handle the global option before any command runs
@@ -252,7 +252,7 @@ program
 // About command (always allowed)
 program
   .command('about')
-  .description('Show information about available commands')
+  .description('Show information about the tool')
   .action(aboutCommand);
 
 // Parse command line arguments
