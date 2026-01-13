@@ -2,7 +2,7 @@ import { vi, describe, it, expect, beforeEach, afterEach, beforeAll, afterAll, t
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
-import { loadSettings, isProjectAllowed, isCommandAllowed, getAllowedProjects, getAllowedCommands, __resetCache__ } from '../src/lib/settings.js';
+import { loadSettings, isProjectAllowed, isCommandAllowed, getAllowedProjects, getAllowedCommands, __resetCache__, getSettingsPath } from '../src/lib/settings.js';
 import { CliError } from '../src/types/errors.js';
 
 // Mock fs module
@@ -337,6 +337,68 @@ commands:
 
       // Should only read file once due to caching
       expect(mockFs.readFileSync).toHaveBeenCalledTimes(1);
+    });
+
+    it('should migrate local settings.yaml if it exists', () => {
+      mockFs.existsSync.mockImplementation((path) => {
+        if (path === mockConfigDir) return true;
+        if (path === mockSettingsPath) return false;
+        if (path === mockLocalSettingsPath) return true;
+        return false;
+      });
+
+      const mockYaml = 'projects: [MIGRATED]';
+      mockFs.readFileSync.mockReturnValue(mockYaml);
+
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const settings = loadSettings();
+
+      expect(settings.projects).toEqual(['MIGRATED']);
+      expect(mockFs.readFileSync).toHaveBeenCalledWith(mockLocalSettingsPath, 'utf8');
+      expect(mockFs.writeFileSync).toHaveBeenCalledWith(mockSettingsPath, mockYaml);
+      expect(consoleSpy).toHaveBeenCalled();
+      consoleSpy.mockRestore();
+    });
+
+    it('should handle migration errors gracefully', () => {
+      mockFs.existsSync.mockImplementation((path) => {
+        if (path === mockConfigDir) return true;
+        if (path === mockSettingsPath) return false;
+        if (path === mockLocalSettingsPath) return true;
+        return false;
+      });
+
+      mockFs.readFileSync.mockImplementation(() => {
+        throw new Error('Read error');
+      });
+
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      loadSettings();
+
+      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Error migrating settings.yaml:'), expect.any(Error));
+      consoleSpy.mockRestore();
+    });
+
+    it('should handle errors when creating default settings', () => {
+      mockFs.existsSync.mockReturnValue(false); // Nothing exists
+      mockFs.writeFileSync.mockImplementation(() => {
+        throw new Error('Write error');
+      });
+
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      loadSettings();
+
+      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Error creating default settings.yaml:'), expect.any(Error));
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe('Utility functions', () => {
+    it('should return settings path', () => {
+      expect(getSettingsPath()).toContain('.jira-ai/settings.yaml');
     });
   });
 });
