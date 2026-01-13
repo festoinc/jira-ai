@@ -37,9 +37,16 @@ export function loadSettings(): Settings {
         const fileContents = fs.readFileSync(localSettingsPath, 'utf8');
         fs.writeFileSync(SETTINGS_FILE, fileContents);
         console.log(chalk.cyan(`Migrated settings.yaml to ${SETTINGS_FILE}`));
-      } catch (error) {
-        console.error('Error migrating settings.yaml:', error);
-      }
+              } catch (error) {
+                console.error('Error migrating settings.yaml:', error);
+                const defaultSettings: Settings = {
+                  projects: ['all'],
+                  commands: ['all']
+                };
+                cachedSettings = defaultSettings;
+                return cachedSettings;
+              }
+      
     } else {
       // Create default settings.yaml if it doesn't exist anywhere
       const defaultSettings: Settings = {
