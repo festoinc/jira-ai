@@ -2,6 +2,15 @@ import { Version3Client } from 'jira.js';
 import { calculateStatusStatistics, convertADFToMarkdown } from './utils.js';
 import { loadCredentials } from './auth-storage.js';
 
+export interface Transition {
+  id: string;
+  name: string;
+  to: {
+    id: string;
+    name: string;
+  };
+}
+
 export interface UserInfo {
   accountId: string;
   displayName: string;
@@ -588,3 +597,36 @@ export async function getIssueStatistics(issueIdOrKey: string): Promise<IssueSta
     currentStatus: statusName,
   };
 }
+
+/**
+ * Get available transitions for an issue
+ */
+export async function getIssueTransitions(issueIdOrKey: string): Promise<Transition[]> {
+  const client = getJiraClient();
+  const response = await client.issues.getTransitions({
+    issueIdOrKey,
+  });
+
+  return (response.transitions || []).map((t: any) => ({
+    id: t.id || '',
+    name: t.name || '',
+    to: {
+      id: t.to?.id || '',
+      name: t.to?.name || '',
+    },
+  }));
+}
+
+/**
+ * Perform a transition on an issue
+ */
+export async function transitionIssue(issueIdOrKey: string, transitionId: string): Promise<void> {
+  const client = getJiraClient();
+  await client.issues.doTransition({
+    issueIdOrKey,
+    transition: {
+      id: transitionId,
+    },
+  });
+}
+
