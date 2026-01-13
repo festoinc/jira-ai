@@ -25,7 +25,7 @@ export function formatUserInfo(user: UserInfo): string {
   const table = createTable(['Property', 'Value'], [20, 50]);
 
   table.push(
-    ['Host', process.env.JIRA_HOST || 'N/A'],
+    ['Host', user.host],
     ['Display Name', user.displayName],
     ['Email', user.emailAddress],
     ['Account ID', user.accountId],

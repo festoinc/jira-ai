@@ -8,6 +8,7 @@ export interface UserInfo {
   emailAddress: string;
   active: boolean;
   timeZone: string;
+  host: string;
 }
 
 export interface IssueStatistics {
@@ -108,6 +109,15 @@ export interface IssueType {
 }
 
 let jiraClient: Version3Client | null = null;
+let organizationOverride: string | undefined = undefined;
+
+/**
+ * Set a global organization override for the current execution
+ */
+export function setOrganizationOverride(alias: string): void {
+  organizationOverride = alias;
+  jiraClient = null; // Force client recreation
+}
 
 /**
  * Get or create Jira client instance
@@ -129,7 +139,7 @@ export function getJiraClient(): Version3Client {
         },
       });
     } else {
-      const storedCreds = loadCredentials();
+      const storedCreds = loadCredentials(organizationOverride);
       if (storedCreds) {
         jiraClient = new Version3Client({
           host: storedCreds.host,
@@ -141,7 +151,10 @@ export function getJiraClient(): Version3Client {
           },
         });
       } else {
-        throw new Error('Jira credentials not found. Please set environment variables or run "jira-ai auth"');
+        const errorMsg = organizationOverride 
+          ? `Jira credentials for organization "${organizationOverride}" not found.`
+          : 'Jira credentials not found. Please set environment variables or run "jira-ai auth"';
+        throw new Error(errorMsg);
       }
     }
   }
@@ -170,12 +183,17 @@ export async function getCurrentUser(): Promise<UserInfo> {
   const client = getJiraClient();
   const user = await client.myself.getCurrentUser();
 
+  // Try to extract host from client instance
+  // @ts-ignore - accessing internal property to show it in UI
+  const host = client.config.host || 'N/A';
+
   return {
     accountId: user.accountId || '',
     displayName: user.displayName || '',
     emailAddress: user.emailAddress || '',
     active: user.active || false,
     timeZone: user.timeZone || '',
+    host,
   };
 }
 

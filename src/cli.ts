@@ -18,7 +18,13 @@ import { createTaskCommand } from './commands/create-task.js';
 import { getIssueStatisticsCommand } from './commands/get-issue-statistics.js';
 import { aboutCommand } from './commands/about.js';
 import { authCommand } from './commands/auth.js';
+import { 
+  listOrganizations, 
+  useOrganizationCommand, 
+  removeOrganizationCommand 
+} from './commands/organization.js';
 import { isCommandAllowed, getAllowedCommands } from './lib/settings.js';
+import { setOrganizationOverride } from './lib/jira-client.js';
 import { CliError } from './types/errors.js';
 import { CommandError } from './lib/errors.js';
 import { ui } from './lib/ui.js';
@@ -41,7 +47,13 @@ const program = new Command();
 program
   .name('jira-ai')
   .description('CLI tool for interacting with Atlassian Jira')
-  .version('0.3.12');
+  .version('0.3.16')
+  .option('-o, --organization <alias>', 'Override the active Jira organization');
+
+// Hook to handle the global option before any command runs
+program.on('option:organization', (alias) => {
+  setOrganizationOverride(alias);
+});
 
 // Middleware to validate credentials for commands that need them
 const validateCredentials = () => {
@@ -95,7 +107,34 @@ program
   .description('Set up Jira authentication credentials')
   .option('--from-json <json_string>', 'Accepts a raw JSON string with credentials')
   .option('--from-file <path>', 'Accepts a path to a file (typically .env) with credentials')
+  .option('--alias <alias>', 'Alias for this organization')
   .action((options) => authCommand(options));
+
+// Organization commands
+const org = program
+  .command('organization')
+  .alias('org')
+  .description('Manage Jira organization profiles');
+
+org
+  .command('list')
+  .description('Show all saved organizations')
+  .action(() => listOrganizations());
+
+org
+  .command('use <alias>')
+  .description('Switch the active organization')
+  .action((alias) => useOrganizationCommand(alias));
+
+org
+  .command('remove <alias>')
+  .description('Delete an organization credentials')
+  .action((alias) => removeOrganizationCommand(alias));
+
+org
+  .command('add <alias>')
+  .description('Add a new organization')
+  .action((alias) => authCommand({ alias }));
 
 // Me command
 program

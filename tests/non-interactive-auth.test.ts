@@ -70,7 +70,7 @@ describe('authCommand non-interactive', () => {
       host: 'https://test.atlassian.net',
       email: 'test@example.com',
       apiToken: 'test-token'
-    });
+    }, undefined);
     expect(mockSpinner.succeed).toHaveBeenCalled();
   });
 
@@ -101,7 +101,7 @@ JIRA_API_TOKEN=file-token
       host: 'https://file.atlassian.net',
       email: 'file@example.com',
       apiToken: 'file-token'
-    });
+    }, undefined);
   });
 
   it('should fail when --from-json has invalid JSON', async () => {
