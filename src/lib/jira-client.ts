@@ -84,6 +84,22 @@ export interface HistoryEntry {
   items: HistoryItem[];
 }
 
+export interface Worklog {
+  id: string;
+  author: {
+    accountId: string;
+    displayName: string;
+    emailAddress?: string;
+  };
+  comment?: string;
+  created: string;
+  updated: string;
+  started: string;
+  timeSpent: string;
+  timeSpentSeconds: number;
+  issueKey: string;
+}
+
 export interface TaskDetails {
   id: string;
   key: string;
@@ -661,5 +677,35 @@ export async function getUsers(projectKey?: string): Promise<UserInfo[]> {
       // @ts-ignore
       host: client.config.host || 'N/A',
     }));
+}
+
+/**
+ * Get all worklogs for an issue
+ */
+export async function getIssueWorklogs(issueIdOrKey: string): Promise<Worklog[]> {
+  const client = getJiraClient();
+  const response = await client.issueWorklogs.getIssueWorklog({
+    issueIdOrKey,
+  });
+
+  return (response.worklogs || []).map((w: any) => ({
+    id: w.id || '',
+    author: {
+      accountId: w.author?.accountId || '',
+      displayName: w.author?.displayName || 'Unknown',
+      emailAddress: w.author?.emailAddress,
+    },
+    comment: convertADFToMarkdown(w.comment),
+    created: w.created || '',
+    updated: w.updated || '',
+    started: w.started || '',
+    timeSpent: w.timeSpent || '',
+    timeSpentSeconds: w.timeSpentSeconds || 0,
+    issueKey: issueIdOrKey,
+  }));
+}
+
+export interface WorklogWithIssue extends Worklog {
+  summary: string;
 }
 

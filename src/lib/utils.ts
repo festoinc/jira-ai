@@ -152,3 +152,31 @@ export function formatDuration(seconds: number, hoursPerDay: number = 24): strin
 
   return parts.length > 0 ? parts.join(' ') : '0m';
 }
+
+/**
+ * Parse relative timeframe (e.g., '7d', '30d') into start and end dates
+ */
+export function parseTimeframe(timeframe: string): { startDate: Date; endDate: Date } {
+  const match = timeframe.match(/^(\d+)d$/);
+  if (!match) {
+    throw new CommandError('Invalid timeframe format. Use e.g., "7d" or "30d".');
+  }
+
+  const days = parseInt(match[1], 10);
+  const endDate = new Date();
+  const startDate = new Date();
+  startDate.setDate(endDate.getDate() - days);
+
+  // Set to start of day for startDate and end of day for endDate to be inclusive
+  startDate.setHours(0, 0, 0, 0);
+  endDate.setHours(23, 59, 59, 999);
+
+  return { startDate, endDate };
+}
+
+/**
+ * Format Date object to JQL compatible string (YYYY-MM-DD)
+ */
+export function formatDateForJql(date: Date): string {
+  return date.toISOString().split('T')[0];
+}
