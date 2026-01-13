@@ -18,6 +18,7 @@ import { deleteLabelCommand } from './commands/delete-label.js';
 import { createTaskCommand } from './commands/create-task.js';
 import { transitionCommand } from './commands/transition.js';
 import { getIssueStatisticsCommand } from './commands/get-issue-statistics.js';
+import { getPersonWorklogCommand } from './commands/get-person-worklog.js';
 import { aboutCommand } from './commands/about.js';
 import { authCommand } from './commands/auth.js';
 import { 
@@ -37,6 +38,8 @@ import {
   AddCommentSchema,
   UpdateDescriptionSchema,
   RunJqlSchema,
+  GetPersonWorklogSchema,
+  TimeframeSchema,
   IssueKeySchema,
   ProjectKeySchema
 } from './lib/validation.js';
@@ -52,7 +55,7 @@ const program = new Command();
 program
   .name('jira-ai')
   .description('CLI tool for interacting with Atlassian Jira')
-  .version('0.3.22')
+  .version('0.4.2')
   .option('-o, --organization <alias>', 'Override the active Jira organization');
 
 // Hook to handle the global option before any command runs
@@ -275,6 +278,18 @@ program
   .command('get-issue-statistics <task-ids>')
   .description('Show time metrics and lifecycle of issues (comma-separated keys)')
   .action(withPermission('get-issue-statistics', getIssueStatisticsCommand));
+
+// Get person worklog command
+program
+  .command('get-person-worklog <person> <timeframe>')
+  .description('Retrieve and display worklogs for a specific person within a given timeframe')
+  .option('--group-by-issue', 'Group the output by issue')
+  .action(withPermission('get-person-worklog', getPersonWorklogCommand, {
+    schema: GetPersonWorklogSchema,
+    validateArgs: (args) => {
+      validateOptions(TimeframeSchema, args[1]);
+    }
+  }));
 
 
 // About command (always allowed)

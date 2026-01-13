@@ -9,9 +9,10 @@ import {
   formatProjectStatuses,
   formatJqlResults,
   formatProjectIssueTypes,
-  formatIssueStatistics
+  formatIssueStatistics,
+  formatWorklogs
 } from '../src/lib/formatters.js';
-import { TaskDetails, UserInfo, Project, Status, JqlIssue, IssueType, IssueStatistics, HistoryEntry } from '../src/lib/jira-client.js';
+import { TaskDetails, UserInfo, Project, Status, JqlIssue, IssueType, IssueStatistics, HistoryEntry, WorklogWithIssue } from '../src/lib/jira-client.js';
 
 describe('Formatters', () => {
   const mockTask: TaskDetails = {
@@ -572,6 +573,58 @@ describe('Formatters', () => {
       const output = formatTaskDetails(taskNoAssignee);
       expect(output).toContain('Unassigned');
       expect(output).toContain('N/A');
+    });
+  });
+
+  describe('formatWorklogs', () => {
+    const mockWorklogs: WorklogWithIssue[] = [
+      {
+        id: '1',
+        author: { accountId: 'acc-1', displayName: 'John Doe' },
+        comment: 'Working on task',
+        created: '2026-01-13T10:00:00.000Z',
+        updated: '2026-01-13T10:00:00.000Z',
+        started: '2026-01-13T09:00:00.000Z',
+        timeSpent: '1h',
+        timeSpentSeconds: 3600,
+        issueKey: 'PROJ-123',
+        summary: 'Test task summary'
+      }
+    ];
+
+    it('should format worklogs into a table', () => {
+      const output = formatWorklogs(mockWorklogs);
+      expect(output).toContain('Worklogs');
+      expect(output).toContain('PROJ-123');
+      expect(output).toContain('Test task summary');
+      expect(output).toContain('1h');
+      expect(output).toContain('Working on task');
+      expect(output).toContain('Total time tracked: 1.00h');
+    });
+
+    it('should display "No worklogs found" when list is empty', () => {
+      const output = formatWorklogs([]);
+      expect(output).toContain('No worklogs found');
+    });
+
+    it('should calculate total hours correctly', () => {
+      const multiWorklogs: WorklogWithIssue[] = [
+        ...mockWorklogs,
+        {
+          id: '2',
+          author: { accountId: 'acc-1', displayName: 'John Doe' },
+          comment: 'More work',
+          created: '2026-01-13T12:00:00.000Z',
+          updated: '2026-01-13T12:00:00.000Z',
+          started: '2026-01-13T11:00:00.000Z',
+          timeSpent: '30m',
+          timeSpentSeconds: 1800,
+          issueKey: 'PROJ-124',
+          summary: 'Another task'
+        }
+      ];
+      const output = formatWorklogs(multiWorklogs);
+      expect(output).toContain('Total time tracked: 1.50h');
     });
   });
 });

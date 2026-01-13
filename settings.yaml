@@ -11,10 +11,11 @@ projects:
   # - all
 
 # Commands: List of allowed commands (use "all" to allow all commands)
-# Available commands: me, projects, task-with-details, project-statuses, list-issue-types, run-jql, update-description, add-comment, create-task, get-issue-statistics, about, transition, add-label-to-issue, delete-label-from-issue
+# Available commands: me, projects, task-with-details, project-statuses, list-issue-types, run-jql, update-description, add-comment, create-task, get-issue-statistics, about, transition, add-label-to-issue, delete-label-from-issue, list-colleagues, get-person-worklog
 commands:
   - me
   - get-issue-statistics
+  - get-person-worklog
   # Uncomment below to allow all commands
   # - all
   # - task-with-details

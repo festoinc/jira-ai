@@ -84,3 +84,9 @@ export const RunJqlSchema = z.object({
   limit: NumericStringSchema.optional(),
 });
 
+export const TimeframeSchema = z.string().regex(/^\d+d$/, 'Timeframe must be in format like "7d" or "30d"');
+
+export const GetPersonWorklogSchema = z.object({
+  groupByIssue: z.boolean().optional(),
+});
+
