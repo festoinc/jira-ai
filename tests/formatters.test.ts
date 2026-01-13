@@ -1,7 +1,7 @@
 import { vi, describe, it, expect, beforeEach, afterEach, beforeAll, afterAll, test } from 'vitest';
 import chalk from 'chalk';
-import { formatTaskDetails } from '../src/lib/formatters.js';
-import { TaskDetails } from '../src/lib/jira-client.js';
+import { formatTaskDetails, formatUsers } from '../src/lib/formatters.js';
+import { TaskDetails, UserInfo } from '../src/lib/jira-client.js';
 
 describe('Formatters', () => {
   const mockTask: TaskDetails = {
@@ -116,6 +116,31 @@ describe('Formatters', () => {
       expect(output).toContain('status');
       expect(output).toContain('To Do');
       expect(output).toContain('In Progress');
+    });
+  });
+
+  describe('formatUsers', () => {
+    it('should format a list of users into a table', () => {
+      const mockUsers: UserInfo[] = [
+        {
+          accountId: 'acc-1',
+          displayName: 'User One',
+          emailAddress: 'user1@example.com',
+          active: true,
+          timeZone: 'UTC',
+          host: 'test.atlassian.net'
+        }
+      ];
+      const output = formatUsers(mockUsers);
+      expect(output).toContain('User One');
+      expect(output).toContain('user1@example.com');
+      expect(output).toContain('acc-1');
+      expect(output).toContain('Colleagues (1 total)');
+    });
+
+    it('should display "No users found." when list is empty', () => {
+      const output = formatUsers([]);
+      expect(output).toContain('No users found.');
     });
   });
 });

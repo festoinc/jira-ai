@@ -9,6 +9,7 @@ import { projectsCommand } from './commands/projects.js';
 import { taskWithDetailsCommand } from './commands/task-with-details.js';
 import { projectStatusesCommand } from './commands/project-statuses.js';
 import { listIssueTypesCommand } from './commands/list-issue-types.js';
+import { listColleaguesCommand } from './commands/list-colleagues.js';
 import { runJqlCommand } from './commands/run-jql.js';
 import { updateDescriptionCommand } from './commands/update-description.js';
 import { addCommentCommand } from './commands/add-comment.js';
@@ -49,7 +50,7 @@ const program = new Command();
 program
   .name('jira-ai')
   .description('CLI tool for interacting with Atlassian Jira')
-  .version('0.3.20')
+  .version('0.3.21')
   .option('-o, --organization <alias>', 'Override the active Jira organization');
 
 // Hook to handle the global option before any command runs
@@ -149,6 +150,18 @@ program
   .command('projects')
   .description('Show list of projects')
   .action(withPermission('projects', projectsCommand));
+
+// List colleagues command
+program
+  .command('list-colleagues [project-key]')
+  .description('Show all colleagues in the project or organization')
+  .action(withPermission('list-colleagues', listColleaguesCommand, {
+    validateArgs: (args) => {
+      if (args[0]) {
+        validateOptions(ProjectKeySchema, args[0]);
+      }
+    }
+  }));
 
 // Task with details command
 program
