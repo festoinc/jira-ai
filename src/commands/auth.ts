@@ -7,40 +7,26 @@ import { saveCredentials } from '../lib/auth-storage.js';
 import { CommandError } from '../lib/errors.js';
 import { ui } from '../lib/ui.js';
 
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout,
-});
-
-function ask(question: string): Promise<string> {
-  return new Promise((resolve) => {
-    rl.question(question, (answer) => {
-      resolve(answer.trim());
-    });
-  });
-}
-
-function askSecret(question: string): Promise<string> {
-  return new Promise((resolve) => {
-    // Hide input for secret (basic implementation)
-    const stdin = process.stdin;
-    process.stdout.write(question);
-    
-    // We can't easily hide characters in standard readline without some complex logic
-    // or external libraries. For now, we'll just use regular question but we'll 
-    // mention it's a secret.
-    rl.question('', (answer) => {
-      resolve(answer.trim());
-    });
-  });
-}
-
 interface AuthOptions {
   fromJson?: string;
   fromFile?: string;
+  alias?: string;
 }
 
 export async function authCommand(options: AuthOptions = {}): Promise<void> {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+
+  function ask(question: string): Promise<string> {
+    return new Promise((resolve) => {
+      rl.question(question, (answer) => {
+        resolve(answer.trim());
+      });
+    });
+  }
+
   let host: string = '';
   let email: string = '';
   let apiToken: string = '';
@@ -121,7 +107,7 @@ export async function authCommand(options: AuthOptions = {}): Promise<void> {
     ui.succeedSpinner(chalk.green('Authentication successful!'));
     console.log(chalk.blue(`\nWelcome, ${user.displayName} (${user.emailAddress})`));
 
-    saveCredentials({ host, email, apiToken });
+    saveCredentials({ host, email, apiToken }, options.alias);
     console.log(chalk.green('\nCredentials saved successfully to ~/.jira-ai/config.json'));
     console.log(chalk.gray('These credentials will be used for future commands on this machine.'));
   } catch (error: any) {
