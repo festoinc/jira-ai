@@ -1,6 +1,6 @@
 import chalk from 'chalk';
 import Table from 'cli-table3';
-import { UserInfo, Project, TaskDetails, Status, JqlIssue, IssueType, IssueStatistics, HistoryEntry } from './jira-client.js';
+import { UserInfo, Project, TaskDetails, Status, JqlIssue, IssueType, IssueStatistics, HistoryEntry, WorklogWithIssue } from './jira-client.js';
 import { formatTimestamp, truncate, formatDuration } from './utils.js';
 
 /**
@@ -399,6 +399,46 @@ export function formatUsers(users: UserInfo[]): string {
 
   let output = '\n' + chalk.bold(`Colleagues (${users.length} total)`) + '\n\n';
   output += table.toString() + '\n';
+
+  return output;
+}
+
+/**
+ * Format worklogs list
+ */
+export function formatWorklogs(worklogs: WorklogWithIssue[], groupByIssue: boolean = false): string {
+  if (worklogs.length === 0) {
+    return chalk.yellow('\nNo worklogs found for the given person and timeframe.\n');
+  }
+
+  // Sort worklogs by date (started)
+  let sortedWorklogs = [...worklogs].sort((a, b) => 
+    new Date(a.started).getTime() - new Date(b.started).getTime()
+  );
+
+  if (groupByIssue) {
+    sortedWorklogs.sort((a, b) => a.issueKey.localeCompare(b.issueKey));
+  }
+
+  const table = createTable(['Date', 'Issue Key', 'Summary', 'Time Spent', 'Worklog Comment'], [12, 12, 30, 12, 45]);
+
+  let totalSeconds = 0;
+
+  sortedWorklogs.forEach((w) => {
+    totalSeconds += w.timeSpentSeconds;
+    table.push([
+      w.started.split('T')[0],
+      chalk.cyan(w.issueKey),
+      truncate(w.summary, 30),
+      w.timeSpent,
+      truncate(w.comment || '', 45),
+    ]);
+  });
+
+  const totalHours = (totalSeconds / 3600).toFixed(2);
+  let output = '\n' + chalk.bold('Worklogs') + '\n\n';
+  output += table.toString() + '\n';
+  output += chalk.bold(`Total time tracked: ${totalHours}h`) + '\n';
 
   return output;
 }
