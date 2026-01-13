@@ -56,10 +56,12 @@ export async function transitionCommand(
       throw error;
     }
 
+    const errorMsg = error.message?.toLowerCase() || '';
     const hints: string[] = [];
-    if (error.message?.includes('403')) {
+
+    if (errorMsg.includes('403')) {
       hints.push('You may not have permission to transition this issue');
-    } else if (error.message?.includes('required') || (error.response?.data?.errors && Object.keys(error.response.data.errors).length > 0)) {
+    } else if (errorMsg.includes('required') || error.response?.data?.errors) {
       hints.push('This transition might require mandatory fields that are not yet supported by this command.');
       if (error.response?.data?.errors) {
         const fields = Object.keys(error.response.data.errors).join(', ');

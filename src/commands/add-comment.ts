@@ -52,10 +52,12 @@ export async function addCommentCommand(
     ui.succeedSpinner(chalk.green(`Comment added successfully to ${issueKey}`));
     console.log(chalk.gray(`\nFile: ${absolutePath}`));
   } catch (error: any) {
+    const errorMsg = error.message?.toLowerCase() || '';
     const hints: string[] = [];
-    if (error.message?.includes('404')) {
+
+    if (errorMsg.includes('404')) {
       hints.push('Check that the issue key is correct');
-    } else if (error.message?.includes('403')) {
+    } else if (errorMsg.includes('403')) {
       hints.push('You may not have permission to comment on this issue');
     }
 

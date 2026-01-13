@@ -36,7 +36,7 @@ export function loadSettings(): Settings {
       try {
         const fileContents = fs.readFileSync(localSettingsPath, 'utf8');
         fs.writeFileSync(SETTINGS_FILE, fileContents);
-        console.log(chalk?.cyan ? chalk.cyan(`Migrated settings.yaml to ${SETTINGS_FILE}`) : `Migrated settings.yaml to ${SETTINGS_FILE}`);
+        console.log(chalk.cyan(`Migrated settings.yaml to ${SETTINGS_FILE}`));
       } catch (error) {
         console.error('Error migrating settings.yaml:', error);
       }
