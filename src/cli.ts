@@ -31,15 +31,16 @@ import { hasCredentials } from './lib/auth-storage.js';
 import { CliError } from './types/errors.js';
 import { CommandError } from './lib/errors.js';
 import { ui } from './lib/ui.js';
-import { 
-  validateOptions, 
-  CreateTaskSchema, 
-  AddCommentSchema, 
-  UpdateDescriptionSchema, 
+import {
+  validateOptions,
+  CreateTaskSchema,
+  AddCommentSchema,
+  UpdateDescriptionSchema,
   RunJqlSchema,
   IssueKeySchema,
   ProjectKeySchema
 } from './lib/validation.js';
+import { realpathSync } from 'fs';
 
 // Load environment variables
 dotenv.config({ quiet: true } as any);
@@ -50,7 +51,7 @@ const program = new Command();
 program
   .name('jira-ai')
   .description('CLI tool for interacting with Atlassian Jira')
-  .version('0.3.21')
+  .version('0.3.22')
   .option('-o, --organization <alias>', 'Override the active Jira organization');
 
 // Hook to handle the global option before any command runs
@@ -346,7 +347,11 @@ export async function main() {
   }
 }
 
-if (process.argv[1]?.endsWith('cli.ts') || process.argv[1]?.endsWith('cli.js')) {
+// Check if this file is being run directly (handles symlinks)
+const scriptPath = process.argv[1] ? realpathSync(process.argv[1]) : '';
+const isMainModule = scriptPath.endsWith('cli.ts') || scriptPath.endsWith('cli.js');
+
+if (isMainModule) {
   main();
 }
 
