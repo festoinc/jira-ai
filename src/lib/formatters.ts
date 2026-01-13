@@ -1,6 +1,6 @@
 import chalk from 'chalk';
 import Table from 'cli-table3';
-import { UserInfo, Project, TaskDetails, Status, JqlIssue, IssueType, IssueStatistics } from './jira-client.js';
+import { UserInfo, Project, TaskDetails, Status, JqlIssue, IssueType, IssueStatistics, HistoryEntry } from './jira-client.js';
 import { formatTimestamp, truncate, formatDuration } from './utils.js';
 
 /**
@@ -156,6 +156,38 @@ export function formatTaskDetails(task: TaskDetails): string {
     output += chalk.gray('No comments yet.\n\n');
   }
 
+  // History
+  if (task.history && task.history.length > 0) {
+    output += formatTaskHistory(task.history);
+  }
+
+  return output;
+}
+
+/**
+ * Format task history
+ */
+export function formatTaskHistory(history: HistoryEntry[]): string {
+  if (history.length === 0) {
+    return chalk.gray('No history entries found.\n\n');
+  }
+
+  const table = createTable(['Date', 'Author', 'Field', 'From', 'To'], [22, 18, 15, 25, 25]);
+
+  history.forEach((entry) => {
+    entry.items.forEach((item, index) => {
+      table.push([
+        index === 0 ? formatTimestamp(entry.created) : '',
+        index === 0 ? truncate(entry.author, 18) : '',
+        chalk.yellow(item.field),
+        truncate(item.from || chalk.gray('None'), 25),
+        truncate(item.to || chalk.gray('None'), 25),
+      ]);
+    });
+  });
+
+  let output = '\n' + chalk.bold(`Task History (${history.length} entries)`) + '\n';
+  output += table.toString() + '\n';
   return output;
 }
 

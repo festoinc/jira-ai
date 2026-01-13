@@ -62,6 +62,19 @@ export interface LinkedIssue {
   };
 }
 
+export interface HistoryItem {
+  field: string;
+  from: string | null;
+  to: string | null;
+}
+
+export interface HistoryEntry {
+  id: string;
+  author: string;
+  created: string;
+  items: HistoryItem[];
+}
+
 export interface TaskDetails {
   id: string;
   key: string;
@@ -84,6 +97,13 @@ export interface TaskDetails {
   comments: Comment[];
   parent?: LinkedIssue;
   subtasks: LinkedIssue[];
+  history?: HistoryEntry[];
+}
+
+export interface HistoryOptions {
+  includeHistory?: boolean;
+  historyLimit?: number;
+  historyOffset?: number;
 }
 
 export interface JqlIssue {
@@ -220,12 +240,17 @@ export async function getProjects(): Promise<Project[]> {
 /**
  * Get task details with comments
  */
-export async function getTaskWithDetails(taskId: string): Promise<TaskDetails> {
+export async function getTaskWithDetails(
+  taskId: string,
+  options: HistoryOptions = {}
+): Promise<TaskDetails> {
   const client = getJiraClient();
+  const { includeHistory, historyLimit = 50, historyOffset = 0 } = options;
 
   // Get issue details
   const issue = await client.issues.getIssue({
     issueIdOrKey: taskId,
+    expand: includeHistory ? 'changelog' : undefined,
     fields: [
       'summary',
       'description',
@@ -278,6 +303,38 @@ export async function getTaskWithDetails(taskId: string): Promise<TaskDetails> {
     },
   })) || [];
 
+  // Extract history if requested
+  let history: HistoryEntry[] | undefined = undefined;
+  if (includeHistory && issue.changelog) {
+    let allHistories = issue.changelog.histories || [];
+
+    // If there are more histories than returned in the initial expand, we might need to fetch more
+    // Jira usually returns 100 histories in the expand.
+    if (issue.changelog.total && issue.changelog.total > allHistories.length && (historyOffset + historyLimit) > allHistories.length) {
+      const moreHistories = await client.issues.getChangeLogs({
+        issueIdOrKey: taskId,
+      });
+      allHistories = moreHistories.values || allHistories;
+    }
+
+    history = allHistories.map((h: any) => ({
+      id: h.id,
+      author: h.author?.displayName || 'Unknown',
+      created: h.created,
+      items: h.items?.map((item: any) => ({
+        field: item.field || '',
+        from: item.fromString,
+        to: item.toString
+      }))
+    }));
+
+    // Sort by date descending (most recent first)
+    history.sort((a, b) => new Date(b.created).getTime() - new Date(a.created).getTime());
+
+    // Apply offset and limit
+    history = history.slice(historyOffset, historyOffset + historyLimit);
+  }
+
   return {
     id: issue.id || '',
     key: issue.key || '',
@@ -300,6 +357,7 @@ export async function getTaskWithDetails(taskId: string): Promise<TaskDetails> {
     comments,
     parent,
     subtasks,
+    history,
   };
 }
 

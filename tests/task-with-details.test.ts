@@ -67,7 +67,11 @@ describe('Task With Details Command', () => {
 
     await taskWithDetailsCommand('PROJ-123');
 
-    expect(mockJiraClient.getTaskWithDetails).toHaveBeenCalledWith('PROJ-123');
+    expect(mockJiraClient.getTaskWithDetails).toHaveBeenCalledWith('PROJ-123', expect.objectContaining({
+      includeHistory: undefined,
+      historyLimit: undefined,
+      historyOffset: undefined
+    }));
     expect(mockFormatters.formatTaskDetails).toHaveBeenCalledWith(mockTask);
     expect(console.log).toHaveBeenCalledWith('Formatted task details');
   });

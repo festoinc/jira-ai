@@ -90,5 +90,32 @@ describe('Formatters', () => {
       
       vi.useRealTimers();
     });
+
+    it('should include history section when history is present', () => {
+      const taskWithHistory: TaskDetails = {
+        ...mockTask,
+        history: [
+          {
+            id: '101',
+            author: 'John Doe',
+            created: '2023-01-01T12:00:00.000Z',
+            items: [
+              {
+                field: 'status',
+                from: 'To Do',
+                to: 'In Progress'
+              }
+            ]
+          }
+        ]
+      };
+      
+      const output = formatTaskDetails(taskWithHistory);
+      expect(output).toContain('Task History');
+      expect(output).toContain('John Doe');
+      expect(output).toContain('status');
+      expect(output).toContain('To Do');
+      expect(output).toContain('In Progress');
+    });
   });
 });
