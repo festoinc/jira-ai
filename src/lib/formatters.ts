@@ -379,3 +379,27 @@ export function formatIssueStatistics(statsList: IssueStatistics[]): string {
 
   return output;
 }
+
+/**
+ * Format users list
+ */
+export function formatUsers(users: UserInfo[]): string {
+  if (users.length === 0) {
+    return chalk.yellow('No users found.');
+  }
+
+  const table = createTable(['Display Name', 'Email', 'Account ID'], [30, 40, 30]);
+
+  users.forEach((user) => {
+    table.push([
+      chalk.cyan(user.displayName),
+      user.emailAddress || chalk.gray('N/A'),
+      chalk.gray(user.accountId),
+    ]);
+  });
+
+  let output = '\n' + chalk.bold(`Colleagues (${users.length} total)`) + '\n\n';
+  output += table.toString() + '\n';
+
+  return output;
+}

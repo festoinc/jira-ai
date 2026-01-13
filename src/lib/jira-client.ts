@@ -630,3 +630,36 @@ export async function transitionIssue(issueIdOrKey: string, transitionId: string
   });
 }
 
+/**
+ * Get users, optionally filtered by project
+ */
+export async function getUsers(projectKey?: string): Promise<UserInfo[]> {
+  const client = getJiraClient();
+  let users: any[];
+
+  if (projectKey) {
+    users = await client.userSearch.findAssignableUsers({
+      project: projectKey,
+      maxResults: 1000,
+    });
+  } else {
+    users = await client.userSearch.findUsers({
+      query: '',
+      maxResults: 1000,
+    });
+  }
+
+  // Filter for active users
+  return users
+    .filter((user: any) => user.active && user.accountType === 'atlassian')
+    .map((user: any) => ({
+      accountId: user.accountId || '',
+      displayName: user.displayName || '',
+      emailAddress: user.emailAddress || '',
+      active: user.active || false,
+      timeZone: user.timeZone || '',
+      // @ts-ignore
+      host: client.config.host || 'N/A',
+    }));
+}
+
