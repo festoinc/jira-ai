@@ -25,6 +25,7 @@ import {
 } from './commands/organization.js';
 import { isCommandAllowed, getAllowedCommands } from './lib/settings.js';
 import { setOrganizationOverride } from './lib/jira-client.js';
+import { hasCredentials } from './lib/auth-storage.js';
 import { CliError } from './types/errors.js';
 import { CommandError } from './lib/errors.js';
 import { ui } from './lib/ui.js';
@@ -47,7 +48,7 @@ const program = new Command();
 program
   .name('jira-ai')
   .description('CLI tool for interacting with Atlassian Jira')
-  .version('0.3.17')
+  .version('0.3.18')
   .option('-o, --organization <alias>', 'Override the active Jira organization');
 
 // Hook to handle the global option before any command runs
@@ -255,9 +256,41 @@ program
   .description('Show information about the tool')
   .action(aboutCommand);
 
+/**
+ * Configure command visibility based on auth status and settings
+ */
+export function configureCommandVisibility(program: Command) {
+  const hasCreds = hasCredentials();
+  const envVarsSet = !!(
+    process.env.JIRA_HOST && 
+    process.env.JIRA_USER_EMAIL && 
+    process.env.JIRA_API_TOKEN
+  );
+  const isAuthorized = hasCreds || envVarsSet;
+
+  if (!isAuthorized) {
+    program.commands.forEach(cmd => {
+      if (cmd.name() !== 'auth' && cmd.name() !== 'about') {
+        (cmd as any)._hidden = true;
+      }
+    });
+    program.addHelpText('after', `\n${chalk.yellow('You are not authorized. Please use `jira-ai auth` to authorize. Then you can run other commands.')}`);
+  } else {
+    program.commands.forEach(cmd => {
+      // auth and about are always visible
+      if (cmd.name() !== 'auth' && cmd.name() !== 'about') {
+        if (!isCommandAllowed(cmd.name())) {
+          (cmd as any)._hidden = true;
+        }
+      }
+    });
+  }
+}
+
 // Parse command line arguments
-async function main() {
+export async function main() {
   try {
+    configureCommandVisibility(program);
     await program.parseAsync(process.argv);
   } catch (error) {
     ui.failSpinner();
@@ -288,4 +321,8 @@ async function main() {
   }
 }
 
-main();
+if (process.argv[1]?.endsWith('cli.ts') || process.argv[1]?.endsWith('cli.js')) {
+  main();
+}
+
+export { program };
