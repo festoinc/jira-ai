@@ -104,11 +104,15 @@ export function calculateStatusStatistics(
     lastStatus = currentStatus;
   }
 
-  for (const history of statusHistories) {
-    const statusItem = history.items.find((item: any) => item.field === 'status');
-    if (!statusItem) continue;
+      for (const history of statusHistories) {
 
-    const transitionTime = new Date(history.created).getTime();
+        const statusItem = history.items.find((item: any) => item.field === 'status');
+
+  
+
+        const transitionTime = new Date(history.created).getTime();
+
+  
     const durationSeconds = Math.max(0, Math.floor((transitionTime - lastTransitionTime) / 1000));
 
     stats[lastStatus] = (stats[lastStatus] || 0) + durationSeconds;
@@ -148,12 +152,11 @@ export function formatDuration(seconds: number, hoursPerDay: number = 24): strin
   if (w > 0) parts.push(`${w}w`);
   if (d > 0) parts.push(`${d}d`);
   if (h > 0) parts.push(`${h}h`);
-  if (m > 0) parts.push(`${m}m`);
-
-  return parts.length > 0 ? parts.join(' ') : '0m';
-}
-
-/**
+      if (m > 0) parts.push(`${m}m`);
+  
+      return parts.join(' ');
+    }
+  /**
  * Parse relative timeframe (e.g., '7d', '30d') into start and end dates
  */
 export function parseTimeframe(timeframe: string): { startDate: Date; endDate: Date } {

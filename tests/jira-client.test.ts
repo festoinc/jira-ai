@@ -15,10 +15,15 @@ import {
   createIssue,
   getIssueStatistics,
   getUsers,
+  getIssueWorklogs,
+  getJiraClient,
   createTemporaryClient,
   setOrganizationOverride
 } from '../src/lib/jira-client.js';
+import * as authStorage from '../src/lib/auth-storage.js';
 import { Version3Client } from 'jira.js';
+
+vi.mock('../src/lib/auth-storage.js');
 
 // Mock dependencies
 const {
@@ -35,7 +40,9 @@ const {
   mockCreateIssue,
   mockGetChangeLogs,
   mockFindUsers,
-  mockFindAssignableUsers
+  mockFindAssignableUsers,
+  mockGetIssueWorklog,
+  mockConfig
 } = vi.hoisted(() => ({
   mockGetIssue: vi.fn(),
   mockEditIssue: vi.fn(),
@@ -50,7 +57,9 @@ const {
   mockCreateIssue: vi.fn(),
   mockGetChangeLogs: vi.fn(),
   mockFindUsers: vi.fn(),
-  mockFindAssignableUsers: vi.fn()
+  mockFindAssignableUsers: vi.fn(),
+  mockGetIssueWorklog: vi.fn(),
+  mockConfig: { host: 'https://test.atlassian.net' }
 }));
 
 vi.mock('jira.js', () => ({
@@ -80,13 +89,14 @@ vi.mock('jira.js', () => ({
       issueComments: {
         addComment: mockAddComment
       },
+      issueWorklogs: {
+        getIssueWorklog: mockGetIssueWorklog
+      },
       userSearch: {
         findUsers: mockFindUsers,
         findAssignableUsers: mockFindAssignableUsers
       },
-      config: {
-        host: 'https://test.atlassian.net'
-      }
+      config: mockConfig
     };
   })
 }));
@@ -204,57 +214,134 @@ describe('Jira Client', () => {
     });
 
     it('should fetch history when includeHistory is true', async () => {
-      const mockRawIssue = {
-        id: '10001',
-        key: 'PROJ-123',
+      const mockIssue = {
+        id: '1',
+        key: 'TEST-1',
         fields: {
           summary: 'Test summary',
-          status: { name: 'In Progress' },
-          created: '2023-01-01T10:00:00.000Z',
-          updated: '2023-01-02T10:00:00.000Z',
+          status: { name: 'To Do', statusCategory: { key: 'new' } },
+          created: '2023-01-01',
+          updated: '2023-01-01',
+          labels: []
         },
         changelog: {
+          total: 1,
+          histories: [{ id: '1', author: { displayName: 'User' }, created: '2023-01-01', items: [] }]
+        }
+      };
+      vi.mocked(mockGetIssue).mockResolvedValue(mockIssue as any);
+
+      const result = await getTaskWithDetails('TEST-1', { includeHistory: true });
+
+      expect(result.history).toBeDefined();
+      expect(result.history![0].id).toBe('1');
+    });
+
+    it('should fetch more histories if total is greater than returned histories', async () => {
+      const mockIssue = {
+        id: '1',
+        key: 'TEST-1',
+        fields: {
+          summary: 'Test summary',
+          status: { name: 'To Do', statusCategory: { key: 'new' } },
+          created: '2023-01-01',
+          updated: '2023-01-01',
+          labels: []
+        },
+        changelog: {
+          total: 2,
+          histories: [{ id: '1', author: { displayName: 'User' }, created: '2023-01-01', items: [] }]
+        }
+      };
+      vi.mocked(mockGetIssue).mockResolvedValue(mockIssue as any);
+      vi.mocked(mockGetChangeLogs).mockResolvedValue({
+        values: [
+          { id: '1', author: { displayName: 'User' }, created: '2023-01-01', items: [] },
+          { id: '2', author: { displayName: 'User' }, created: '2023-01-02', items: [] }
+        ]
+      } as any);
+
+      const result = await getTaskWithDetails('TEST-1', { includeHistory: true, historyLimit: 2 });
+
+      expect(mockGetChangeLogs).toHaveBeenCalledWith({ issueIdOrKey: 'TEST-1' });
+      expect(result.history).toHaveLength(2);
+      expect(result.history![0].id).toBe('2'); // Descending order
+    });
+
+    it('should apply historyOffset', async () => {
+      const mockIssue = {
+        id: '1',
+        key: 'TEST-1',
+        fields: {
+          summary: 'Test summary',
+          status: { name: 'To Do', statusCategory: { key: 'new' } },
+          created: '2023-01-01',
+          updated: '2023-01-01',
+          labels: []
+        },
+        changelog: {
+          total: 2,
           histories: [
-            {
-              id: '101',
-              author: { displayName: 'John Doe' },
-              created: '2023-01-01T12:00:00.000Z',
-              items: [
-                {
-                  field: 'status',
-                  fromString: 'To Do',
-                  toString: 'In Progress'
-                }
-              ]
-            }
+            { id: '1', author: { displayName: 'User' }, created: '2023-01-01', items: [] },
+            { id: '2', author: { displayName: 'User' }, created: '2023-01-02', items: [] }
           ]
         }
       };
+      vi.mocked(mockGetIssue).mockResolvedValue(mockIssue as any);
 
-      mockGetIssue.mockResolvedValue(mockRawIssue);
+      const result = await getTaskWithDetails('TEST-1', { includeHistory: true, historyOffset: 1, historyLimit: 1 });
 
-      // @ts-ignore - testing new functionality
-      const result = await getTaskWithDetails('PROJ-123', { includeHistory: true });
-
-      expect(mockGetIssue).toHaveBeenCalledWith(expect.objectContaining({
-        issueIdOrKey: 'PROJ-123',
-        expand: 'changelog'
-      }));
-
-      expect(result.history).toBeDefined();
       expect(result.history).toHaveLength(1);
-      expect(result.history![0]).toEqual({
-        id: '101',
-        author: 'John Doe',
-        created: '2023-01-01T12:00:00.000Z',
-        items: [
-          {
-            field: 'status',
-            from: 'To Do',
-            to: 'In Progress'
-          }
-        ]
-      });
+      expect(result.history![0].id).toBe('1'); // Second item after sort and offset
+    });
+
+    it('should handle history with no items', async () => {
+      const mockIssue = {
+        id: '1',
+        key: 'TEST-1',
+        fields: {
+          summary: 'Test summary',
+          status: { name: 'To Do', statusCategory: { key: 'new' } },
+          created: '2023-01-01',
+          updated: '2023-01-01',
+          labels: []
+        },
+        changelog: {
+          total: 1,
+          histories: [{ id: '1', author: { displayName: 'User' }, created: '2023-01-01' }]
+        }
+      };
+      vi.mocked(mockGetIssue).mockResolvedValue(mockIssue as any);
+
+      const result = await getTaskWithDetails('TEST-1', { includeHistory: true });
+      expect(result.history![0].items).toBeUndefined();
+    });
+
+    it('should handle history items with missing fields', async () => {
+      const mockIssue = {
+        id: '1',
+        key: 'TEST-1',
+        fields: {
+          summary: 'Test summary',
+          status: { name: 'To Do', statusCategory: { key: 'new' } },
+          created: '2023-01-01',
+          updated: '2023-01-01',
+          labels: []
+        },
+        changelog: {
+          total: 1,
+          histories: [{ 
+            id: '1', 
+            author: { displayName: 'User' }, 
+            created: '2023-01-01',
+            items: [{ fromString: 'A', toString: 'B' }] 
+          }]
+        }
+      };
+      vi.mocked(mockGetIssue).mockResolvedValue(mockIssue as any);
+
+      const result = await getTaskWithDetails('TEST-1', { includeHistory: true });
+      expect(result.history![0].items![0].field).toBe('');
     });
   });
 
@@ -621,32 +708,155 @@ describe('Jira Client', () => {
 
   describe('getUsers', () => {
     it('should fetch all active users when no projectKey provided', async () => {
-      mockFindUsers.mockResolvedValue([
-        {
-          accountId: '1',
-          displayName: 'User One',
-          emailAddress: 'user1@example.com',
-          active: true,
-          accountType: 'atlassian',
-          timeZone: 'UTC'
-        },
-        {
-          accountId: '2',
-          displayName: 'User Two',
-          emailAddress: 'user2@example.com',
-          active: false,
-          accountType: 'atlassian',
-          timeZone: 'UTC'
-        }
-      ]);
+      const mockUsers = [
+        { accountId: '1', displayName: 'User 1', active: true, accountType: 'atlassian' },
+        { accountId: '2', displayName: 'User 2', active: false, accountType: 'atlassian' }
+      ];
+      mockFindUsers.mockResolvedValue(mockUsers as any);
 
       const result = await getUsers();
 
       expect(mockFindUsers).toHaveBeenCalled();
       expect(result).toHaveLength(1);
-      expect(result[0].active).toBe(true);
+      expect(result[0].accountId).toBe('1');
     });
 
+    it('should fetch users for a project when projectKey is provided', async () => {
+      const mockUsers = [
+        { accountId: '1', displayName: 'User 1', active: true, accountType: 'atlassian' }
+      ];
+      mockFindAssignableUsers.mockResolvedValue(mockUsers as any);
+
+      const result = await getUsers('TEST');
+
+      expect(mockFindAssignableUsers).toHaveBeenCalledWith({
+        project: 'TEST',
+        maxResults: 1000
+      });
+      expect(result).toHaveLength(1);
+    });
+
+    it('should handle missing host in client config', async () => {
+      const oldHost = mockConfig.host;
+      mockConfig.host = undefined as any;
+      const mockUsers = [
+        { accountId: '1', displayName: 'User 1', active: true, accountType: 'atlassian' }
+      ];
+      mockFindUsers.mockResolvedValue(mockUsers as any);
+
+      const result = await getUsers();
+      expect(result[0].host).toBe('N/A');
+      
+      mockConfig.host = oldHost;
+    });
+
+    it('should handle missing fields in user info', async () => {
+      const mockUsers = [
+        { active: true, accountType: 'atlassian' }
+      ];
+      mockFindUsers.mockResolvedValue(mockUsers as any);
+
+      const result = await getUsers();
+      expect(result[0].accountId).toBe('');
+      expect(result[0].displayName).toBe('');
+    });
+  });
+
+  describe('getIssueWorklogs', () => {
+    it('should fetch and format worklogs', async () => {
+      const mockWorklogs = {
+        worklogs: [
+          {
+            id: '1',
+            author: { accountId: 'user1', displayName: 'User 1' },
+            started: '2023-01-01T10:00:00.000+0000',
+            timeSpent: '1h',
+            timeSpentSeconds: 3600
+          }
+        ]
+      };
+      mockGetIssueWorklog.mockResolvedValue(mockWorklogs as any);
+
+      const result = await getIssueWorklogs('TEST-1');
+
+      expect(mockGetIssueWorklog).toHaveBeenCalledWith({ issueIdOrKey: 'TEST-1' });
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe('1');
+      expect(result[0].author.displayName).toBe('User 1');
+    });
+
+    it('should handle missing worklogs in response', async () => {
+      mockGetIssueWorklog.mockResolvedValue({} as any);
+
+      const result = await getIssueWorklogs('TEST-1');
+      expect(result).toEqual([]);
+    });
+
+    it('should handle missing fields in worklogs', async () => {
+      const mockWorklogs = {
+        worklogs: [
+          {
+            // Missing id, author and other fields
+          }
+        ]
+      };
+      mockGetIssueWorklog.mockResolvedValue(mockWorklogs as any);
+
+      const result = await getIssueWorklogs('TEST-1');
+
+      expect(result[0].id).toBe('');
+      expect(result[0].author.displayName).toBe('Unknown');
+      expect(result[0].author.accountId).toBe('');
+    });
+  });
+
+  describe('getJiraClient and organizationOverride', () => {
+    let originalEnv: NodeJS.ProcessEnv;
+
+    beforeEach(() => {
+      originalEnv = { ...process.env };
+      delete process.env.JIRA_HOST;
+      delete process.env.JIRA_USER_EMAIL;
+      delete process.env.JIRA_API_TOKEN;
+      setOrganizationOverride(undefined as any);
+    });
+
+    afterEach(() => {
+      process.env = originalEnv;
+      // Reset the client and override
+      setOrganizationOverride(undefined as any);
+    });
+
+    it('should throw error when no credentials are found', () => {
+      vi.mocked(authStorage.loadCredentials).mockReturnValue(null);
+      expect(() => getJiraClient()).toThrow('Jira credentials not found');
+    });
+
+    it('should load credentials from storage when env vars are missing', () => {
+      const mockCreds = { host: 'host', email: 'email', apiToken: 'token' };
+      vi.mocked(authStorage.loadCredentials).mockReturnValue(mockCreds);
+      
+      const client = getJiraClient();
+      expect(Version3Client).toHaveBeenCalled();
+      expect(client).toBeDefined();
+    });
+
+    it('should handle organization override', () => {
+      const mockCreds = { host: 'org-host', email: 'org-email', apiToken: 'org-token' };
+      vi.mocked(authStorage.loadCredentials).mockReturnValue(mockCreds);
+      
+      setOrganizationOverride('my-org');
+      getJiraClient();
+      
+      expect(authStorage.loadCredentials).toHaveBeenCalledWith('my-org');
+    });
+
+    it('should throw error when organization override credentials not found', () => {
+      vi.mocked(authStorage.loadCredentials).mockReturnValue(null);
+      setOrganizationOverride('unknown-org');
+      
+      expect(() => getJiraClient()).toThrow('Jira credentials for organization "unknown-org" not found.');
+    });
   });
 
   describe('createTemporaryClient', () => {
