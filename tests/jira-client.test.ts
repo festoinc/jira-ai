@@ -1,11 +1,13 @@
 import { vi, describe, it, expect, beforeEach, afterEach, beforeAll, afterAll, test } from 'vitest';
-import { getTaskWithDetails, addIssueLabels, removeIssueLabels } from '../src/lib/jira-client.js';
+import { getTaskWithDetails, addIssueLabels, removeIssueLabels, getIssueTransitions, transitionIssue } from '../src/lib/jira-client.js';
 import { Version3Client } from 'jira.js';
 
 // Mock dependencies
-const { mockGetIssue, mockEditIssue } = vi.hoisted(() => ({
+const { mockGetIssue, mockEditIssue, mockGetTransitions, mockDoTransition } = vi.hoisted(() => ({
   mockGetIssue: vi.fn(),
   mockEditIssue: vi.fn(),
+  mockGetTransitions: vi.fn(),
+  mockDoTransition: vi.fn(),
 }));
 
 vi.mock('jira.js', () => ({
@@ -13,7 +15,9 @@ vi.mock('jira.js', () => ({
     return {
       issues: {
         getIssue: mockGetIssue,
-        editIssue: mockEditIssue
+        editIssue: mockEditIssue,
+        getTransitions: mockGetTransitions,
+        doTransition: mockDoTransition
       }
     };
   })
@@ -219,6 +223,48 @@ describe('Jira Client', () => {
             { remove: 'label2' }
           ]
         }
+      });
+    });
+  });
+
+  describe('getIssueTransitions', () => {
+    it('should correctly fetch and format transitions', async () => {
+      mockGetTransitions.mockResolvedValue({
+        transitions: [
+          {
+            id: '1',
+            name: 'Transition 1',
+            to: { id: '10', name: 'Status 1' }
+          },
+          {
+            id: '2',
+            name: 'Transition 2',
+            to: { id: '20', name: 'Status 2' }
+          }
+        ]
+      });
+
+      const result = await getIssueTransitions('PROJ-123');
+
+      expect(mockGetTransitions).toHaveBeenCalledWith({ issueIdOrKey: 'PROJ-123' });
+      expect(result).toHaveLength(2);
+      expect(result[0]).toEqual({
+        id: '1',
+        name: 'Transition 1',
+        to: { id: '10', name: 'Status 1' }
+      });
+    });
+  });
+
+  describe('transitionIssue', () => {
+    it('should call doTransition with correct parameters', async () => {
+      mockDoTransition.mockResolvedValue({});
+
+      await transitionIssue('PROJ-123', '1');
+
+      expect(mockDoTransition).toHaveBeenCalledWith({
+        issueIdOrKey: 'PROJ-123',
+        transition: { id: '1' }
       });
     });
   });

@@ -11,7 +11,7 @@ projects:
   # - all
 
 # Commands: List of allowed commands (use "all" to allow all commands)
-# Available commands: me, projects, task-with-details, project-statuses, list-issue-types, run-jql, update-description, add-comment, create-task, get-issue-statistics, about
+# Available commands: me, projects, task-with-details, project-statuses, list-issue-types, run-jql, update-description, add-comment, create-task, get-issue-statistics, about, transition, add-label-to-issue, delete-label-from-issue
 commands:
   - me
   - get-issue-statistics

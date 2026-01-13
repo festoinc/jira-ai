@@ -15,6 +15,7 @@ import { addCommentCommand } from './commands/add-comment.js';
 import { addLabelCommand } from './commands/add-label.js';
 import { deleteLabelCommand } from './commands/delete-label.js';
 import { createTaskCommand } from './commands/create-task.js';
+import { transitionCommand } from './commands/transition.js';
 import { getIssueStatisticsCommand } from './commands/get-issue-statistics.js';
 import { aboutCommand } from './commands/about.js';
 import { authCommand } from './commands/auth.js';
@@ -48,7 +49,7 @@ const program = new Command();
 program
   .name('jira-ai')
   .description('CLI tool for interacting with Atlassian Jira')
-  .version('0.3.19')
+  .version('0.3.20')
   .option('-o, --organization <alias>', 'Override the active Jira organization');
 
 // Hook to handle the global option before any command runs
@@ -245,6 +246,14 @@ program
   .requiredOption('--issue-type <type>', 'Issue type (e.g., Task, Epic, Subtask)')
   .option('--parent <key>', 'Parent issue key (required for subtasks)')
   .action(withPermission('create-task', createTaskCommand, { schema: CreateTaskSchema }));
+
+// Transition command
+program
+  .command('transition <task-id> <to-status>')
+  .description('Transition a Jira task to a new status')
+  .action(withPermission('transition', transitionCommand, {
+    validateArgs: (args) => validateOptions(IssueKeySchema, args[0])
+  }));
 
 // Get issue statistics command
 program
