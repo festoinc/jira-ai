@@ -4,11 +4,15 @@ import { formatTaskDetails } from '../lib/formatters.js';
 import { CommandError } from '../lib/errors.js';
 import { ui } from '../lib/ui.js';
 
-export async function taskWithDetailsCommand(taskId: string): Promise<void> {
+export async function taskWithDetailsCommand(taskId: string, options: any = {}): Promise<void> {
   ui.startSpinner(`Fetching details for ${taskId}...`);
 
   try {
-    const task = await getTaskWithDetails(taskId);
+    const task = await getTaskWithDetails(taskId, {
+      includeHistory: options.includeDetailedHistory,
+      historyLimit: options.historyLimit ? parseInt(options.historyLimit, 10) : undefined,
+      historyOffset: options.historyOffset ? parseInt(options.historyOffset, 10) : undefined,
+    });
     ui.succeedSpinner(chalk.green('Task details retrieved'));
     console.log(formatTaskDetails(task));
   } catch (error: any) {
