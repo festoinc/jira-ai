@@ -8,10 +8,11 @@ export async function projectsCommand(): Promise<void> {
   ui.startSpinner('Fetching projects...');
 
   const allProjects = await getProjects();
-  const allowedProjectKeys = getAllowedProjects();
+  const allowedProjects = getAllowedProjects();
 
   // Filter projects based on settings
-  const filteredProjects = allowedProjectKeys.includes('all')
+  const hasAll = allowedProjects.some(p => p === 'all');
+  const filteredProjects = hasAll
     ? allProjects
     : allProjects.filter(project => isProjectAllowed(project.key));
 
@@ -19,7 +20,8 @@ export async function projectsCommand(): Promise<void> {
 
   if (filteredProjects.length === 0) {
     console.log(chalk.yellow('\nNo projects match your settings configuration.'));
-    console.log(chalk.gray('Allowed projects: ' + allowedProjectKeys.join(', ')));
+    const displayKeys = allowedProjects.map(p => typeof p === 'string' ? p : p.key);
+    console.log(chalk.gray('Allowed projects: ' + displayKeys.join(', ')));
   } else {
     console.log(formatProjects(filteredProjects));
   }

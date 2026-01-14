@@ -12,19 +12,23 @@ vi.mock('../src/lib/ui.js');
 describe('getIssueStatisticsCommand', () => {
   let consoleErrorSpy: any;
   let consoleLogSpy: any;
+  let consoleWarnSpy: any;
 
   beforeEach(() => {
     vi.clearAllMocks();
     consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     vi.mocked(ui.ui.startSpinner).mockImplementation(() => {});
     vi.mocked(ui.ui.succeedSpinner).mockImplementation(() => {});
     vi.mocked(ui.ui.failSpinner).mockImplementation(() => {});
+    vi.mocked(jiraClient.validateIssuePermissions).mockResolvedValue({} as any);
   });
 
   afterEach(() => {
     consoleErrorSpy.mockRestore();
     consoleLogSpy.mockRestore();
+    consoleWarnSpy.mockRestore();
   });
 
   it('should display error when no issue IDs are provided', async () => {
@@ -46,7 +50,7 @@ describe('getIssueStatisticsCommand', () => {
       key: 'TEST-123',
       summary: 'Test issue',
       statusDurations: { 'To Do': 3600, 'In Progress': 7200 }
-    };
+    } as any;
 
     vi.mocked(jiraClient.getIssueStatistics).mockResolvedValue(mockStats);
     vi.mocked(formatters.formatIssueStatistics).mockReturnValue('Formatted stats');
@@ -54,6 +58,7 @@ describe('getIssueStatisticsCommand', () => {
     await getIssueStatisticsCommand('TEST-123');
 
     expect(ui.ui.startSpinner).toHaveBeenCalledWith('Fetching statistics for 1 issue(s)...');
+    expect(jiraClient.validateIssuePermissions).toHaveBeenCalledWith('TEST-123', 'get-issue-statistics');
     expect(jiraClient.getIssueStatistics).toHaveBeenCalledWith('TEST-123');
     expect(formatters.formatIssueStatistics).toHaveBeenCalledWith([mockStats]);
     expect(ui.ui.succeedSpinner).toHaveBeenCalledWith(chalk.green('Statistics retrieved'));
@@ -65,12 +70,12 @@ describe('getIssueStatisticsCommand', () => {
       key: 'TEST-123',
       summary: 'Test issue 1',
       statusDurations: { 'To Do': 3600 }
-    };
+    } as any;
     const mockStats2 = {
       key: 'TEST-456',
       summary: 'Test issue 2',
       statusDurations: { 'In Progress': 7200 }
-    };
+    } as any;
 
     vi.mocked(jiraClient.getIssueStatistics).mockResolvedValueOnce(mockStats1).mockResolvedValueOnce(mockStats2);
     vi.mocked(formatters.formatIssueStatistics).mockReturnValue('Formatted stats');
@@ -89,7 +94,7 @@ describe('getIssueStatisticsCommand', () => {
       key: 'TEST-123',
       summary: 'Test issue 1',
       statusDurations: { 'To Do': 3600 }
-    };
+    } as any;
 
     vi.mocked(jiraClient.getIssueStatistics)
       .mockResolvedValueOnce(mockStats1)
@@ -110,7 +115,7 @@ describe('getIssueStatisticsCommand', () => {
 
     await getIssueStatisticsCommand('TEST-123');
 
-    expect(ui.ui.failSpinner).toHaveBeenCalledWith('Failed to retrieve statistics');
+    expect(ui.ui.failSpinner).toHaveBeenCalledWith('Failed to retrieve statistics or all issues were filtered out');
     expect(consoleLogSpy).not.toHaveBeenCalled();
   });
 
@@ -119,7 +124,7 @@ describe('getIssueStatisticsCommand', () => {
       key: 'TEST-123',
       summary: 'Test issue',
       statusDurations: {}
-    };
+    } as any;
 
     vi.mocked(jiraClient.getIssueStatistics).mockResolvedValue(mockStats);
     vi.mocked(formatters.formatIssueStatistics).mockReturnValue('Formatted stats');

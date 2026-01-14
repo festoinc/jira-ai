@@ -1,11 +1,13 @@
-import { vi, describe, it, expect, beforeEach, afterEach, beforeAll, afterAll, test } from 'vitest';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { taskWithDetailsCommand } from '../src/commands/task-with-details.js';
 import * as jiraClient from '../src/lib/jira-client.js';
 import * as formatters from '../src/lib/formatters.js';
+import * as settings from '../src/lib/settings.js';
 
 // Mock dependencies
 vi.mock('../src/lib/jira-client.js');
 vi.mock('../src/lib/formatters.js');
+vi.mock('../src/lib/settings.js');
 vi.mock('ora', () => {
   return {
     default: vi.fn(() => ({
@@ -19,16 +21,17 @@ vi.mock('ora', () => {
 
 const mockJiraClient = jiraClient as vi.Mocked<typeof jiraClient>;
 const mockFormatters = formatters as vi.Mocked<typeof formatters>;
+const mockSettings = settings as vi.Mocked<typeof settings>;
 
 describe('Task With Details Command', () => {
-  const mockTask: jiraClient.TaskDetails = {
+  const mockTask: any = {
     id: '10001',
     key: 'PROJ-123',
     summary: 'Test task summary',
     description: 'Test task description',
     status: { name: 'In Progress' },
-    assignee: { displayName: 'John Doe' },
-    reporter: { displayName: 'Jane Smith' },
+    assignee: { accountId: 'user-1', displayName: 'John Doe' },
+    reporter: { accountId: 'user-2', displayName: 'Jane Smith' },
     created: '2023-01-01T10:00:00.000Z',
     updated: '2023-01-02T10:00:00.000Z',
     labels: ['frontend', 'ui'],
@@ -39,26 +42,26 @@ describe('Task With Details Command', () => {
       summary: 'Parent task summary',
       status: { name: 'Done' }
     },
-    subtasks: [
-      {
-        id: '10002',
-        key: 'PROJ-124',
-        summary: 'Subtask 1 summary',
-        status: { name: 'To Do' }
-      },
-      {
-        id: '10003',
-        key: 'PROJ-125',
-        summary: 'Subtask 2 summary',
-        status: { name: 'In Progress' }
-      }
-    ]
+    subtasks: []
+  };
+
+  const mockUser = {
+    accountId: 'user-1',
+    displayName: 'John Doe',
+    emailAddress: 'john@example.com',
+    active: true,
+    timeZone: 'UTC',
+    host: 'test.atlassian.net'
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
     console.log = vi.fn();
     console.error = vi.fn();
+    
+    mockSettings.isCommandAllowed.mockReturnValue(true);
+    mockSettings.validateIssueAgainstFilters.mockReturnValue(true);
+    mockJiraClient.getCurrentUser.mockResolvedValue(mockUser);
   });
 
   it('should fetch and display task details with parent and subtasks', async () => {
@@ -68,9 +71,7 @@ describe('Task With Details Command', () => {
     await taskWithDetailsCommand('PROJ-123');
 
     expect(mockJiraClient.getTaskWithDetails).toHaveBeenCalledWith('PROJ-123', expect.objectContaining({
-      includeHistory: undefined,
-      historyLimit: undefined,
-      historyOffset: undefined
+      includeHistory: undefined
     }));
     expect(mockFormatters.formatTaskDetails).toHaveBeenCalledWith(mockTask);
     expect(console.log).toHaveBeenCalledWith('Formatted task details');

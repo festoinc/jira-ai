@@ -32,16 +32,9 @@ describe('getPersonWorklogCommand', () => {
     vi.mocked(utils.parseTimeframe).mockReturnValue({ startDate, endDate });
     vi.mocked(utils.formatDateForJql).mockReturnValue('2023-01-01');
 
-    const mockClient = {
-      issueSearch: {
-        searchForIssuesUsingJqlEnhancedSearch: vi.fn().mockResolvedValue({
-          issues: [
-            { key: 'TEST-1', fields: { summary: 'Issue 1' } }
-          ]
-        })
-      }
-    };
-    vi.mocked(jiraClient.getJiraClient).mockReturnValue(mockClient as any);
+    vi.mocked(jiraClient.searchIssuesByJql).mockResolvedValue([
+      { key: 'TEST-1', summary: 'Issue 1', status: { name: 'Done' }, assignee: null, priority: null }
+    ]);
 
     const mockWorklogs = [
       {
@@ -58,7 +51,7 @@ describe('getPersonWorklogCommand', () => {
 
     expect(ui.ui.startSpinner).toHaveBeenCalledWith('Fetching worklogs for user1...');
     expect(utils.parseTimeframe).toHaveBeenCalledWith('january');
-    expect(mockClient.issueSearch.searchForIssuesUsingJqlEnhancedSearch).toHaveBeenCalled();
+    expect(jiraClient.searchIssuesByJql).toHaveBeenCalled();
     expect(jiraClient.getIssueWorklogs).toHaveBeenCalledWith('TEST-1');
     expect(ui.ui.stopSpinner).toHaveBeenCalled();
     expect(consoleLogSpy).toHaveBeenCalledWith('Formatted worklogs');
@@ -70,14 +63,7 @@ describe('getPersonWorklogCommand', () => {
     vi.mocked(utils.parseTimeframe).mockReturnValue({ startDate, endDate });
     vi.mocked(utils.formatDateForJql).mockReturnValue('2023-01-01');
 
-    const mockClient = {
-      issueSearch: {
-        searchForIssuesUsingJqlEnhancedSearch: vi.fn().mockResolvedValue({
-          issues: []
-        })
-      }
-    };
-    vi.mocked(jiraClient.getJiraClient).mockReturnValue(mockClient as any);
+    vi.mocked(jiraClient.searchIssuesByJql).mockResolvedValue([]);
 
     await getPersonWorklogCommand('user1', 'january', {});
 
@@ -91,16 +77,9 @@ describe('getPersonWorklogCommand', () => {
     vi.mocked(utils.parseTimeframe).mockReturnValue({ startDate, endDate });
     vi.mocked(utils.formatDateForJql).mockReturnValue('2023-01-01');
 
-    const mockClient = {
-      issueSearch: {
-        searchForIssuesUsingJqlEnhancedSearch: vi.fn().mockResolvedValue({
-          issues: [
-            { key: 'TEST-1', fields: { summary: 'Issue 1' } }
-          ]
-        })
-      }
-    };
-    vi.mocked(jiraClient.getJiraClient).mockReturnValue(mockClient as any);
+    vi.mocked(jiraClient.searchIssuesByJql).mockResolvedValue([
+      { key: 'TEST-1', summary: 'Issue 1', status: { name: 'Done' }, assignee: null, priority: null }
+    ]);
 
     // Worklog from different user
     const mockWorklogs = [
@@ -135,16 +114,9 @@ describe('getPersonWorklogCommand', () => {
     vi.mocked(utils.parseTimeframe).mockReturnValue({ startDate, endDate });
     vi.mocked(utils.formatDateForJql).mockReturnValue('2023-01-01');
 
-    const mockClient = {
-      issueSearch: {
-        searchForIssuesUsingJqlEnhancedSearch: vi.fn().mockResolvedValue({
-          issues: [
-            { key: 'TEST-1', fields: { summary: 'Issue 1' } }
-          ]
-        })
-      }
-    };
-    vi.mocked(jiraClient.getJiraClient).mockReturnValue(mockClient as any);
+    vi.mocked(jiraClient.searchIssuesByJql).mockResolvedValue([
+      { key: 'TEST-1', summary: 'Issue 1', status: { name: 'Done' }, assignee: null, priority: null }
+    ]);
 
     const mockWorklogs = [
       {
@@ -168,12 +140,7 @@ describe('getPersonWorklogCommand', () => {
     vi.mocked(utils.parseTimeframe).mockReturnValue({ startDate, endDate });
     vi.mocked(utils.formatDateForJql).mockReturnValue('2023-01-01');
 
-    const mockClient = {
-      issueSearch: {
-        searchForIssuesUsingJqlEnhancedSearch: vi.fn().mockResolvedValue({})
-      }
-    };
-    vi.mocked(jiraClient.getJiraClient).mockReturnValue(mockClient as any);
+    vi.mocked(jiraClient.searchIssuesByJql).mockResolvedValue([]);
 
     await getPersonWorklogCommand('user1', 'january', {});
 
@@ -187,16 +154,9 @@ describe('getPersonWorklogCommand', () => {
     vi.mocked(utils.parseTimeframe).mockReturnValue({ startDate, endDate });
     vi.mocked(utils.formatDateForJql).mockReturnValue('2023-01-01');
 
-    const mockClient = {
-      issueSearch: {
-        searchForIssuesUsingJqlEnhancedSearch: vi.fn().mockResolvedValue({
-          issues: [
-            { key: 'TEST-1', fields: {} }
-          ]
-        })
-      }
-    };
-    vi.mocked(jiraClient.getJiraClient).mockReturnValue(mockClient as any);
+    vi.mocked(jiraClient.searchIssuesByJql).mockResolvedValue([
+      { key: 'TEST-1', summary: '', status: { name: 'Done' }, assignee: null, priority: null }
+    ]);
 
     const mockWorklogs = [
       {

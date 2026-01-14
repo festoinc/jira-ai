@@ -25,15 +25,7 @@ export async function getPersonWorklogCommand(
     // We use a broader search first to find relevant issues
     const jql = `worklogAuthor = "${person}" AND worklogDate >= "${startJql}" AND worklogDate <= "${endJql}"`;
     
-    // We need to fetch issues with their summaries
-    const client = getJiraClient();
-    const issueResponse = await client.issueSearch.searchForIssuesUsingJqlEnhancedSearch({
-      jql,
-      fields: ['summary'],
-      maxResults: 100,
-    });
-
-    const issues = issueResponse.issues || [];
+    const issues = await searchIssuesByJql(jql, 100);
     
     if (issues.length === 0) {
       ui.stopSpinner();
@@ -59,7 +51,7 @@ No worklogs found for ${person} between ${startJql} and ${endJql}.
       filteredWorklogs.forEach(w => {
         allWorklogs.push({
           ...w,
-          summary: issue.fields?.summary || '',
+          summary: issue.summary || '',
         });
       });
     }

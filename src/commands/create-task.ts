@@ -3,6 +3,7 @@ import { createIssue } from '../lib/jira-client.js';
 import { CommandError } from '../lib/errors.js';
 import { ui } from '../lib/ui.js';
 import { validateOptions, CreateTaskSchema } from '../lib/validation.js';
+import { isCommandAllowed, isProjectAllowed } from '../lib/settings.js';
 
 export async function createTaskCommand(
   options: {
@@ -16,6 +17,16 @@ export async function createTaskCommand(
   validateOptions(CreateTaskSchema, options);
 
   const { title, project, issueType, parent } = options;
+
+  // Check if project is allowed
+  if (!isProjectAllowed(project)) {
+    throw new CommandError(`Project '${project}' is not allowed by your settings.`);
+  }
+
+  // Check if command is allowed for this project
+  if (!isCommandAllowed('create-task', project)) {
+    throw new CommandError(`Command 'create-task' is not allowed for project ${project}.`);
+  }
 
   // Create issue with spinner
   ui.startSpinner(`Creating ${issueType} in project ${project}...`);

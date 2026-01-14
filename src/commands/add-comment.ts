@@ -2,7 +2,7 @@ import chalk from 'chalk';
 import * as fs from 'fs';
 import * as path from 'path';
 import { markdownToAdf } from 'marklassian';
-import { addIssueComment } from '../lib/jira-client.js';
+import { addIssueComment, validateIssuePermissions } from '../lib/jira-client.js';
 import { CommandError } from '../lib/errors.js';
 import { ui } from '../lib/ui.js';
 import { validateOptions, AddCommentSchema } from '../lib/validation.js';
@@ -44,6 +44,10 @@ export async function addCommentCommand(
     });
   }
 
+  // Check permissions and filters
+  ui.startSpinner(`Validating permissions for ${issueKey}...`);
+  await validateIssuePermissions(issueKey, 'add-comment');
+
   // Add comment with spinner
   ui.startSpinner(`Adding comment to ${issueKey}...`);
 
@@ -52,6 +56,8 @@ export async function addCommentCommand(
     ui.succeedSpinner(chalk.green(`Comment added successfully to ${issueKey}`));
     console.log(chalk.gray(`\nFile: ${absolutePath}`));
   } catch (error: any) {
+    if (error instanceof CommandError) throw error;
+
     const errorMsg = error.message?.toLowerCase() || '';
     const hints: string[] = [];
 

@@ -1,5 +1,5 @@
 import chalk from 'chalk';
-import { removeIssueLabels } from '../lib/jira-client.js';
+import { removeIssueLabels, validateIssuePermissions } from '../lib/jira-client.js';
 import { CommandError } from '../lib/errors.js';
 import { ui } from '../lib/ui.js';
 import { validateOptions, IssueKeySchema } from '../lib/validation.js';
@@ -21,14 +21,20 @@ export async function deleteLabelCommand(
     throw new CommandError('No valid labels provided');
   }
 
+  // Check permissions and filters
+  ui.startSpinner(`Validating permissions for ${taskId}...`);
+  await validateIssuePermissions(taskId, 'delete-label-from-issue');
 
   ui.startSpinner(`Removing labels from ${taskId}...`);
 
   try {
     await removeIssueLabels(taskId, labels);
     ui.succeedSpinner(chalk.green(`Labels removed successfully from ${taskId}`));
-    console.log(chalk.gray(`\nLabels: ${labels.join(', ')}`));
+    console.log(chalk.gray(`
+Labels: ${labels.join(', ')}`));
   } catch (error: any) {
+    if (error instanceof CommandError) throw error;
+
     const errorMsg = error.message?.toLowerCase() || '';
     const hints: string[] = [];
 

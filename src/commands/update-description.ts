@@ -2,7 +2,7 @@ import chalk from 'chalk';
 import * as fs from 'fs';
 import * as path from 'path';
 import { markdownToAdf } from 'marklassian';
-import { updateIssueDescription } from '../lib/jira-client.js';
+import { updateIssueDescription, validateIssuePermissions } from '../lib/jira-client.js';
 import { CommandError } from '../lib/errors.js';
 import { ui } from '../lib/ui.js';
 import { validateOptions, UpdateDescriptionSchema, IssueKeySchema } from '../lib/validation.js';
@@ -48,14 +48,21 @@ export async function updateDescriptionCommand(
     });
   }
 
+  // Check permissions and filters
+  ui.startSpinner(`Validating permissions for ${taskId}...`);
+  await validateIssuePermissions(taskId, 'update-description');
+
   // Update issue description with spinner
   ui.startSpinner(`Updating description for ${taskId}...`);
 
   try {
     await updateIssueDescription(taskId, adfContent);
     ui.succeedSpinner(chalk.green(`Description updated successfully for ${taskId}`));
-    console.log(chalk.gray(`\nFile: ${absolutePath}`));
+    console.log(chalk.gray(`
+File: ${absolutePath}`));
   } catch (error: any) {
+    if (error instanceof CommandError) throw error;
+
     const errorMsg = error.message?.toLowerCase() || '';
     const hints: string[] = [];
 
