@@ -3,14 +3,17 @@ import { listColleaguesCommand } from '../src/commands/list-colleagues.js';
 import * as jiraClient from '../src/lib/jira-client.js';
 import * as formatters from '../src/lib/formatters.js';
 import * as ui from '../src/lib/ui.js';
+import * as settings from '../src/lib/settings.js';
 import chalk from 'chalk';
 
 vi.mock('../src/lib/jira-client.js');
 vi.mock('../src/lib/formatters.js');
 vi.mock('../src/lib/ui.js');
+vi.mock('../src/lib/settings.js');
 
 describe('listColleaguesCommand', () => {
   let consoleLogSpy: any;
+  const mockSettings = settings as vi.Mocked<typeof settings>;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -18,6 +21,8 @@ describe('listColleaguesCommand', () => {
     vi.mocked(ui.ui.startSpinner).mockImplementation(() => {});
     vi.mocked(ui.ui.succeedSpinner).mockImplementation(() => {});
     vi.mocked(ui.ui.failSpinner).mockImplementation(() => {});
+    mockSettings.isProjectAllowed.mockReturnValue(true);
+    mockSettings.isCommandAllowed.mockReturnValue(true);
   });
 
   afterEach(() => {

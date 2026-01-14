@@ -22,8 +22,10 @@ import {
 } from '../src/lib/jira-client.js';
 import * as authStorage from '../src/lib/auth-storage.js';
 import { Version3Client } from 'jira.js';
+import * as settings from '../src/lib/settings.js';
 
 vi.mock('../src/lib/auth-storage.js');
+vi.mock('../src/lib/settings.js');
 
 // Mock dependencies
 const {
@@ -61,6 +63,8 @@ const {
   mockGetIssueWorklog: vi.fn(),
   mockConfig: { host: 'https://test.atlassian.net' }
 }));
+
+const mockSettings = settings as vi.Mocked<typeof settings>;
 
 vi.mock('jira.js', () => ({
   Version3Client: vi.fn().mockImplementation(function() {
@@ -112,6 +116,12 @@ describe('Jira Client', () => {
     process.env.JIRA_HOST = 'https://test.atlassian.net';
     process.env.JIRA_USER_EMAIL = 'test@example.com';
     process.env.JIRA_API_TOKEN = 'test-token';
+    
+    // Default settings mock
+    mockSettings.applyGlobalFilters.mockImplementation(jql => jql);
+    mockSettings.isProjectAllowed.mockReturnValue(true);
+    mockSettings.isCommandAllowed.mockReturnValue(true);
+    mockSettings.validateIssueAgainstFilters.mockReturnValue(true);
   });
 
   beforeEach(() => {
