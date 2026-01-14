@@ -3,7 +3,7 @@
 import { Command } from 'commander';
 import dotenv from 'dotenv';
 import chalk from 'chalk';
-import { validateEnvVars } from './lib/utils.js';
+import { validateEnvVars, getVersion } from './lib/utils.js';
 import { meCommand } from './commands/me.js';
 import { projectsCommand } from './commands/projects.js';
 import { taskWithDetailsCommand } from './commands/task-with-details.js';
@@ -55,7 +55,7 @@ const program = new Command();
 program
   .name('jira-ai')
   .description('CLI tool for interacting with Atlassian Jira')
-  .version('0.4.2')
+  .version(getVersion())
   .option('-o, --organization <alias>', 'Override the active Jira organization');
 
 // Hook to handle the global option before any command runs

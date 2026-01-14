@@ -1,5 +1,6 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { aboutCommand } from '../src/commands/about.js';
+import { getVersion } from '../src/lib/utils.js';
 import chalk from 'chalk';
 
 describe('About Command', () => {
@@ -18,8 +19,8 @@ describe('About Command', () => {
     
     const output = consoleSpy.mock.calls.map(call => call[0]).join('\n');
 
-    // Check for version (current is 0.4.0)
-    expect(output).toContain('0.4.0');
+    // Check for version
+    expect(output).toContain(getVersion());
     // Check for GitHub URL
     expect(output).toContain('https://github.com/festoinc/jira-ai');
   });

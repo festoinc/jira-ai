@@ -7,10 +7,13 @@ import {
   calculateStatusStatistics, 
   formatDuration, 
   parseTimeframe, 
-  formatDateForJql 
+  formatDateForJql,
+  getVersion
 } from '../src/lib/utils.js';
 import * as authStorage from '../src/lib/auth-storage.js';
 import { CommandError } from '../src/lib/errors.js';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 
 vi.mock('../src/lib/auth-storage.js');
 
@@ -24,6 +27,14 @@ describe('Utils Module', () => {
 
   afterEach(() => {
     process.env = originalEnv;
+  });
+
+  describe('getVersion', () => {
+    it('should return the correct version from package.json', () => {
+      const packageJsonPath = join(process.cwd(), 'package.json');
+      const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
+      expect(getVersion()).toBe(packageJson.version);
+    });
   });
 
   describe('validateEnvVars', () => {
