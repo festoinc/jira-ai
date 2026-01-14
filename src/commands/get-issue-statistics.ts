@@ -1,5 +1,5 @@
 import chalk from 'chalk';
-import { getIssueStatistics, IssueStatistics } from '../lib/jira-client.js';
+import { getIssueStatistics, validateIssuePermissions, IssueStatistics } from '../lib/jira-client.js';
 import { formatIssueStatistics } from '../lib/formatters.js';
 import { ui } from '../lib/ui.js';
 
@@ -16,10 +16,22 @@ export async function getIssueStatisticsCommand(taskIds: string): Promise<void> 
   const results: IssueStatistics[] = [];
   for (const id of ids) {
     try {
+      // Validate permissions for each issue
+      await validateIssuePermissions(id, 'get-issue-statistics');
       const stats = await getIssueStatistics(id);
       results.push(stats);
     } catch (error) {
-      console.error(chalk.red(`\nFailed to fetch statistics for ${id}: ${(error as Error).message}`));
+      // Skip unauthorized or not found issues, but log a message if not already handled
+      if (!(error instanceof Error)) continue;
+      
+      const isPermissionError = error.message.includes('not allowed') || error.message.includes('restricted');
+      if (isPermissionError) {
+        console.warn(chalk.yellow(`
+Skipping ${id}: ${error.message}`));
+      } else {
+        console.error(chalk.red(`
+Failed to fetch statistics for ${id}: ${error.message}`));
+      }
     }
   }
 
@@ -27,6 +39,6 @@ export async function getIssueStatisticsCommand(taskIds: string): Promise<void> 
     ui.succeedSpinner(chalk.green('Statistics retrieved'));
     console.log(formatIssueStatistics(results));
   } else {
-    ui.failSpinner('Failed to retrieve statistics');
+    ui.failSpinner('Failed to retrieve statistics or all issues were filtered out');
   }
 }

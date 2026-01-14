@@ -5,8 +5,26 @@ import yaml from 'js-yaml';
 import chalk from 'chalk';
 import { CliError } from '../types/errors.js';
 
+export interface ProjectFilters {
+  participated?: {
+    was_assignee?: boolean;
+    was_reporter?: boolean;
+    was_commenter?: boolean;
+    is_watcher?: boolean;
+  };
+  jql?: string;
+}
+
+export interface ProjectConfig {
+  key: string;
+  commands?: string[];
+  filters?: ProjectFilters;
+}
+
+export type ProjectSetting = string | ProjectConfig;
+
 export interface Settings {
-  projects: string[];
+  projects: ProjectSetting[];
   commands: string[];
 }
 
@@ -83,15 +101,48 @@ export function loadSettings(): Settings {
 export function isProjectAllowed(projectKey: string): boolean {
   const settings = loadSettings();
 
-  if (settings.projects.includes('all')) {
+  const isAllowed = settings.projects.some(p => {
+    if (typeof p === 'string') {
+      return p === 'all' || p === projectKey;
+    }
+    return p.key === projectKey;
+  });
+
+  return isAllowed;
+}
+
+export function isCommandAllowed(commandName: string, projectKey?: string): boolean {
+  const settings = loadSettings();
+
+  // about and auth are always allowed
+  if (['about', 'auth'].includes(commandName)) {
     return true;
   }
 
-  return settings.projects.includes(projectKey);
-}
+  if (projectKey) {
+    const project = settings.projects.find(p => 
+      (typeof p === 'string' ? p : p.key) === projectKey
+    );
+    
+    if (project && typeof project !== 'string' && project.commands) {
+      return project.commands.includes(commandName);
+    }
+  } else {
+    // For visibility/global check: allowed if in global list OR in any project-specific list
+    const allowedGlobally = settings.commands.includes('all') || settings.commands.includes(commandName);
+    if (allowedGlobally) {
+      return true;
+    }
 
-export function isCommandAllowed(commandName: string): boolean {
-  const settings = loadSettings();
+    const allowedInAnyProject = settings.projects.some(p => 
+      typeof p !== 'string' && p.commands && p.commands.includes(commandName)
+    );
+    if (allowedInAnyProject) {
+      return true;
+    }
+    
+    return false;
+  }
 
   if (settings.commands.includes('all')) {
     return true;
@@ -100,7 +151,7 @@ export function isCommandAllowed(commandName: string): boolean {
   return settings.commands.includes(commandName);
 }
 
-export function getAllowedProjects(): string[] {
+export function getAllowedProjects(): ProjectSetting[] {
   const settings = loadSettings();
   return settings.projects;
 }
@@ -108,6 +159,63 @@ export function getAllowedProjects(): string[] {
 export function getAllowedCommands(): string[] {
   const settings = loadSettings();
   return settings.commands;
+}
+
+export function applyGlobalFilters(jql: string): string {
+  const settings = loadSettings();
+  
+  const allAllowed = settings.projects.some(p => p === 'all');
+  if (allAllowed) {
+    return jql;
+  }
+  
+  const projectFilters = settings.projects.map(p => {
+    const key = typeof p === 'string' ? p : p.key;
+    const projectJql = typeof p === 'string' ? null : p.filters?.jql;
+    
+    if (projectJql) {
+      return `(project = "${key}" AND (${projectJql}))`;
+    } else {
+      return `project = "${key}"`;
+    }
+  });
+  
+  if (projectFilters.length === 0) {
+    return `project = "NONE" AND (${jql})`;
+  }
+  
+  const combinedProjectFilter = `(${projectFilters.join(' OR ')})`;
+  return `(${combinedProjectFilter}) AND (${jql})`;
+}
+
+export function validateIssueAgainstFilters(issue: any, currentUserId: string): boolean {
+  const settings = loadSettings();
+  const projectKey = issue.key.split('-')[0];
+  
+  const project = settings.projects.find(p => {
+    if (typeof p === 'string') return p === 'all' || p === projectKey;
+    return p.key === projectKey;
+  });
+
+  if (!project) {
+    return false;
+  }
+
+  if (typeof project === 'string') return true;
+
+  if (project.filters?.participated) {
+    const { participated } = project.filters;
+    let hasParticipated = false;
+
+    if (participated.was_assignee && issue.assignee?.accountId === currentUserId) hasParticipated = true;
+    if (participated.was_reporter && issue.reporter?.accountId === currentUserId) hasParticipated = true;
+    if (participated.was_commenter && issue.comments?.some((c: any) => c.author?.accountId === currentUserId)) hasParticipated = true;
+    if (participated.is_watcher && issue.watchers?.includes('CURRENT_USER')) hasParticipated = true;
+
+    if (!hasParticipated) return false;
+  }
+
+  return true;
 }
 
 // For testing purposes only

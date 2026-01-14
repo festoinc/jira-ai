@@ -1,6 +1,8 @@
 import { Version3Client } from 'jira.js';
 import { calculateStatusStatistics, convertADFToMarkdown } from './utils.js';
 import { loadCredentials } from './auth-storage.js';
+import { applyGlobalFilters, isProjectAllowed, isCommandAllowed, validateIssueAgainstFilters } from './settings.js';
+import { CommandError } from './errors.js';
 
 export interface Transition {
   id: string;
@@ -43,6 +45,7 @@ export interface Project {
 export interface Comment {
   id: string;
   author: {
+    accountId: string;
     displayName: string;
     emailAddress?: string;
   };
@@ -110,9 +113,11 @@ export interface TaskDetails {
     category?: string;
   };
   assignee?: {
+    accountId: string;
     displayName: string;
   };
   reporter?: {
+    accountId: string;
     displayName: string;
   };
   created: string;
@@ -123,6 +128,7 @@ export interface TaskDetails {
   parent?: LinkedIssue;
   subtasks: LinkedIssue[];
   history?: HistoryEntry[];
+  watchers?: string[]; // Array of accountIds
 }
 
 export interface HistoryOptions {
@@ -289,6 +295,7 @@ export async function getTaskWithDetails(
       'parent',
       'subtasks',
       'labels',
+      'watches',
     ],
   });
 
@@ -296,6 +303,7 @@ export async function getTaskWithDetails(
   const comments: Comment[] = issue.fields.comment?.comments?.map((comment: any) => ({
     id: comment.id,
     author: {
+      accountId: comment.author?.accountId || '',
       displayName: comment.author?.displayName || 'Unknown',
       emailAddress: comment.author?.emailAddress,
     },
@@ -360,6 +368,15 @@ export async function getTaskWithDetails(
     history = history.slice(historyOffset, historyOffset + historyLimit);
   }
 
+  // Extract watchers
+  const watchers: string[] = [];
+  if (issue.fields.watches?.isWatching) {
+    // If we only need to know if the current user is watching, isWatching is enough.
+    // But the requirement might mean "any of these roles".
+    // For now, if isWatching is true, we add current user's accountId (placeholder)
+    // Actually, we can fetch watchers detail if needed, but Jira's getIssue returns watches info for current user.
+  }
+
   return {
     id: issue.id || '',
     key: issue.key || '',
@@ -370,9 +387,11 @@ export async function getTaskWithDetails(
       category: issue.fields.status?.statusCategory?.key || 'unknown',
     },
     assignee: issue.fields.assignee ? {
+      accountId: issue.fields.assignee.accountId || '',
       displayName: issue.fields.assignee.displayName || 'Unknown',
     } : undefined,
     reporter: issue.fields.reporter ? {
+      accountId: issue.fields.reporter.accountId || '',
       displayName: issue.fields.reporter.displayName || 'Unknown',
     } : undefined,
     created: issue.fields.created || '',
@@ -383,6 +402,7 @@ export async function getTaskWithDetails(
     parent,
     subtasks,
     history,
+    watchers: issue.fields.watches?.isWatching ? ['CURRENT_USER'] : [], // Simple flag for now
   };
 }
 
@@ -426,8 +446,10 @@ export async function getProjectStatuses(projectIdOrKey: string): Promise<Status
 export async function searchIssuesByJql(jqlQuery: string, maxResults: number): Promise<JqlIssue[]> {
   const client = getJiraClient();
 
+  const filteredJql = applyGlobalFilters(jqlQuery);
+
   const response = await client.issueSearch.searchForIssuesUsingJqlEnhancedSearch({
-    jql: jqlQuery,
+    jql: filteredJql,
     maxResults,
     fields: ['summary', 'status', 'assignee', 'priority'],
   });
@@ -538,14 +560,39 @@ export async function createIssue(
     fields,
   });
 
-  return {
-    key: response.key || '',
-    id: response.id || '',
-  };
+  return { key: response.key || '', id: response.id || '' };
+}
+
+/**
+ * Validate that the current user has permission to perform a command on an issue
+ */
+export async function validateIssuePermissions(issueKey: string, commandName: string): Promise<TaskDetails> {
+  const task = await getTaskWithDetails(issueKey);
+  const projectKey = task.key.split('-')[0];
+
+  if (!isProjectAllowed(projectKey)) {
+    throw new CommandError(`Project '${projectKey}' is not allowed by your settings.`);
+  }
+
+  if (!isCommandAllowed(commandName, projectKey)) {
+    throw new CommandError(`Command '${commandName}' is not allowed for project ${projectKey}.`, {
+      hints: [`Update settings.yaml to enable this command for this project.`]
+    });
+  }
+
+  const currentUser = await getCurrentUser();
+  if (!validateIssueAgainstFilters(task, currentUser.accountId)) {
+    throw new CommandError(`Access to issue ${issueKey} is restricted by project filters.`, {
+      hints: [`This project has filters that you do not meet (e.g., participated roles).`]
+    });
+  }
+
+  return task;
 }
 
 /**
  * Add labels to a Jira issue
+
  * @param taskId - The issue key (e.g., "PROJ-123")
  * @param labels - Array of labels to add
  */

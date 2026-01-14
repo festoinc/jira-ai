@@ -1,5 +1,5 @@
 import chalk from 'chalk';
-import { getIssueTransitions, transitionIssue } from '../lib/jira-client.js';
+import { getIssueTransitions, transitionIssue, validateIssuePermissions } from '../lib/jira-client.js';
 import { CommandError } from '../lib/errors.js';
 import { ui } from '../lib/ui.js';
 
@@ -7,6 +7,10 @@ export async function transitionCommand(
   taskId: string,
   toStatus: string
 ): Promise<void> {
+  // Check permissions and filters
+  ui.startSpinner(`Validating permissions for ${taskId}...`);
+  await validateIssuePermissions(taskId, 'transition');
+
   ui.startSpinner(`Fetching available transitions for ${taskId}...`);
 
   try {

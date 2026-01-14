@@ -1,5 +1,5 @@
 import chalk from 'chalk';
-import { addIssueLabels } from '../lib/jira-client.js';
+import { addIssueLabels, validateIssuePermissions } from '../lib/jira-client.js';
 import { CommandError } from '../lib/errors.js';
 import { ui } from '../lib/ui.js';
 import { validateOptions, IssueKeySchema } from '../lib/validation.js';
@@ -21,14 +21,20 @@ export async function addLabelCommand(
     throw new CommandError('No valid labels provided');
   }
 
+  // Check permissions and filters
+  ui.startSpinner(`Validating permissions for ${taskId}...`);
+  await validateIssuePermissions(taskId, 'add-label-to-issue');
 
   ui.startSpinner(`Adding labels to ${taskId}...`);
 
   try {
     await addIssueLabels(taskId, labels);
     ui.succeedSpinner(chalk.green(`Labels added successfully to ${taskId}`));
-    console.log(chalk.gray(`\nLabels: ${labels.join(', ')}`));
+    console.log(chalk.gray(`
+Labels: ${labels.join(', ')}`));
   } catch (error: any) {
+    if (error instanceof CommandError) throw error;
+
     const errorMsg = error.message?.toLowerCase() || '';
     const hints: string[] = [];
 
