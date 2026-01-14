@@ -60,7 +60,7 @@ export function loadSettings(): Settings {
                 console.error('Error migrating settings.yaml:', error);
                 const defaultSettings: Settings = {
                   projects: ['all'],
-                  commands: ['all']
+                  commands: ['me', 'projects', 'task-with-details', 'run-jql', 'list-issue-types', 'project-statuses']
                 };
                 cachedSettings = defaultSettings;
                 return cachedSettings;
@@ -70,7 +70,7 @@ export function loadSettings(): Settings {
       // Create default settings.yaml if it doesn't exist anywhere
       const defaultSettings: Settings = {
         projects: ['all'],
-        commands: ['all']
+        commands: ['me', 'projects', 'task-with-details', 'run-jql', 'list-issue-types', 'project-statuses']
       };
       try {
         const yamlStr = yaml.dump(defaultSettings);
@@ -98,7 +98,7 @@ export function loadSettings(): Settings {
       const settings = rawSettings as any;
       cachedSettings = {
         projects: settings?.projects || ['all'],
-        commands: settings?.commands || ['all']
+        commands: settings?.commands || ['me', 'projects', 'task-with-details', 'run-jql', 'list-issue-types', 'project-statuses']
       };
     } else {
       cachedSettings = result.data;
