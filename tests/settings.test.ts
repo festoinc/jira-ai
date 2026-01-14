@@ -55,7 +55,14 @@ commands:
       const settings = loadSettings();
 
       expect(settings.projects).toEqual(['all']);
-      expect(settings.commands).toEqual(['all']);
+      expect(settings.commands).toEqual([
+        'me',
+        'projects',
+        'task-with-details',
+        'run-jql',
+        'list-issue-types',
+        'project-statuses'
+      ]);
       // Should create the config directory
       expect(mockFs.mkdirSync).toHaveBeenCalledWith(mockConfigDir, { recursive: true });
       // Should create default settings file
@@ -80,7 +87,14 @@ commands:
       const settings = loadSettings();
 
       expect(settings.projects).toEqual(['all']);
-      expect(settings.commands).toEqual(['all']);
+      expect(settings.commands).toEqual([
+        'me',
+        'projects',
+        'task-with-details',
+        'run-jql',
+        'list-issue-types',
+        'project-statuses'
+      ]);
     });
 
     it('should throw CliError on invalid YAML', () => {
