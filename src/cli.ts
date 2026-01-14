@@ -112,7 +112,7 @@ function withPermission(
 // Auth command (always allowed, skips validation)
 program
   .command('auth')
-  .description('Set up Jira authentication credentials')
+  .description('Set up Jira authentication credentials. Supports interactive input, raw JSON string via --from-json, or .env file via --from-file.')
   .option('--from-json <json_string>', 'Accepts a raw JSON string with credentials')
   .option('--from-file <path>', 'Accepts a path to a file (typically .env) with credentials')
   .option('--alias <alias>', 'Alias for this organization')
@@ -126,40 +126,40 @@ const org = program
 
 org
   .command('list')
-  .description('Show all saved organizations')
+  .description('List all saved Jira organization profiles, showing their aliases and associated host URLs.')
   .action(() => listOrganizations());
 
 org
   .command('use <alias>')
-  .description('Switch the active organization')
+  .description('Switch the active Jira organization profile to the one specified by the alias.')
   .action((alias) => useOrganizationCommand(alias));
 
 org
   .command('remove <alias>')
-  .description('Delete an organization credentials')
+  .description('Delete the saved credentials and profile for the specified organization alias.')
   .action((alias) => removeOrganizationCommand(alias));
 
 org
   .command('add <alias>')
-  .description('Add a new organization')
+  .description('Interactive prompt to add a new Jira organization profile with the given alias.')
   .action((alias) => authCommand({ alias }));
 
 // Me command
 program
   .command('me')
-  .description('Show basic user information')
+  .description('Show profile details for the currently authenticated user, including Jira host, display name, email, account ID, status, and time zone.')
   .action(withPermission('me', meCommand));
 
 // Projects command
 program
   .command('projects')
-  .description('Show list of projects')
+  .description('List all accessible Jira projects showing their key, name, ID, type, and project lead.')
   .action(withPermission('projects', projectsCommand));
 
 // List colleagues command
 program
   .command('list-colleagues [project-key]')
-  .description('Show all colleagues in the project or organization')
+  .description('Search and list users within the organization or a specific project (if project-key is provided). Returns display name, email, and account ID.')
   .action(withPermission('list-colleagues', listColleaguesCommand, {
     validateArgs: (args) => {
       if (args[0]) {
@@ -171,7 +171,7 @@ program
 // Task with details command
 program
   .command('task-with-details <task-id>')
-  .description('Show task title, body, and comments')
+  .description('Retrieve comprehensive issue data including key, summary, status (name, category), assignee, reporter, creation/update dates, due date, labels, parent/subtasks, description, and comments. Use --include-detailed-history to fetch a chronological log of all changes including field updates and status transitions.')
   .option('--include-detailed-history', 'Include the full history of task actions')
   .option('--history-limit <number>', 'Number of history entries to show (default: 50)', '50')
   .option('--history-offset <number>', 'Number of history entries to skip (default: 0)', '0')
@@ -182,7 +182,7 @@ program
 // Project statuses command
 program
   .command('project-statuses <project-id>')
-  .description('Show all possible statuses for a project')
+  .description('Fetch all available workflow statuses for a given project. Returns status name, ID, category (To Do, In Progress, Done), and description.')
   .action(withPermission('project-statuses', projectStatusesCommand, {
     validateArgs: (args) => validateOptions(ProjectKeySchema, args[0])
   }));
@@ -190,7 +190,7 @@ program
 // List issue types command
 program
   .command('list-issue-types <project-key>')
-  .description('Show all issue types for a project')
+  .description('List all issue types (Standard and Subtask) available for a project, providing their name, ID, hierarchy level, and description.')
   .action(withPermission('list-issue-types', listIssueTypesCommand, {
     validateArgs: (args) => validateOptions(ProjectKeySchema, args[0])
   }));
@@ -198,7 +198,7 @@ program
 // Run JQL command
 program
   .command('run-jql <jql-query>')
-  .description('Execute JQL query and display results')
+  .description('Execute a Jira Query Language (JQL) search. Returns a list of issues with their key, summary, status, assignee, and priority. Supports limiting results via --limit (default 50).')
   .option('-l, --limit <number>', 'Maximum number of results (default: 50)', '50')
   .action(withPermission('run-jql', runJqlCommand, { 
     schema: RunJqlSchema,
@@ -213,7 +213,7 @@ program
 // Update description command
 program
   .command('update-description <task-id>')
-  .description('Update task description from a Markdown file')
+  .description('Update a Jira task\'s description using content from a local Markdown file. Requires the task ID and a valid file path.')
   .requiredOption('--from-file <path>', 'Path to Markdown file')
   .action(withPermission('update-description', updateDescriptionCommand, {
     schema: UpdateDescriptionSchema,
@@ -223,7 +223,7 @@ program
 // Add comment command
 program
   .command('add-comment')
-  .description('Add a comment to a Jira issue from a Markdown file')
+  .description('Add a new comment to a Jira issue using content from a local Markdown file. Requires the issue key and a valid file path.')
   .requiredOption('--file-path <path>', 'Path to Markdown file')
   .requiredOption('--issue-key <key>', 'Jira issue key (e.g., PS-123)')
   .action(withPermission('add-comment', addCommentCommand, { schema: AddCommentSchema }));
@@ -231,7 +231,7 @@ program
 // Add label command
 program
   .command('add-label-to-issue <task-id> <labels>')
-  .description('Add one or more labels to a Jira issue (comma-separated)')
+  .description('Add one or more labels (comma-separated) to a specific Jira issue.')
   .action(withPermission('add-label-to-issue', addLabelCommand, {
     validateArgs: (args) => {
       validateOptions(IssueKeySchema, args[0]);
@@ -244,7 +244,7 @@ program
 // Delete label command
 program
   .command('delete-label-from-issue <task-id> <labels>')
-  .description('Remove one or more labels from a Jira issue (comma-separated)')
+  .description('Remove one or more labels (comma-separated) from a specific Jira issue.')
   .action(withPermission('delete-label-from-issue', deleteLabelCommand, {
     validateArgs: (args) => {
       validateOptions(IssueKeySchema, args[0]);
@@ -258,7 +258,7 @@ program
 // Create task command
 program
   .command('create-task')
-  .description('Create a new Jira issue')
+  .description('Create a new Jira issue with specified title, project key, and issue type. Optional --parent key for subtasks. Returns the key of the newly created issue.')
   .requiredOption('--title <title>', 'Issue title/summary')
   .requiredOption('--project <project>', 'Project key (e.g., PROJ)')
   .requiredOption('--issue-type <type>', 'Issue type (e.g., Task, Epic, Subtask)')
@@ -268,7 +268,7 @@ program
 // Transition command
 program
   .command('transition <task-id> <to-status>')
-  .description('Transition a Jira task to a new status')
+  .description('Change the status of a Jira task. The <to-status> can be either the status name or ID.')
   .action(withPermission('transition', transitionCommand, {
     validateArgs: (args) => validateOptions(IssueKeySchema, args[0])
   }));
@@ -276,13 +276,13 @@ program
 // Get issue statistics command
 program
   .command('get-issue-statistics <task-ids>')
-  .description('Show time metrics and lifecycle of issues (comma-separated keys)')
+  .description('Calculate and display time-based metrics for one or more issues (comma-separated). Returns a table containing key, summary, total time logged, original estimate, and a detailed breakdown of duration spent in each status.')
   .action(withPermission('get-issue-statistics', getIssueStatisticsCommand));
 
 // Get person worklog command
 program
   .command('get-person-worklog <person> <timeframe>')
-  .description('Retrieve and display worklogs for a specific person within a given timeframe')
+  .description('Retrieve worklogs for a specific user over a timeframe (e.g., \'7d\', \'2w\'). Returns a list of entries with date, issue key, summary, time spent, and comments. Supports --group-by-issue.')
   .option('--group-by-issue', 'Group the output by issue')
   .action(withPermission('get-person-worklog', getPersonWorklogCommand, {
     schema: GetPersonWorklogSchema,
