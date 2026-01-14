@@ -1,6 +1,6 @@
 {
   "name": "jira-ai",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "description": "AI friendly Jira CLI to save context",
   "type": "module",
   "main": "dist/cli.js",
@@ -26,10 +26,11 @@
     "start": "node dist/cli.js",
     "link": "npm run build && npm link",
     "prepublishOnly": "npm run build && npm test",
-    "test": "vitest run",
+    "test": "vitest run tests/*.test.ts",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "test:ui": "vitest --ui"
+    "test:ui": "vitest --ui",
+    "test:integration": "vitest run tests/integration"
   },
   "keywords": [
     "jira",
