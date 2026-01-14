@@ -1,5 +1,6 @@
 import chalk from 'chalk';
 import Table from 'cli-table3';
+import { decode } from 'html-entities';
 import { UserInfo, Project, TaskDetails, Status, JqlIssue, IssueType, IssueStatistics, HistoryEntry, WorklogWithIssue } from './jira-client.js';
 import { formatTimestamp, truncate, formatDuration } from './utils.js';
 import { Settings, ProjectSetting } from './settings.js';
@@ -66,7 +67,7 @@ export function formatProjects(projects: Project[]): string {
  * Format task details with comments
  */
 export function formatTaskDetails(task: TaskDetails): string {
-  let output = '\n' + chalk.bold.cyan(`${task.key}: ${task.summary}`) + '\n\n';
+  let output = '\n' + chalk.bold.cyan(`${task.key}: ${decode(task.summary)}`) + '\n\n';
 
   // Basic info table
   const infoTable = createTable(['Property', 'Value'], [15, 65]);
@@ -113,7 +114,7 @@ export function formatTaskDetails(task: TaskDetails): string {
     const parentTable = createTable(['Key', 'Summary', 'Status'], [12, 50, 18]);
     parentTable.push([
       chalk.cyan(task.parent.key),
-      truncate(task.parent.summary, 50),
+      truncate(decode(task.parent.summary), 50),
       task.parent.status.name,
     ]);
     output += parentTable.toString() + '\n\n';
@@ -126,7 +127,7 @@ export function formatTaskDetails(task: TaskDetails): string {
     task.subtasks.forEach((subtask) => {
       subtasksTable.push([
         chalk.cyan(subtask.key),
-        truncate(subtask.summary, 50),
+        truncate(decode(subtask.summary), 50),
         subtask.status.name,
       ]);
     });
@@ -137,7 +138,7 @@ export function formatTaskDetails(task: TaskDetails): string {
   if (task.description) {
     output += chalk.bold('Description:') + '\n';
     output += chalk.dim('─'.repeat(80)) + '\n';
-    output += task.description + '\n';
+    output += decode(task.description) + '\n';
     output += chalk.dim('─'.repeat(80)) + '\n\n';
   }
 
@@ -149,7 +150,7 @@ export function formatTaskDetails(task: TaskDetails): string {
       output += chalk.cyan(`${index + 1}. ${comment.author.displayName}`) +
                 chalk.gray(` - ${formatTimestamp(comment.created)}`) + '\n';
       output += chalk.dim('─'.repeat(80)) + '\n';
-      output += comment.body + '\n';
+      output += decode(comment.body) + '\n';
       output += chalk.dim('─'.repeat(80)) + '\n\n';
     });
   } else {
@@ -269,7 +270,7 @@ export function formatJqlResults(issues: JqlIssue[]): string {
 
     table.push([
       chalk.cyan(issue.key),
-      truncate(issue.summary, 40),
+      truncate(decode(issue.summary), 40),
       statusColor(issue.status.name),
       issue.assignee ? truncate(issue.assignee.displayName, 20) : chalk.gray('Unassigned'),
       typeof priorityName === 'string' ? priorityColor(priorityName) : priorityName,
@@ -367,7 +368,7 @@ export function formatIssueStatistics(statsList: IssueStatistics[]): string {
 
     table.push([
       chalk.cyan(stats.key),
-      truncate(stats.summary, 30),
+      truncate(decode(stats.summary), 30),
       timeSpentFormatted,
       estimateStr,
       breakdown
@@ -430,9 +431,9 @@ export function formatWorklogs(worklogs: WorklogWithIssue[], groupByIssue: boole
     table.push([
       w.started.split('T')[0],
       chalk.cyan(w.issueKey),
-      truncate(w.summary, 30),
+      truncate(decode(w.summary), 30),
       w.timeSpent,
-      truncate(w.comment || '', 45),
+      truncate(decode(w.comment || ''), 45),
     ]);
   });
 
