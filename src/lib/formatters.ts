@@ -2,6 +2,7 @@ import chalk from 'chalk';
 import Table from 'cli-table3';
 import { UserInfo, Project, TaskDetails, Status, JqlIssue, IssueType, IssueStatistics, HistoryEntry, WorklogWithIssue } from './jira-client.js';
 import { formatTimestamp, truncate, formatDuration } from './utils.js';
+import { Settings, ProjectSetting } from './settings.js';
 
 /**
  * Create a styled table
@@ -439,6 +440,63 @@ export function formatWorklogs(worklogs: WorklogWithIssue[], groupByIssue: boole
   let output = '\n' + chalk.bold('Worklogs') + '\n\n';
   output += table.toString() + '\n';
   output += chalk.bold(`Total time tracked: ${totalHours}h`) + '\n';
+
+  return output;
+}
+
+/**
+ * Format settings
+ */
+export function formatSettings(settings: Settings): string {
+  let output = '\n' + chalk.bold.cyan('Active Configuration') + '\n\n';
+
+  // Global Commands
+  output += chalk.bold('Global Commands:') + '\n';
+  output += `  ${settings.commands.join(', ')}\n\n`;
+
+  // Projects
+  output += chalk.bold(`Projects (${settings.projects.length}):`) + '\n';
+  const table = createTable(['Project', 'Commands', 'Filters'], [15, 30, 50]);
+
+  settings.projects.forEach((p) => {
+    let key: string;
+    let commands: string = 'global';
+    let filters: string = 'none';
+
+    if (typeof p === 'string') {
+      key = p;
+    } else {
+      key = p.key;
+      if (p.commands) {
+        commands = p.commands.join(', ');
+      }
+      if (p.filters) {
+        const parts = [];
+        if (p.filters.jql) {
+          parts.push(`JQL: ${p.filters.jql}`);
+        }
+        if (p.filters.participated) {
+          const roles = [];
+          if (p.filters.participated.was_assignee) roles.push('Assignee');
+          if (p.filters.participated.was_reporter) roles.push('Reporter');
+          if (p.filters.participated.was_commenter) roles.push('Commenter');
+          if (p.filters.participated.is_watcher) roles.push('Watcher');
+          if (roles.length > 0) {
+            parts.push(`Roles: ${roles.join(', ')}`);
+          }
+        }
+        filters = parts.join('\n') || 'none';
+      }
+    }
+
+    table.push([
+      chalk.cyan(key),
+      commands,
+      filters
+    ]);
+  });
+
+  output += table.toString() + '\n';
 
   return output;
 }

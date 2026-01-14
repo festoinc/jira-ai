@@ -229,6 +229,7 @@ commands:
       const mockYaml = `
 projects:
   - BP
+commands: [all]
 `;
       mockFs.existsSync.mockImplementation((path) => {
         if (path === mockConfigDir) return true;
@@ -244,6 +245,7 @@ projects:
       const mockYaml = `
 projects:
   - BP
+commands: [all]
 `;
       mockFs.existsSync.mockImplementation((path) => {
         if (path === mockConfigDir) return true;
@@ -262,6 +264,7 @@ projects:
     filters:
       participated:
         was_assignee: true
+commands: [all]
 `;
       mockFs.existsSync.mockImplementation((path) => {
         if (path === mockConfigDir) return true;
@@ -291,6 +294,7 @@ projects:
       participated:
         was_assignee: true
         was_reporter: true
+commands: [all]
 `;
       mockFs.existsSync.mockImplementation((path) => {
         if (path === mockConfigDir) return true;
@@ -315,6 +319,7 @@ projects:
     filters:
       participated:
         was_commenter: true
+commands: [all]
 `;
       mockFs.existsSync.mockImplementation((path) => {
         if (path === mockConfigDir) return true;
@@ -341,6 +346,7 @@ projects:
     filters:
       participated:
         is_watcher: true
+commands: [all]
 `;
       mockFs.existsSync.mockImplementation((path) => {
         if (path === mockConfigDir) return true;
