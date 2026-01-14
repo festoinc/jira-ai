@@ -1,7 +1,7 @@
 import { Version3Client } from 'jira.js';
 import { calculateStatusStatistics, convertADFToMarkdown } from './utils.js';
 import { loadCredentials } from './auth-storage.js';
-import { applyGlobalFilters, isProjectAllowed, isCommandAllowed, validateIssueAgainstFilters } from './settings.js';
+import { applyGlobalFilters, isProjectAllowed, isCommandAllowed, validateIssueAgainstFilters, loadSettings } from './settings.js';
 import { CommandError } from './errors.js';
 
 export interface Transition {
@@ -566,8 +566,12 @@ export async function createIssue(
 /**
  * Validate that the current user has permission to perform a command on an issue
  */
-export async function validateIssuePermissions(issueKey: string, commandName: string): Promise<TaskDetails> {
-  const task = await getTaskWithDetails(issueKey);
+export async function validateIssuePermissions(
+  issueKey: string, 
+  commandName: string,
+  options: HistoryOptions = {}
+): Promise<TaskDetails> {
+  const task = await getTaskWithDetails(issueKey, options);
   const projectKey = task.key.split('-')[0];
 
   if (!isProjectAllowed(projectKey)) {
@@ -585,6 +589,31 @@ export async function validateIssuePermissions(issueKey: string, commandName: st
     throw new CommandError(`Access to issue ${issueKey} is restricted by project filters.`, {
       hints: [`This project has filters that you do not meet (e.g., participated roles).`]
     });
+  }
+
+  // Check JQL filters
+  const settings = loadSettings();
+  let project = settings.projects.find(p => typeof p !== 'string' && p.key === projectKey);
+  if (!project) {
+    project = settings.projects.find(p => typeof p === 'string' && (p === 'all' || p === projectKey));
+  }
+
+  if (project && typeof project !== 'string' && project.filters?.jql) {
+    const client = getJiraClient();
+    const jql = `key = "${issueKey}" AND (${project.filters.jql})`;
+    const response = await client.issueSearch.searchForIssuesUsingJqlEnhancedSearch({
+      jql,
+      maxResults: 1,
+      fields: ['key'],
+    });
+
+    if (!response.issues || response.issues.length === 0) {
+      throw new CommandError(`Access to issue ${issueKey} is restricted by project filters.`, {
+        hints: [
+          `This project has a JQL filter that this issue does not meet: ${project.filters.jql}`,
+        ]
+      });
+    }
   }
 
   return task;

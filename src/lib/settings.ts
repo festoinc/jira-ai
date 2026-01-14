@@ -60,7 +60,7 @@ export function loadSettings(): Settings {
                 console.error('Error migrating settings.yaml:', error);
                 const defaultSettings: Settings = {
                   projects: ['all'],
-                  commands: ['me', 'projects', 'task-with-details', 'run-jql', 'list-issue-types', 'project-statuses', 'create-task', 'list-colleagues', 'add-comment', 'add-label', 'delete-label', 'get-issue-statistics', 'get-person-worklog', 'organization', 'transition', 'update-description']
+                  commands: ['me', 'projects', 'task-with-details', 'run-jql', 'list-issue-types', 'project-statuses', 'create-task', 'list-colleagues', 'add-comment', 'add-label-to-issue', 'delete-label-from-issue', 'get-issue-statistics', 'get-person-worklog', 'organization', 'transition', 'update-description']
                 };
                 cachedSettings = defaultSettings;
                 return cachedSettings;
@@ -70,7 +70,7 @@ export function loadSettings(): Settings {
       // Create default settings.yaml if it doesn't exist anywhere
       const defaultSettings: Settings = {
         projects: ['all'],
-        commands: ['me', 'projects', 'task-with-details', 'run-jql', 'list-issue-types', 'project-statuses', 'create-task', 'list-colleagues', 'add-comment', 'add-label', 'delete-label', 'get-issue-statistics', 'get-person-worklog', 'organization', 'transition', 'update-description']
+        commands: ['me', 'projects', 'task-with-details', 'run-jql', 'list-issue-types', 'project-statuses', 'create-task', 'list-colleagues', 'add-comment', 'add-label-to-issue', 'delete-label-from-issue', 'get-issue-statistics', 'get-person-worklog', 'organization', 'transition', 'update-description']
       };
       try {
         const yamlStr = yaml.dump(defaultSettings);
@@ -98,7 +98,7 @@ export function loadSettings(): Settings {
       const settings = rawSettings as any;
       cachedSettings = {
         projects: settings?.projects || ['all'],
-        commands: settings?.commands || ['me', 'projects', 'task-with-details', 'run-jql', 'list-issue-types', 'project-statuses', 'create-task', 'list-colleagues', 'add-comment', 'add-label', 'delete-label', 'get-issue-statistics', 'get-person-worklog', 'organization', 'transition', 'update-description']
+        commands: settings?.commands || ['me', 'projects', 'task-with-details', 'run-jql', 'list-issue-types', 'project-statuses', 'create-task', 'list-colleagues', 'add-comment', 'add-label-to-issue', 'delete-label-from-issue', 'get-issue-statistics', 'get-person-worklog', 'organization', 'transition', 'update-description']
       };
     } else {
       cachedSettings = result.data;
@@ -147,9 +147,10 @@ export function isCommandAllowed(commandName: string, projectKey?: string): bool
   }
 
   if (projectKey) {
-    const project = settings.projects.find(p => 
-      (typeof p === 'string' ? p : p.key) === projectKey
-    );
+    let project = settings.projects.find(p => typeof p !== 'string' && p.key === projectKey);
+    if (!project) {
+      project = settings.projects.find(p => typeof p === 'string' && (p === 'all' || p === projectKey));
+    }
     
     if (project && typeof project !== 'string' && project.commands) {
       return project.commands.includes(commandName);
@@ -219,10 +220,13 @@ export function validateIssueAgainstFilters(issue: any, currentUserId: string): 
   const settings = loadSettings();
   const projectKey = issue.key.split('-')[0];
   
-  const project = settings.projects.find(p => {
-    if (typeof p === 'string') return p === 'all' || p === projectKey;
-    return p.key === projectKey;
-  });
+  // Find specific project config first
+  let project = settings.projects.find(p => typeof p !== 'string' && p.key === projectKey);
+  
+  // If not found, look for string match (exact project key or 'all')
+  if (!project) {
+    project = settings.projects.find(p => typeof p === 'string' && (p === 'all' || p === projectKey));
+  }
 
   if (!project) {
     return false;
