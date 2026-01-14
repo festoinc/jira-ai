@@ -90,3 +90,29 @@ export const GetPersonWorklogSchema = z.object({
   groupByIssue: z.boolean().optional(),
 });
 
+export const ProjectFiltersSchema = z.object({
+  participated: z.object({
+    was_assignee: z.boolean().optional(),
+    was_reporter: z.boolean().optional(),
+    was_commenter: z.boolean().optional(),
+    is_watcher: z.boolean().optional(),
+  }).optional(),
+  jql: z.string().optional(),
+});
+
+export const ProjectConfigSchema = z.object({
+  key: z.string().trim().min(1),
+  commands: z.array(z.string()).optional(),
+  filters: ProjectFiltersSchema.optional(),
+});
+
+export const ProjectSettingSchema = z.union([
+  z.string().trim().min(1),
+  ProjectConfigSchema
+]);
+
+export const SettingsSchema = z.object({
+  projects: z.array(ProjectSettingSchema).nullish().transform(val => val || ['all']),
+  commands: z.array(z.string()).nullish().transform(val => val || ['all']),
+});
+

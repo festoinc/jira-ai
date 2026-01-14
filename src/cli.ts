@@ -21,6 +21,7 @@ import { getIssueStatisticsCommand } from './commands/get-issue-statistics.js';
 import { getPersonWorklogCommand } from './commands/get-person-worklog.js';
 import { aboutCommand } from './commands/about.js';
 import { authCommand } from './commands/auth.js';
+import { settingsCommand } from './commands/settings.js';
 import { 
   listOrganizations, 
   useOrganizationCommand, 
@@ -297,6 +298,39 @@ program
   .command('about')
   .description('Show information about the tool')
   .action(aboutCommand);
+
+// Settings command
+program
+  .command('settings')
+  .description('View, validate, or apply configuration settings. Use `settings` to view active config, `--validate <file>` to check a YAML file, or `--apply <file>` to update `~/.jira-ai/settings.yaml`.')
+  .option('--apply <path>', 'Validate and apply settings from a YAML file')
+  .option('--validate <path>', 'Perform schema and deep validation of a settings YAML file')
+  .addHelpText('after', `
+Examples:
+  $ jira-ai settings
+  $ jira-ai settings --validate my-settings.yaml
+  $ jira-ai settings --apply my-settings.yaml
+
+Settings File Structure:
+  projects:
+    - all                       # Allow all projects
+    - PROJ                      # Allow specific project by key
+    - key: PM                   # Project-specific configuration
+      commands:                 # Limit commands for this project
+        - task-with-details
+      filters:
+        participated:           # Filter by user participation
+          was_assignee: true
+          was_reporter: true
+          was_commenter: true
+          is_watcher: true
+        jql: "issuetype = Bug"  # Custom JQL filter
+  commands:
+    - all                       # Allow all commands globally
+    - me
+    - projects
+`)
+  .action((options) => settingsCommand(options));
 
 /**
  * Configure command visibility based on auth status and settings

@@ -32,6 +32,12 @@ class UI {
     }
   }
 
+  updateSpinner(message: string): void {
+    if (this.spinnerInstance) {
+      this.spinnerInstance.text = message;
+    }
+  }
+
   get spinner(): Ora | null {
     return this.spinnerInstance;
   }

@@ -347,7 +347,7 @@ commands:
         return false;
       });
 
-      const mockYaml = 'projects: [MIGRATED]';
+      const mockYaml = 'projects: [MIGRATED]\ncommands: [all]';
       mockFs.readFileSync.mockReturnValue(mockYaml);
 
       const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});

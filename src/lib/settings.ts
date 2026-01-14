@@ -4,6 +4,7 @@ import os from 'os';
 import yaml from 'js-yaml';
 import chalk from 'chalk';
 import { CliError } from '../types/errors.js';
+import { SettingsSchema } from './validation.js';
 
 export interface ProjectFilters {
   participated?: {
@@ -85,16 +86,42 @@ export function loadSettings(): Settings {
 
   try {
     const fileContents = fs.readFileSync(SETTINGS_FILE, 'utf8');
-    const settings = yaml.load(fileContents) as Settings;
-
-    cachedSettings = {
-      projects: settings.projects || ['all'],
-      commands: settings.commands || ['all']
-    };
+    const rawSettings = yaml.load(fileContents);
+    
+    const result = SettingsSchema.safeParse(rawSettings);
+    if (!result.success) {
+      console.warn(chalk.yellow(`Warning: ${SETTINGS_FILE} has validation errors:`));
+      result.error.issues.forEach(issue => {
+        console.warn(chalk.yellow(`  - ${issue.path.join('.')}: ${issue.message}`));
+      });
+      // Fallback to raw settings or default if parsing fails completely
+      const settings = rawSettings as any;
+      cachedSettings = {
+        projects: settings?.projects || ['all'],
+        commands: settings?.commands || ['all']
+      };
+    } else {
+      cachedSettings = result.data;
+    }
 
     return cachedSettings;
   } catch (error) {
     throw new CliError(`Error loading ${SETTINGS_FILE}: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+export function saveSettings(settings: Settings): void {
+  // Ensure config directory exists
+  if (!fs.existsSync(CONFIG_DIR)) {
+    fs.mkdirSync(CONFIG_DIR, { recursive: true });
+  }
+
+  try {
+    const yamlStr = yaml.dump(settings);
+    fs.writeFileSync(SETTINGS_FILE, yamlStr);
+    cachedSettings = settings;
+  } catch (error) {
+    throw new CliError(`Error saving ${SETTINGS_FILE}: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
@@ -114,8 +141,8 @@ export function isProjectAllowed(projectKey: string): boolean {
 export function isCommandAllowed(commandName: string, projectKey?: string): boolean {
   const settings = loadSettings();
 
-  // about and auth are always allowed
-  if (['about', 'auth'].includes(commandName)) {
+  // about, auth, and settings are always allowed
+  if (['about', 'auth', 'settings'].includes(commandName)) {
     return true;
   }
 
