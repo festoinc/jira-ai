@@ -32,7 +32,17 @@ describe('Issue 47: Initial Settings Defaults', () => {
       'task-with-details',
       'run-jql',
       'list-issue-types',
-      'project-statuses'
+      'project-statuses',
+      'create-task',
+      'list-colleagues',
+      'add-comment',
+      'add-label',
+      'delete-label',
+      'get-issue-statistics',
+      'get-person-worklog',
+      'organization',
+      'transition',
+      'update-description'
     ]);
   });
 
@@ -58,7 +68,17 @@ commands:
       'task-with-details',
       'run-jql',
       'list-issue-types',
-      'project-statuses'
+      'project-statuses',
+      'create-task',
+      'list-colleagues',
+      'add-comment',
+      'add-label',
+      'delete-label',
+      'get-issue-statistics',
+      'get-person-worklog',
+      'organization',
+      'transition',
+      'update-description'
     ]);
   });
 });

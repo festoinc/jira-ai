@@ -61,7 +61,17 @@ commands:
         'task-with-details',
         'run-jql',
         'list-issue-types',
-        'project-statuses'
+        'project-statuses',
+        'create-task',
+        'list-colleagues',
+        'add-comment',
+        'add-label',
+        'delete-label',
+        'get-issue-statistics',
+        'get-person-worklog',
+        'organization',
+        'transition',
+        'update-description'
       ]);
       // Should create the config directory
       expect(mockFs.mkdirSync).toHaveBeenCalledWith(mockConfigDir, { recursive: true });
@@ -93,7 +103,17 @@ commands:
         'task-with-details',
         'run-jql',
         'list-issue-types',
-        'project-statuses'
+        'project-statuses',
+        'create-task',
+        'list-colleagues',
+        'add-comment',
+        'add-label',
+        'delete-label',
+        'get-issue-statistics',
+        'get-person-worklog',
+        'organization',
+        'transition',
+        'update-description'
       ]);
     });
 

@@ -2,10 +2,12 @@ import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { createTaskCommand } from '../src/commands/create-task.js';
 import * as jiraClient from '../src/lib/jira-client.js';
 import { CommandError } from '../src/lib/errors.js';
+import * as settings from '../src/lib/settings.js';
 
 // Mock dependencies
 vi.mock('../src/lib/jira-client.js');
 vi.mock('../src/lib/utils.js');
+vi.mock('../src/lib/settings.js');
 vi.mock('ora', () => ({
   default: vi.fn(() => ({
     start: vi.fn().mockReturnThis(),
@@ -16,6 +18,7 @@ vi.mock('ora', () => ({
 }));
 
 const mockJiraClient = jiraClient as vi.Mocked<typeof jiraClient>;
+const mockSettings = settings as vi.Mocked<typeof settings>;
 
 describe('Create Task Command', () => {
   const mockOptions = {
@@ -36,6 +39,8 @@ describe('Create Task Command', () => {
 
     // Setup default mock
     mockJiraClient.createIssue = vi.fn().mockResolvedValue(mockResponse);
+    mockSettings.isProjectAllowed.mockReturnValue(true);
+    mockSettings.isCommandAllowed.mockReturnValue(true);
   });
 
   it('should successfully create a task', async () => {
