@@ -52,6 +52,7 @@
     "cli-table3": "^0.6.5",
     "commander": "^11.0.0",
     "dotenv": "^17.2.3",
+    "html-entities": "^2.6.0",
     "inquirer": "^9.3.8",
     "jira.js": "^5.2.2",
     "js-yaml": "^4.1.1",
