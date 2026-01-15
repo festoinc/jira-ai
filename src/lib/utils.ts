@@ -182,11 +182,13 @@ export function parseTimeframe(timeframe: string): { startDate: Date; endDate: D
   const days = parseInt(match[1], 10);
   const endDate = new Date();
   const startDate = new Date();
-  startDate.setDate(endDate.getDate() - days);
+  
+  // Use UTC to avoid timezone issues during calculations
+  startDate.setUTCDate(endDate.getUTCDate() - days);
 
   // Set to start of day for startDate and end of day for endDate to be inclusive
-  startDate.setHours(0, 0, 0, 0);
-  endDate.setHours(23, 59, 59, 999);
+  startDate.setUTCHours(0, 0, 0, 0);
+  endDate.setUTCHours(23, 59, 59, 999);
 
   return { startDate, endDate };
 }
