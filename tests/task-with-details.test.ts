@@ -65,12 +65,12 @@ describe('Task With Details Command', () => {
   });
 
   it('should fetch and display task details with parent and subtasks', async () => {
-    mockJiraClient.getTaskWithDetails.mockResolvedValue(mockTask);
+    mockJiraClient.validateIssuePermissions.mockResolvedValue(mockTask);
     mockFormatters.formatTaskDetails.mockReturnValue('Formatted task details');
 
     await taskWithDetailsCommand('PROJ-123');
 
-    expect(mockJiraClient.getTaskWithDetails).toHaveBeenCalledWith('PROJ-123', expect.objectContaining({
+    expect(mockJiraClient.validateIssuePermissions).toHaveBeenCalledWith('PROJ-123', 'task-with-details', expect.objectContaining({
       includeHistory: undefined
     }));
     expect(mockFormatters.formatTaskDetails).toHaveBeenCalledWith(mockTask);
@@ -79,7 +79,7 @@ describe('Task With Details Command', () => {
 
   it('should handle errors gracefully', async () => {
     const mockError = new Error('Task not found');
-    mockJiraClient.getTaskWithDetails.mockRejectedValue(mockError);
+    mockJiraClient.validateIssuePermissions.mockRejectedValue(mockError);
 
     await expect(taskWithDetailsCommand('INVALID-1')).rejects.toThrow('Task not found');
   });

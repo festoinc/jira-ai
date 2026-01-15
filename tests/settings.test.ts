@@ -65,15 +65,14 @@ commands:
         'create-task',
         'list-colleagues',
         'add-comment',
-        'add-label',
-        'delete-label',
+        'add-label-to-issue',
+        'delete-label-from-issue',
         'get-issue-statistics',
         'get-person-worklog',
         'organization',
         'transition',
         'update-description'
       ]);
-      // Should create the config directory
       expect(mockFs.mkdirSync).toHaveBeenCalledWith(mockConfigDir, { recursive: true });
       // Should create default settings file
       expect(mockFs.writeFileSync).toHaveBeenCalledWith(
@@ -107,8 +106,8 @@ commands:
         'create-task',
         'list-colleagues',
         'add-comment',
-        'add-label',
-        'delete-label',
+        'add-label-to-issue',
+        'delete-label-from-issue',
         'get-issue-statistics',
         'get-person-worklog',
         'organization',
