@@ -339,44 +339,161 @@ export function formatProjectIssueTypes(projectKey: string, issueTypes: IssueTyp
 /**
  * Format issue statistics
  */
-export function formatIssueStatistics(statsList: IssueStatistics[]): string {
+export function formatIssueStatistics(statsList: IssueStatistics[], fullBreakdown: boolean = false): string {
   if (statsList.length === 0) {
     return chalk.yellow('No statistics to display.');
   }
 
-  const table = createTable([
-    'Key',
-    'Summary',
-    'Time Logged',
-    'Estimate',
-    'Status Breakdown'
-  ], [12, 30, 15, 15, 40]);
+  if (!fullBreakdown) {
+    const table = createTable([
+      'Key',
+      'Summary',
+      'Time Logged',
+      'Estimate',
+      'Status Breakdown'
+    ], [12, 30, 15, 15, 40]);
 
+    statsList.forEach((stats) => {
+      // Breakdown of time spent in each unique status
+      const breakdown = Object.entries(stats.statusDurations)
+        .map(([status, seconds]) => `${status}: ${formatDuration(seconds, 24)}`)
+        .join('\n');
+
+      const timeSpentStr = formatDuration(stats.timeSpentSeconds, 8);
+      const estimateStr = formatDuration(stats.originalEstimateSeconds, 8);
+
+      // Highlight if time spent exceeds estimate
+      const timeSpentFormatted = stats.timeSpentSeconds > stats.originalEstimateSeconds && stats.originalEstimateSeconds > 0
+        ? chalk.red(timeSpentStr)
+        : chalk.green(timeSpentStr);
+
+      table.push([
+        chalk.cyan(stats.key),
+        truncate(decode(stats.summary), 30),
+        timeSpentFormatted,
+        estimateStr,
+        breakdown
+      ]);
+    });
+
+    let output = '\n' + chalk.bold('Issue Statistics') + '\n\n';
+    output += table.toString() + '\n';
+
+    return output;
+  }
+
+  // Full breakdown logic
+  // 1. Identify all unique statuses and their total durations
+  const statusTotals: Record<string, number> = {};
+  statsList.forEach(stats => {
+    Object.entries(stats.statusDurations).forEach(([status, duration]) => {
+      statusTotals[status] = (statusTotals[status] || 0) + duration;
+    });
+  });
+
+  // 2. Filter out statuses with 0 total time
+  const activeStatuses = Object.keys(statusTotals)
+    .filter(status => statusTotals[status] > 0)
+    .sort(); // Sort for consistent column order
+
+  const omittedStatuses = Object.keys(statusTotals)
+    .filter(status => statusTotals[status] === 0)
+    .sort();
+
+  // 3. Define headers and column widths
+  const baseHeaders = ['Key', 'Summary', 'Time Logged', 'Estimate'];
+  const headers = [...baseHeaders, ...activeStatuses];
+  
+  // Calculate column widths - 12 for Key, 25 for Summary, 12 for others
+  const colWidths = [12, 25, 12, 12, ...activeStatuses.map(() => 15)];
+
+  const table = createTable(headers, colWidths);
+
+  // 4. Helper for median calculation
+  const calculateMedian = (values: number[]): number => {
+    if (values.length === 0) return 0;
+    const sorted = [...values].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    return sorted.length % 2 !== 0
+      ? sorted[mid]
+      : (sorted[mid - 1] + sorted[mid]) / 2;
+  };
+
+  // 5. Track values for summary rows
+  const columnValues: Record<string, number[]> = {
+    'Time Logged': [],
+    'Estimate': []
+  };
+  activeStatuses.forEach(status => { columnValues[status] = []; });
+
+  // 6. Add rows for each issue
   statsList.forEach((stats) => {
-    // Breakdown of time spent in each unique status
-    const breakdown = Object.entries(stats.statusDurations)
-      .map(([status, seconds]) => `${status}: ${formatDuration(seconds, 24)}`)
-      .join('\n');
+    const timeSpentSeconds = stats.timeSpentSeconds;
+    const originalEstimateSeconds = stats.originalEstimateSeconds;
+    
+    columnValues['Time Logged'].push(timeSpentSeconds);
+    columnValues['Estimate'].push(originalEstimateSeconds);
 
-    const timeSpentStr = formatDuration(stats.timeSpentSeconds, 8);
-    const estimateStr = formatDuration(stats.originalEstimateSeconds, 8);
+    const timeSpentStr = formatDuration(timeSpentSeconds, 8);
+    const estimateStr = formatDuration(originalEstimateSeconds, 8);
 
-    // Highlight if time spent exceeds estimate
-    const timeSpentFormatted = stats.timeSpentSeconds > stats.originalEstimateSeconds && stats.originalEstimateSeconds > 0
+    const timeSpentFormatted = timeSpentSeconds > originalEstimateSeconds && originalEstimateSeconds > 0
       ? chalk.red(timeSpentStr)
       : chalk.green(timeSpentStr);
 
-    table.push([
+    const row = [
       chalk.cyan(stats.key),
-      truncate(decode(stats.summary), 30),
+      truncate(decode(stats.summary), 25),
       timeSpentFormatted,
-      estimateStr,
-      breakdown
-    ]);
+      estimateStr
+    ];
+
+    activeStatuses.forEach(status => {
+      const duration = stats.statusDurations[status] || 0;
+      columnValues[status].push(duration);
+      row.push(formatDuration(duration, 8));
+    });
+
+    table.push(row);
   });
 
-  let output = '\n' + chalk.bold('Issue Statistics') + '\n\n';
+  // 7. Add summary rows
+  const summaryTypes = ['Total', 'Mean', 'Median'] as const;
+  
+  summaryTypes.forEach(type => {
+    const row = [chalk.bold(type), '', '', ''];
+    
+    // Fill basic metrics
+    ['Time Logged', 'Estimate'].forEach((col, idx) => {
+      const values = columnValues[col];
+      let val = 0;
+      if (type === 'Total') val = values.reduce((a, b) => a + b, 0);
+      else if (type === 'Mean') val = values.reduce((a, b) => a + b, 0) / values.length;
+      else if (type === 'Median') val = calculateMedian(values);
+      
+      row[idx + 2] = chalk.bold(formatDuration(val, 8));
+    });
+
+    // Fill status columns
+    activeStatuses.forEach(status => {
+      const values = columnValues[status];
+      let val = 0;
+      if (type === 'Total') val = values.reduce((a, b) => a + b, 0);
+      else if (type === 'Mean') val = values.reduce((a, b) => a + b, 0) / values.length;
+      else if (type === 'Median') val = calculateMedian(values);
+      
+      row.push(chalk.bold(formatDuration(val, 8)));
+    });
+
+    table.push(row);
+  });
+
+  let output = '\n' + chalk.bold('Issue Statistics (Full Breakdown)') + '\n\n';
   output += table.toString() + '\n';
+
+  if (omittedStatuses.length > 0) {
+    output += chalk.gray(`Note: The following statuses were omitted because they had 0 total time: ${omittedStatuses.join(', ')}`) + '\n';
+  }
 
   return output;
 }
