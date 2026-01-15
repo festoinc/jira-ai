@@ -3,7 +3,11 @@ import { getIssueStatistics, validateIssuePermissions, IssueStatistics } from '.
 import { formatIssueStatistics } from '../lib/formatters.js';
 import { ui } from '../lib/ui.js';
 
-export async function getIssueStatisticsCommand(taskIds: string): Promise<void> {
+export interface GetIssueStatisticsOptions {
+  fullBreakdown?: boolean;
+}
+
+export async function getIssueStatisticsCommand(taskIds: string, options: GetIssueStatisticsOptions = {}): Promise<void> {
   const ids = taskIds.split(',').map(id => id.trim()).filter(id => id !== '');
 
   if (ids.length === 0) {
@@ -37,7 +41,7 @@ Failed to fetch statistics for ${id}: ${error.message}`));
 
   if (results.length > 0) {
     ui.succeedSpinner(chalk.green('Statistics retrieved'));
-    console.log(formatIssueStatistics(results));
+    console.log(formatIssueStatistics(results, options.fullBreakdown));
   } else {
     ui.failSpinner('Failed to retrieve statistics or all issues were filtered out');
   }

@@ -34,15 +34,16 @@ import { CliError } from './types/errors.js';
 import { CommandError } from './lib/errors.js';
 import { ui } from './lib/ui.js';
 import {
-  validateOptions,
   CreateTaskSchema,
   AddCommentSchema,
   UpdateDescriptionSchema,
   RunJqlSchema,
   GetPersonWorklogSchema,
-  TimeframeSchema,
+  GetIssueStatisticsSchema,
+  validateOptions,
   IssueKeySchema,
-  ProjectKeySchema
+  ProjectKeySchema,
+  TimeframeSchema
 } from './lib/validation.js';
 import { realpathSync } from 'fs';
 
@@ -278,7 +279,10 @@ program
 program
   .command('get-issue-statistics <task-ids>')
   .description('Calculate and display time-based metrics for one or more issues (comma-separated). Returns a table containing key, summary, total time logged, original estimate, and a detailed breakdown of duration spent in each status.')
-  .action(withPermission('get-issue-statistics', getIssueStatisticsCommand));
+  .option('--full-breakdown', 'Display each status in its own column')
+  .action(withPermission('get-issue-statistics', getIssueStatisticsCommand, {
+    schema: GetIssueStatisticsSchema
+  }));
 
 // Get person worklog command
 program

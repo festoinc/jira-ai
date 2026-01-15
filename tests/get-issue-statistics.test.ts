@@ -60,7 +60,7 @@ describe('getIssueStatisticsCommand', () => {
     expect(ui.ui.startSpinner).toHaveBeenCalledWith('Fetching statistics for 1 issue(s)...');
     expect(jiraClient.validateIssuePermissions).toHaveBeenCalledWith('TEST-123', 'get-issue-statistics');
     expect(jiraClient.getIssueStatistics).toHaveBeenCalledWith('TEST-123');
-    expect(formatters.formatIssueStatistics).toHaveBeenCalledWith([mockStats]);
+    expect(formatters.formatIssueStatistics).toHaveBeenCalledWith([mockStats], undefined);
     expect(ui.ui.succeedSpinner).toHaveBeenCalledWith(chalk.green('Statistics retrieved'));
     expect(consoleLogSpy).toHaveBeenCalledWith('Formatted stats');
   });
@@ -85,7 +85,7 @@ describe('getIssueStatisticsCommand', () => {
     expect(ui.ui.startSpinner).toHaveBeenCalledWith('Fetching statistics for 2 issue(s)...');
     expect(jiraClient.getIssueStatistics).toHaveBeenCalledWith('TEST-123');
     expect(jiraClient.getIssueStatistics).toHaveBeenCalledWith('TEST-456');
-    expect(formatters.formatIssueStatistics).toHaveBeenCalledWith([mockStats1, mockStats2]);
+    expect(formatters.formatIssueStatistics).toHaveBeenCalledWith([mockStats1, mockStats2], undefined);
     expect(ui.ui.succeedSpinner).toHaveBeenCalledWith(chalk.green('Statistics retrieved'));
   });
 
@@ -106,7 +106,7 @@ describe('getIssueStatisticsCommand', () => {
     expect(jiraClient.getIssueStatistics).toHaveBeenCalledWith('TEST-123');
     expect(jiraClient.getIssueStatistics).toHaveBeenCalledWith('TEST-999');
     expect(consoleErrorSpy).toHaveBeenCalledWith(chalk.red('\nFailed to fetch statistics for TEST-999: Issue not found'));
-    expect(formatters.formatIssueStatistics).toHaveBeenCalledWith([mockStats1]);
+    expect(formatters.formatIssueStatistics).toHaveBeenCalledWith([mockStats1], undefined);
     expect(ui.ui.succeedSpinner).toHaveBeenCalled();
   });
 

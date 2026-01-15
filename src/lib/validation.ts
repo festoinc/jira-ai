@@ -90,6 +90,10 @@ export const GetPersonWorklogSchema = z.object({
   groupByIssue: z.boolean().optional(),
 });
 
+export const GetIssueStatisticsSchema = z.object({
+  fullBreakdown: z.boolean().optional(),
+});
+
 export const ProjectFiltersSchema = z.object({
   participated: z.object({
     was_assignee: z.boolean().optional(),
