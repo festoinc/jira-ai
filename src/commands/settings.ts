@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import fs from 'fs';
 import yaml from 'js-yaml';
-import { loadSettings, saveSettings, Settings } from '../lib/settings.js';
+import { loadSettings, saveSettings, Settings, DEFAULT_SETTINGS } from '../lib/settings.js';
 import { formatSettings } from '../lib/formatters.js';
 import { ui } from '../lib/ui.js';
 import { SettingsSchema } from '../lib/validation.js';
@@ -12,9 +12,22 @@ import { validateEnvVars } from '../lib/utils.js';
 export interface SettingsOptions {
   apply?: string;
   validate?: string;
+  reset?: boolean;
 }
 
 export async function settingsCommand(options: SettingsOptions): Promise<void> {
+  if (options.reset) {
+    ui.startSpinner('Resetting settings to default...');
+    try {
+      saveSettings(DEFAULT_SETTINGS);
+      ui.succeedSpinner(chalk.green('Settings reset to default successfully!'));
+    } catch (error) {
+      ui.failSpinner(`Error resetting settings: ${error instanceof Error ? error.message : String(error)}`);
+      throw error;
+    }
+    return;
+  }
+
   if (options.apply) {
     await applySettings(options.apply);
     return;

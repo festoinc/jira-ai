@@ -29,6 +29,28 @@ export interface Settings {
   commands: string[];
 }
 
+export const DEFAULT_SETTINGS: Settings = {
+  projects: ['all'],
+  commands: [
+    'me',
+    'projects',
+    'task-with-details',
+    'run-jql',
+    'list-issue-types',
+    'project-statuses',
+    'create-task',
+    'list-colleagues',
+    'add-comment',
+    'add-label-to-issue',
+    'delete-label-from-issue',
+    'get-issue-statistics',
+    'get-person-worklog',
+    'organization',
+    'transition',
+    'update-description'
+  ]
+};
+
 const CONFIG_DIR = path.join(os.homedir(), '.jira-ai');
 const SETTINGS_FILE = path.join(CONFIG_DIR, 'settings.yaml');
 
@@ -56,30 +78,21 @@ export function loadSettings(): Settings {
         const fileContents = fs.readFileSync(localSettingsPath, 'utf8');
         fs.writeFileSync(SETTINGS_FILE, fileContents);
         console.log(chalk.cyan(`Migrated settings.yaml to ${SETTINGS_FILE}`));
-              } catch (error) {
-                console.error('Error migrating settings.yaml:', error);
-                const defaultSettings: Settings = {
-                  projects: ['all'],
-                  commands: ['me', 'projects', 'task-with-details', 'run-jql', 'list-issue-types', 'project-statuses', 'create-task', 'list-colleagues', 'add-comment', 'add-label-to-issue', 'delete-label-from-issue', 'get-issue-statistics', 'get-person-worklog', 'organization', 'transition', 'update-description']
-                };
-                cachedSettings = defaultSettings;
-                return cachedSettings;
-              }
-      
+      } catch (error) {
+        console.error('Error migrating settings.yaml:', error);
+        cachedSettings = { ...DEFAULT_SETTINGS };
+        return cachedSettings;
+      }
     } else {
       // Create default settings.yaml if it doesn't exist anywhere
-      const defaultSettings: Settings = {
-        projects: ['all'],
-        commands: ['me', 'projects', 'task-with-details', 'run-jql', 'list-issue-types', 'project-statuses', 'create-task', 'list-colleagues', 'add-comment', 'add-label-to-issue', 'delete-label-from-issue', 'get-issue-statistics', 'get-person-worklog', 'organization', 'transition', 'update-description']
-      };
       try {
-        const yamlStr = yaml.dump(defaultSettings);
+        const yamlStr = yaml.dump(DEFAULT_SETTINGS);
         fs.writeFileSync(SETTINGS_FILE, yamlStr);
       } catch (error) {
         console.error('Error creating default settings.yaml:', error);
       }
-      
-      cachedSettings = defaultSettings;
+
+      cachedSettings = { ...DEFAULT_SETTINGS };
       return cachedSettings;
     }
   }
@@ -87,7 +100,7 @@ export function loadSettings(): Settings {
   try {
     const fileContents = fs.readFileSync(SETTINGS_FILE, 'utf8');
     const rawSettings = yaml.load(fileContents);
-    
+
     const result = SettingsSchema.safeParse(rawSettings);
     if (!result.success) {
       console.warn(chalk.yellow(`Warning: ${SETTINGS_FILE} has validation errors:`));
@@ -97,8 +110,8 @@ export function loadSettings(): Settings {
       // Fallback to raw settings or default if parsing fails completely
       const settings = rawSettings as any;
       cachedSettings = {
-        projects: settings?.projects || ['all'],
-        commands: settings?.commands || ['me', 'projects', 'task-with-details', 'run-jql', 'list-issue-types', 'project-statuses', 'create-task', 'list-colleagues', 'add-comment', 'add-label-to-issue', 'delete-label-from-issue', 'get-issue-statistics', 'get-person-worklog', 'organization', 'transition', 'update-description']
+        projects: settings?.projects || DEFAULT_SETTINGS.projects,
+        commands: settings?.commands || DEFAULT_SETTINGS.commands
       };
     } else {
       cachedSettings = result.data;
