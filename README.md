@@ -13,7 +13,9 @@ An AI-friendly CLI for Jira that prioritizes efficiency and security.
 
 ## Installation
 
-You can share [this url](https://raw.githubusercontent.com/festoinc/jira-ai/refs/heads/main/AI-installation-guide.md) with any AI and ask to run installation with you. It will help you to do complete setup and run examples.
+If you know how to install npm then after installation run [this instuction.](https://raw.githubusercontent.com/festoinc/jira-ai/refs/heads/main/advanced-installation.md) in your CLI agent.
+
+If you don't know what npm is but want to use Jira "the haker way" [this instruction is for you.](https://raw.githubusercontent.com/festoinc/jira-ai/refs/heads/main/starter-installation.md) copy it and run in any AI agent like chat GPT, Gemini e.t.c.
 
 ```bash
 npm install -g jira-ai
