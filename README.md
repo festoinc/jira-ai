@@ -2,6 +2,8 @@
 
 An AI-friendly TypeScript CLI for Jira that prioritizes efficiency and security.
 
+<img width="1280" height="853" alt="image" src="https://github.com/user-attachments/assets/4bb6e309-de19-4764-97d7-b4b3434e3f68" />
+
 ## Core Benefits
 
 1.  **Context Efficiency:** Eliminates redundant context data, consuming significantly fewer tokens than Jira MCP or similar tools.
