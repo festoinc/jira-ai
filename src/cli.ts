@@ -309,14 +309,16 @@ program
   .description('View, validate, or apply configuration settings. Use `settings` to view active config, `--validate <file>` to check a YAML file, or `--apply <file>` to update `~/.jira-ai/settings.yaml`.')
   .option('--apply <path>', 'Validate and apply settings from a YAML file')
   .option('--validate <path>', 'Perform schema and deep validation of a settings YAML file')
+  .option('--reset', 'Revert settings to default')
   .addHelpText('after', `
 Examples:
   $ jira-ai settings
   $ jira-ai settings --validate my-settings.yaml
-  $ jira-ai settings --apply my-settings.yaml
-
-Settings File Structure:
-  projects:
+    $ jira-ai settings --apply my-settings.yaml
+    $ jira-ai settings --reset
+  
+  Settings File Structure:
+    projects:
     - all                       # Allow all projects
     - PROJ                      # Allow specific project by key
     - key: PM                   # Project-specific configuration

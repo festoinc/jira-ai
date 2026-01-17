@@ -26,6 +26,10 @@ const mockFs = fs as vi.Mocked<typeof fs>;
 describe('Settings Command', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.restoreAllMocks();
+    mockFs.writeFileSync.mockReset();
+    mockFs.existsSync.mockReset();
+    mockFs.readFileSync.mockReset();
     settingsLib.__resetCache__();
   });
 
@@ -227,6 +231,28 @@ describe('Settings Command', () => {
       await expect(settingsCommand({ apply: 'new-settings.yaml' }))
         .rejects.toBe('string write error');
       expect(ui.failSpinner).toHaveBeenCalledWith(expect.stringContaining('Error applying settings: string write error'));
+    });
+
+    it('should reset settings to default', async () => {
+      await settingsCommand({ reset: true });
+
+      expect(ui.startSpinner).toHaveBeenCalledWith(expect.stringContaining('Resetting settings'));
+      expect(mockFs.writeFileSync).toHaveBeenCalledWith(
+        expect.stringContaining('settings.yaml'),
+        expect.stringContaining('projects:\n  - all')
+      );
+      expect(ui.succeedSpinner).toHaveBeenCalledWith(expect.stringContaining('Settings reset to default successfully!'));
+    });
+
+    it('should handle errors when resetting settings', async () => {
+      mockFs.writeFileSync.mockImplementation(() => {
+        throw new Error('Reset failed');
+      });
+
+      await expect(settingsCommand({ reset: true }))
+        .rejects.toThrow('Reset failed');
+      expect(ui.failSpinner).toHaveBeenCalledWith(expect.stringContaining('Error saving'));
+      expect(ui.failSpinner).toHaveBeenCalledWith(expect.stringContaining('Reset failed'));
     });
   });
 });
