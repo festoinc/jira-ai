@@ -30,6 +30,7 @@ import {
 import { isCommandAllowed, getAllowedCommands } from './lib/settings.js';
 import { setOrganizationOverride } from './lib/jira-client.js';
 import { hasCredentials } from './lib/auth-storage.js';
+import { checkForUpdate, formatUpdateMessage, checkForUpdateSync } from './lib/update-check.js';
 import { CliError } from './types/errors.js';
 import { CommandError } from './lib/errors.js';
 import { ui } from './lib/ui.js';
@@ -58,7 +59,14 @@ program
   .name('jira-ai')
   .description('CLI tool for interacting with Atlassian Jira')
   .version(getVersion())
-  .option('-o, --organization <alias>', 'Override the active Jira organization');
+  .option('-o, --organization <alias>', 'Override the active Jira organization')
+  .addHelpText('after', () => {
+    const latestVersion = checkForUpdateSync();
+    if (latestVersion) {
+      return `\n${formatUpdateMessage(latestVersion)}\n`;
+    }
+    return '';
+  });
 
 // Hook to handle the global option before any command runs
 program.on('option:organization', (alias) => {
@@ -372,6 +380,9 @@ export function configureCommandVisibility(program: Command) {
 // Parse command line arguments
 export async function main() {
   try {
+    // Background update check (non-blocking for the user)
+    checkForUpdate().catch(() => {});
+
     configureCommandVisibility(program);
     await program.parseAsync(process.argv);
   } catch (error) {
