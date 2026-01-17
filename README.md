@@ -2,7 +2,7 @@
 
 An AI-friendly TypeScript CLI for Jira that prioritizes efficiency and security.
 
-<img width="1280" height="853" alt="image" src="https://github.com/user-attachments/assets/4bb6e309-de19-4764-97d7-b4b3434e3f68" />
+<img width="640" height="426" alt="image" src="https://github.com/user-attachments/assets/4bb6e309-de19-4764-97d7-b4b3434e3f68" />
 
 ## Core Benefits
 
