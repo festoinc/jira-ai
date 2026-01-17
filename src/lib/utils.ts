@@ -1,5 +1,4 @@
-import { fromADF } from 'mdast-util-from-adf';
-import { toMarkdown } from 'mdast-util-to-markdown';
+import { convertADFToMarkdown as adfToMarkdown } from 'adf-to-markdown';
 import { hasCredentials } from './auth-storage.js';
 import { CommandError } from './errors.js';
 import { readFileSync } from 'fs';
@@ -77,10 +76,7 @@ export function convertADFToMarkdown(content: any): string {
   }
 
   try {
-    // Convert ADF to mdast, then mdast to markdown
-    const mdastTree = fromADF(content);
-    const markdown = toMarkdown(mdastTree);
-    return markdown.trim();
+    return adfToMarkdown(content).trim();
   } catch (error) {
     // If conversion fails, fall back to JSON string representation
     console.error('Failed to convert ADF to Markdown:', error);

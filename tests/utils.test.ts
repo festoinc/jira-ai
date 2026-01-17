@@ -108,11 +108,100 @@ describe('Utils Module', () => {
       expect(convertADFToMarkdown(undefined)).toBe('');
     });
 
+    it('should convert simple ADF to markdown', () => {
+      const adf = {
+        version: 1,
+        type: 'doc',
+        content: [
+          {
+            type: 'paragraph',
+            content: [
+              {
+                type: 'text',
+                text: 'Hello, world!'
+              }
+            ]
+          }
+        ]
+      };
+      expect(convertADFToMarkdown(adf)).toBe('Hello, world!');
+    });
+
+    it('should convert complex ADF with lists to markdown', () => {
+      const adf = {
+        version: 1,
+        type: 'doc',
+        content: [
+          {
+            type: 'paragraph',
+            content: [{ type: 'text', text: 'List:' }]
+          },
+          {
+            type: 'bulletList',
+            content: [
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [{ type: 'text', text: 'Item 1' }]
+                  }
+                ]
+              },
+              {
+                type: 'listItem',
+                content: [
+                  {
+                    type: 'paragraph',
+                    content: [{ type: 'text', text: 'Item 2' }]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      };
+      const result = convertADFToMarkdown(adf);
+      expect(result).toContain('List:');
+      expect(result).toContain('Item 1');
+      expect(result).toContain('Item 2');
+      // Depending on the library, the exact formatting of bullet points might vary
+      // but it should contain the text and some markdown-like list indicators
+    });
+
+    it('should handle ADF with links', () => {
+      const adf = {
+        version: 1,
+        type: 'doc',
+        content: [
+          {
+            type: 'paragraph',
+            content: [
+              {
+                type: 'text',
+                text: 'Google',
+                marks: [
+                  {
+                    type: 'link',
+                    attrs: {
+                      href: 'https://google.com'
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      };
+      const result = convertADFToMarkdown(adf);
+      expect(result).toContain('[Google](https://google.com)');
+    });
+
     it('should handle conversion errors', () => {
       const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      const content = { invalid: 'adf' };
-      // fromADF is not mocked yet, but it might fail on invalid input
-      // Actually let's just mock it if we want to be sure
+      // adf-to-markdown might be more resilient, but let's pass something that might fail if it expects a specific structure
+      // or we can mock it later if needed. For now, let's just see how it behaves.
+      const content = { type: 'invalid' };
       const result = convertADFToMarkdown(content);
       expect(typeof result).toBe('string');
       consoleSpy.mockRestore();
