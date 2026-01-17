@@ -1,6 +1,5 @@
-# Important. Run this installation guide step by step and wait users feedback
-### Define user knowlege level 
-### Ask youser if he has IDE and can install npm packages? 
+# Important. Run this installation guide step by step and wait users feedback before moving to next step
+### Define user knowlege level. Ask youser if he has IDE and can install npm packages? 
 ### If yes prompt to install npm install -g jira-ai
 ### If no run help user with next items: 
 #### Ask aboust users OS
