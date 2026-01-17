@@ -13,6 +13,8 @@ An AI-friendly TypeScript CLI for Jira that prioritizes efficiency and security.
 
 ## Installation
 
+You can share [this url](https://raw.githubusercontent.com/festoinc/jira-ai/refs/heads/main/AI-installation-guide.md) with any AI and ask to run installation with you. It will help you to do complete setup and run examples.
+
 ```bash
 npm install -g jira-ai
 ```
@@ -39,6 +41,7 @@ To configure allowed projects and commands, follow the instructions in [EDITSETT
 
 - **Repository:** [https://github.com/festoinc/jira-ai](https://github.com/festoinc/jira-ai)
 - **Issues:** [https://github.com/festoinc/jira-ai/issues](https://github.com/festoinc/jira-ai/issues)
+- **NPM:** [https://www.npmjs.com/package/jira-ai](https://www.npmjs.com/package/jira-ai)
 
 ## License
 
