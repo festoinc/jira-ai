@@ -42,7 +42,7 @@ Use this command to start setup:
 jira-ai settings --help
 ```
 
-
+All avalible commands: [https://github.com/festoinc/jira-ai/blob/main/all_avaliable_commands.md](https://github.com/festoinc/jira-ai/blob/main/all_avaliable_commands.md)
 
 ## Links
 

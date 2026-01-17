@@ -5,7 +5,7 @@
 ### Run jira-ai auth --from-file {folder_of_env_file}/.env
 ### List projects that user have acess run jira-ai projects 
 ### Run jira-ai settings --help. 
-### Ask user about settings preferences
+### Ask user about settings preferences all avalible commands listed here https://raw.githubusercontent.com/festoinc/jira-ai/refs/heads/main/all_avaliable_commands.md
 ### Create settings file and apply it
 ### Guide user runing few sample commands in gemini or claude cli like "Show me all not done tickets that is assigned to me"
 ### Continue with running examples as long as user needs until user will confirma that instalaltion is not and further help is not needed 

@@ -1,0 +1,1 @@
+Calculate and display time-based metrics for one or more issues (comma-separated). Returns a table containing key, summary, total time logged, original estimate, and a detailed breakdown of duration spent in each status.

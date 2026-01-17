@@ -1,0 +1,1 @@
+Retrieve comprehensive issue data including key, summary, status (name, category), assignee, reporter, creation/update dates, due date, labels, parent/subtasks, description, and comments. Use --include-detailed-history to fetch a chronological log of all changes including field updates and status transitions.
