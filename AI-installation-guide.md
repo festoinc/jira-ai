@@ -1,4 +1,5 @@
-## Define user knowlege level 
+# Important. Run this installation guide step by step and wait users feedback
+### Define user knowlege level 
 ### Ask youser if he has IDE and can install npm packages? 
 ### If yes prompt to install npm install -g jira-ai
 ### If no run help user with next items: 
