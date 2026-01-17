@@ -13,15 +13,20 @@ An AI-friendly CLI for Jira that prioritizes efficiency and security.
 
 ## Installation
 
-If you know how to install npm then after installation run [this instuction.](https://raw.githubusercontent.com/festoinc/jira-ai/refs/heads/main/advanced-installation.md) in your CLI agent.
+If you **know how to install npm** then after installation run [this instuction.](https://raw.githubusercontent.com/festoinc/jira-ai/refs/heads/main/advanced-installation.md) in your CLI agent.
 
-If you don't know what npm is but want to use Jira "the haker way" [this instruction is for you.](https://raw.githubusercontent.com/festoinc/jira-ai/refs/heads/main/starter-installation.md) copy it and run in any AI agent like chat GPT, Gemini e.t.c.
+If you **don't know what npm** is but want to use Jira **"the haker way"** [this instruction is for you.](https://raw.githubusercontent.com/festoinc/jira-ai/refs/heads/main/starter-installation.md) copy it and run in any AI agent like chat GPT, Gemini e.t.c.
 
 ```bash
 npm install -g jira-ai
 ```
 
 ## Quick Start
+
+Run interactive authorization:
+```bash
+jira-ai auth
+```
 
 See all available commands:
 ```bash
@@ -30,13 +35,13 @@ jira-ai --help
 
 ## Configuration & Restrictions
 
-Jira AI uses a `settings.yaml` file to define permissions. To find its location on your system:
+Tool allows you to have very complex configutations of what Projects/Jira commands/Issue types you would have acess to thought the tool.
+Use this command to start setup: 
 
 ```bash
-jira-ai about
+jira-ai settings --help
 ```
 
-To configure allowed projects and commands, follow the instructions in [EDITSETTINGS.md](./EDITSETTINGS.md).
 
 
 ## Links
