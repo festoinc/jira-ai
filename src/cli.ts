@@ -24,7 +24,8 @@ import {
   confluenceListSpacesCommand, 
   confluenceGetSpacePagesHierarchyCommand,
   confluenceAddCommentCommand,
-  confluenceCreatePageCommand
+  confluenceCreatePageCommand,
+  confluenceUpdateDescriptionCommand
 } from './commands/confluence.js';
 import { aboutCommand } from './commands/about.js';
 import { authCommand } from './commands/auth.js';
@@ -339,10 +340,18 @@ confl
   .action(withPermission('confl', confluenceCreatePageCommand, { skipValidation: false }));
 
 confl
-  .command('add-comment <url>')
+  .command('add-comment')
+  .argument('<url>', 'The full URL of the Confluence page.')
   .description('Add a new comment to a Confluence page using content from a local Markdown file.')
-  .requiredOption('--from-file <path>', 'Path to Markdown file')
+  .option('-f, --from-file <path>', 'Path to the markdown file containing the comment content.')
   .action(withPermission('confl', confluenceAddCommentCommand, { schema: ConfluenceAddCommentSchema }));
+
+confl
+  .command('update-description')
+  .argument('<url>', 'The full URL of the Confluence page.')
+  .description('Update the content of an existing Confluence page using a Markdown file.')
+  .option('-f, --from-file <path>', 'Path to the markdown file containing the new content.')
+  .action(withPermission('confl', confluenceUpdateDescriptionCommand, { schema: UpdateDescriptionSchema }));
 
 
 // About command (always allowed)

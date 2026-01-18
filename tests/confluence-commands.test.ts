@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { confluenceListSpacesCommand, confluenceGetSpacePagesHierarchyCommand, confluenceAddCommentCommand } from '../src/commands/confluence.js';
+import { confluenceListSpacesCommand, confluenceGetSpacePagesHierarchyCommand, confluenceAddCommentCommand, confluenceUpdateDescriptionCommand } from '../src/commands/confluence.js';
 import * as confluenceClient from '../src/lib/confluence-client.js';
 import * as settings from '../src/lib/settings.js';
 import { ui } from '../src/lib/ui.js';
@@ -165,6 +165,38 @@ describe('Confluence Commands', () => {
       // @ts-ignore
       const { confluenceCreatePageCommand } = await import('../src/commands/confluence.js');
       await expect(confluenceCreatePageCommand(space, 'Title'))
+        .rejects.toThrow("Access to Confluence space 'RESTRICTED' is restricted by your settings.");
+    });
+  });
+
+  describe('confluenceUpdateDescriptionCommand', () => {
+    it('should update page content successfully', async () => {
+      const url = 'https://example.atlassian.net/wiki/spaces/SPACE/pages/123/Title';
+      const options = { fromFile: 'content.md' };
+      const markdown = '# New Content';
+      const adf = { type: 'doc' };
+
+      vi.mocked(confluenceClient.parseConfluenceUrl).mockReturnValue({ spaceKey: 'SPACE', pageId: '123' });
+      vi.mocked(settings.isConfluenceSpaceAllowed).mockReturnValue(true);
+      vi.mocked(fs.readFileSync).mockReturnValue(markdown);
+      vi.mocked(markdownToAdf).mockReturnValue(adf);
+
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      await confluenceUpdateDescriptionCommand(url, options);
+
+      expect(fs.readFileSync).toHaveBeenCalled();
+      expect(markdownToAdf).toHaveBeenCalledWith(markdown);
+      expect(confluenceClient.updatePageContent).toHaveBeenCalledWith(url, adf);
+      expect(ui.succeedSpinner).toHaveBeenCalledWith(expect.stringContaining('successfully'));
+    });
+
+    it('should throw error if space is restricted', async () => {
+      const url = 'https://example.atlassian.net/wiki/spaces/RESTRICTED/pages/123/Title';
+      vi.mocked(confluenceClient.parseConfluenceUrl).mockReturnValue({ spaceKey: 'RESTRICTED', pageId: '123' });
+      vi.mocked(settings.isConfluenceSpaceAllowed).mockReturnValue(false);
+
+      await expect(confluenceUpdateDescriptionCommand(url, { fromFile: 'test.md' }))
         .rejects.toThrow("Access to Confluence space 'RESTRICTED' is restricted by your settings.");
     });
   });
