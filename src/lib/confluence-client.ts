@@ -18,39 +18,23 @@ export function setOrganizationOverride(alias: string): void {
  */
 export function getConfluenceClient(): ConfluenceClient {
   if (!confluenceClient) {
-    const host = process.env.JIRA_HOST;
-    const email = process.env.JIRA_USER_EMAIL;
-    const apiToken = process.env.JIRA_API_TOKEN;
-
-    if (host && email && apiToken) {
+    const alias = getCurrentOrganizationAlias();
+    const storedCreds = loadCredentials(alias);
+    if (storedCreds) {
       confluenceClient = new ConfluenceClient({
-        host: host.replace(/\/$/, ''),
+        host: storedCreds.host.replace(/\/$/, ''),
         authentication: {
           basic: {
-            email,
-            apiToken,
+            email: storedCreds.email,
+            apiToken: storedCreds.apiToken,
           },
         },
       });
     } else {
-      const alias = getCurrentOrganizationAlias();
-      const storedCreds = loadCredentials(alias);
-      if (storedCreds) {
-        confluenceClient = new ConfluenceClient({
-          host: storedCreds.host.replace(/\/$/, ''),
-          authentication: {
-            basic: {
-              email: storedCreds.email,
-              apiToken: storedCreds.apiToken,
-            },
-          },
-        });
-      } else {
-        const errorMsg = alias 
-          ? `Credentials for organization "${alias}" not found.`
-          : 'Credentials not found. Please set environment variables or run "jira-ai auth"';
-        throw new Error(errorMsg);
-      }
+      const errorMsg = alias 
+        ? `Credentials for organization "${alias}" not found.`
+        : 'Credentials not found. Please run "jira-ai auth"';
+      throw new Error(errorMsg);
     }
   }
   return confluenceClient;

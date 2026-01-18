@@ -39,38 +39,13 @@ describe('Utils Module', () => {
 
   describe('validateEnvVars', () => {
     it('should throw CommandError if credentials are missing', () => {
-      // Clear environment variables
-      delete process.env.JIRA_HOST;
-      delete process.env.JIRA_USER_EMAIL;
-      delete process.env.JIRA_API_TOKEN;
-
-      vi.spyOn(authStorage, 'hasCredentials').mockReturnValue(false);
-
+      vi.mocked(authStorage.hasCredentials).mockReturnValue(false);
       expect(() => validateEnvVars()).toThrow(CommandError);
-    });
-
-    it('should not throw if environment variables are present', () => {
-      process.env.JIRA_HOST = 'test.atlassian.net';
-      process.env.JIRA_USER_EMAIL = 'test@example.com';
-      process.env.JIRA_API_TOKEN = 'token';
-
-      vi.spyOn(authStorage, 'hasCredentials').mockReturnValue(false);
-
-      expect(() => validateEnvVars()).not.toThrow();
     });
 
     it('should not throw if auth storage has credentials', () => {
-      delete process.env.JIRA_HOST;
-      delete process.env.JIRA_USER_EMAIL;
-      delete process.env.JIRA_API_TOKEN;
-
-      vi.spyOn(authStorage, 'hasCredentials').mockReturnValue(true);
-
+      vi.mocked(authStorage.hasCredentials).mockReturnValue(true);
       expect(() => validateEnvVars()).not.toThrow();
-    });
-    it('should throw CommandError if neither env vars nor credentials exist', () => {
-      vi.mocked(authStorage.hasCredentials).mockReturnValue(false);
-      expect(() => validateEnvVars()).toThrow(CommandError);
     });
   });
 

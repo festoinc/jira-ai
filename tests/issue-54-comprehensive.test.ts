@@ -3,7 +3,16 @@ import { validateIssuePermissions } from '../src/lib/jira-client.js';
 import * as settings from '../src/lib/settings.js';
 import { Version3Client } from 'jira.js';
 
-vi.mock('../src/lib/auth-storage.js');
+import * as authStorage from '../src/lib/auth-storage.js';
+
+vi.mock('../src/lib/auth-storage.js', () => ({
+  loadCredentials: vi.fn(() => ({
+    host: 'https://test.atlassian.net',
+    email: 'test@example.com',
+    apiToken: 'test-token'
+  })),
+  getCurrentOrganizationAlias: vi.fn(),
+}));
 vi.mock('../src/lib/settings.js');
 
 const {
@@ -41,12 +50,6 @@ vi.mock('../src/lib/utils.js', () => ({
 }));
 
 describe('Issue #54 Comprehensive Test: Post-Fetch Validation', () => {
-  beforeAll(() => {
-    process.env.JIRA_HOST = 'https://test.atlassian.net';
-    process.env.JIRA_USER_EMAIL = 'test@example.com';
-    process.env.JIRA_API_TOKEN = 'test-token';
-  });
-
   beforeEach(() => {
     vi.clearAllMocks();
     mockSettings.isProjectAllowed.mockReturnValue(true);

@@ -181,39 +181,23 @@ export function setOrganizationOverride(alias: string): void {
  */
 export function getJiraClient(): Version3Client {
   if (!jiraClient) {
-    const host = process.env.JIRA_HOST;
-    const email = process.env.JIRA_USER_EMAIL;
-    const apiToken = process.env.JIRA_API_TOKEN;
-
-    if (host && email && apiToken) {
+    const alias = getCurrentOrganizationAlias();
+    const storedCreds = loadCredentials(alias);
+    if (storedCreds) {
       jiraClient = new Version3Client({
-        host,
+        host: storedCreds.host,
         authentication: {
           basic: {
-            email,
-            apiToken,
+            email: storedCreds.email,
+            apiToken: storedCreds.apiToken,
           },
         },
       });
     } else {
-      const alias = getCurrentOrganizationAlias();
-      const storedCreds = loadCredentials(alias);
-      if (storedCreds) {
-        jiraClient = new Version3Client({
-          host: storedCreds.host,
-          authentication: {
-            basic: {
-              email: storedCreds.email,
-              apiToken: storedCreds.apiToken,
-            },
-          },
-        });
-      } else {
-        const errorMsg = alias 
-          ? `Jira credentials for organization "${alias}" not found.`
-          : 'Jira credentials not found. Please set environment variables or run "jira-ai auth"';
-        throw new Error(errorMsg);
-      }
+      const errorMsg = alias 
+        ? `Jira credentials for organization "${alias}" not found.`
+        : 'Jira credentials not found. Please run "jira-ai auth"';
+      throw new Error(errorMsg);
     }
   }
   return jiraClient;

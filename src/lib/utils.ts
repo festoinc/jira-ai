@@ -17,22 +17,13 @@ export function getVersion(): string {
 }
 
 /**
- * Validate required environment variables or stored credentials
+ * Validate that credentials exist in storage
  */
 export function validateEnvVars(): void {
-  const required = [
-    'JIRA_HOST',
-    'JIRA_USER_EMAIL',
-    'JIRA_API_TOKEN',
-  ];
-
-  const missing = required.filter((key) => !process.env[key]);
-
-  if (missing.length > 0 && !hasCredentials()) {
+  if (!hasCredentials()) {
     throw new CommandError('Jira credentials not found.', {
       hints: [
         'Run jira-ai auth to set up your credentials.',
-        'Alternatively, set environment variables: ' + required.join(', ')
       ]
     });
   }
