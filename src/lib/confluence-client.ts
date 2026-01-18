@@ -235,3 +235,23 @@ export async function getSpacePagesHierarchy(spaceKey: string, maxDepth: number 
 
   return hierarchy;
 }
+
+/**
+ * Add a comment to a Confluence page
+ */
+export async function addPageComment(url: string, adfContent: any): Promise<void> {
+  const client = getConfluenceClient();
+  const { pageId } = parseConfluenceUrl(url);
+
+  // @ts-ignore - CreateContent type requires title and space which are not needed for comments
+  await client.content.createContent({
+    type: 'comment',
+    container: { id: pageId, type: 'page' },
+    body: { 
+      atlas_doc_format: { 
+        value: JSON.stringify(adfContent), 
+        representation: 'atlas_doc_format' 
+      } 
+    }
+  });
+}

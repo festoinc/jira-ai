@@ -1,9 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { parseConfluenceUrl, listSpaces, getSpacePagesHierarchy } from '../src/lib/confluence-client.js';
+import { parseConfluenceUrl, listSpaces, getSpacePagesHierarchy, addPageComment } from '../src/lib/confluence-client.js';
 
 const mockGetSpaces = vi.fn();
 const mockGetContent = vi.fn();
 const mockGetContentChildrenByType = vi.fn();
+const mockCreateContent = vi.fn();
 
 vi.mock('confluence.js', () => ({
   ConfluenceClient: vi.fn().mockImplementation(function() {
@@ -13,6 +14,7 @@ vi.mock('confluence.js', () => ({
       },
       content: {
         getContent: mockGetContent,
+        createContent: mockCreateContent,
       },
       contentChildrenAndDescendants: {
         getContentChildrenByType: mockGetContentChildrenByType,
@@ -109,6 +111,28 @@ describe('Confluence Client', () => {
       expect(hierarchy[0].id).toBe('1');
       expect(hierarchy[0].children).toHaveLength(1);
       expect(hierarchy[0].children[0].id).toBe('2');
+    });
+  });
+
+  describe('addPageComment', () => {
+    it('should call createContent with correct parameters', async () => {
+      const url = 'https://example.atlassian.net/wiki/spaces/SPACE/pages/123456789/Page+Title';
+      const adfContent = { type: 'doc', content: [] };
+      
+      mockCreateContent.mockResolvedValue({ id: 'comment-1' });
+
+      await addPageComment(url, adfContent);
+
+      expect(mockCreateContent).toHaveBeenCalledWith({
+        type: 'comment',
+        container: { id: '123456789', type: 'page' },
+        body: {
+          atlas_doc_format: {
+            value: JSON.stringify(adfContent),
+            representation: 'atlas_doc_format',
+          },
+        },
+      });
     });
   });
 });
