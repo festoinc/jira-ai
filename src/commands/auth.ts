@@ -3,7 +3,7 @@ import chalk from 'chalk';
 import fs from 'fs';
 import dotenv from 'dotenv';
 import { createTemporaryClient } from '../lib/jira-client.js';
-import { saveCredentials } from '../lib/auth-storage.js';
+import { saveCredentials, clearCredentials } from '../lib/auth-storage.js';
 import { CommandError } from '../lib/errors.js';
 import { ui } from '../lib/ui.js';
 
@@ -11,9 +11,19 @@ interface AuthOptions {
   fromJson?: string;
   fromFile?: string;
   alias?: string;
+  logout?: boolean;
+}
+
+export async function logoutCommand(): Promise<void> {
+  clearCredentials();
+  console.log(chalk.green('Successfully logged out from all organizations. Authentication credentials cleared.'));
 }
 
 export async function authCommand(options: AuthOptions = {}): Promise<void> {
+  if (options.logout) {
+    return logoutCommand();
+  }
+
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
