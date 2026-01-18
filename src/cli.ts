@@ -22,7 +22,8 @@ import { getPersonWorklogCommand } from './commands/get-person-worklog.js';
 import { 
   confluenceGetPageCommand, 
   confluenceListSpacesCommand, 
-  confluenceGetSpacePagesHierarchyCommand 
+  confluenceGetSpacePagesHierarchyCommand,
+  confluenceAddCommentCommand
 } from './commands/confluence.js';
 import { aboutCommand } from './commands/about.js';
 import { authCommand } from './commands/auth.js';
@@ -43,6 +44,7 @@ import {
   CreateTaskSchema,
   AddCommentSchema,
   UpdateDescriptionSchema,
+  ConfluenceAddCommentSchema,
   RunJqlSchema,
   GetPersonWorklogSchema,
   GetIssueStatisticsSchema,
@@ -329,6 +331,12 @@ confl
   .command('pages <space-key>')
   .description('Display a hierarchical tree view of pages within a specific space.')
   .action(withPermission('confl', confluenceGetSpacePagesHierarchyCommand, { skipValidation: false }));
+
+confl
+  .command('add-comment <url>')
+  .description('Add a new comment to a Confluence page using content from a local Markdown file.')
+  .requiredOption('--from-file <path>', 'Path to Markdown file')
+  .action(withPermission('confl', confluenceAddCommentCommand, { schema: ConfluenceAddCommentSchema }));
 
 
 // About command (always allowed)

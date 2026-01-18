@@ -74,6 +74,10 @@ export const AddCommentSchema = z.object({
   issueKey: z.string().trim().min(1, 'Issue key is required').pipe(IssueKeySchema),
 });
 
+export const ConfluenceAddCommentSchema = z.object({
+  fromFile: z.string().trim().min(1, 'File path is required').pipe(FilePathSchema),
+});
+
 export const UpdateDescriptionSchema = z.object({
   fromFile: z.string().trim().min(1, 'File path is required').pipe(FilePathSchema),
 });
