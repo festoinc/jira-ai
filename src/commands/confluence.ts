@@ -2,11 +2,41 @@ import chalk from 'chalk';
 import * as fs from 'fs';
 import * as path from 'path';
 import { markdownToAdf } from 'marklassian';
-import { getPage, getPageComments, parseConfluenceUrl, listSpaces, getSpacePagesHierarchy, addPageComment } from '../lib/confluence-client.js';
+import { getPage, getPageComments, parseConfluenceUrl, listSpaces, getSpacePagesHierarchy, addPageComment, createPage } from '../lib/confluence-client.js';
 import { formatConfluencePage, formatConfluenceSpaces, formatConfluencePageHierarchy } from '../lib/formatters.js';
 import { ui } from '../lib/ui.js';
 import { CommandError } from '../lib/errors.js';
 import { isConfluenceSpaceAllowed } from '../lib/settings.js';
+
+export async function confluenceCreatePageCommand(space: string, title: string, parentPage?: string): Promise<void> {
+  // Validate space key
+  if (!isConfluenceSpaceAllowed(space)) {
+    throw new CommandError(`Access to Confluence space '${space}' is restricted by your settings.`);
+  }
+
+  ui.startSpinner(`Creating Confluence page '${title}' in space '${space}'...`);
+
+  try {
+    const url = await createPage(space, title, parentPage);
+    ui.succeedSpinner(chalk.green('Confluence page created successfully'));
+    console.log(chalk.cyan(`\nURL: ${url}`));
+  } catch (error: any) {
+    ui.failSpinner();
+
+    if (error instanceof CommandError) throw error;
+
+    const errorMsg = error.message?.toLowerCase() || '';
+    const hints: string[] = [];
+
+    if (errorMsg.includes('401') || errorMsg.includes('403') || errorMsg.includes('unauthorized')) {
+      hints.push('Authentication failed or you do not have permission to create pages in this space.');
+    } else if (errorMsg.includes('404')) {
+      hints.push('Space or parent page not found.');
+    }
+
+    throw new CommandError(`Failed to create Confluence page: ${error.message}`, { hints });
+  }
+}
 
 export async function confluenceAddCommentCommand(url: string, options: { fromFile: string }): Promise<void> {
   const { fromFile } = options;

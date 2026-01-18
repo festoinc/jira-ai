@@ -113,4 +113,59 @@ describe('Confluence Commands', () => {
         .rejects.toThrow("Access to Confluence space 'RESTRICTED' is restricted by your settings.");
     });
   });
+
+  describe('confluenceCreatePageCommand', () => {
+    it('should create page successfully', async () => {
+      const space = 'SPACE';
+      const title = 'New Page';
+      const createdUrl = 'https://test.atlassian.net/wiki/spaces/SPACE/pages/456';
+      
+      vi.mocked(settings.isConfluenceSpaceAllowed).mockReturnValue(true);
+      // @ts-ignore
+      vi.mocked(confluenceClient.createPage).mockResolvedValue(createdUrl);
+
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      // @ts-ignore
+      const { confluenceCreatePageCommand } = await import('../src/commands/confluence.js');
+      await confluenceCreatePageCommand(space, title);
+
+      expect(ui.startSpinner).toHaveBeenCalledWith(expect.stringContaining('Creating Confluence page'));
+      // @ts-ignore
+      expect(confluenceClient.createPage).toHaveBeenCalledWith(space, title, undefined);
+      expect(ui.succeedSpinner).toHaveBeenCalled();
+      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining(createdUrl));
+    });
+
+    it('should create page with parent successfully', async () => {
+      const space = 'SPACE';
+      const title = 'Child Page';
+      const parent = '123';
+      const createdUrl = 'https://test.atlassian.net/wiki/spaces/SPACE/pages/456';
+      
+      vi.mocked(settings.isConfluenceSpaceAllowed).mockReturnValue(true);
+      // @ts-ignore
+      vi.mocked(confluenceClient.createPage).mockResolvedValue(createdUrl);
+
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      // @ts-ignore
+      const { confluenceCreatePageCommand } = await import('../src/commands/confluence.js');
+      await confluenceCreatePageCommand(space, title, parent);
+
+      // @ts-ignore
+      expect(confluenceClient.createPage).toHaveBeenCalledWith(space, title, parent);
+      expect(ui.succeedSpinner).toHaveBeenCalled();
+    });
+
+    it('should throw error if space is restricted', async () => {
+      const space = 'RESTRICTED';
+      vi.mocked(settings.isConfluenceSpaceAllowed).mockReturnValue(false);
+
+      // @ts-ignore
+      const { confluenceCreatePageCommand } = await import('../src/commands/confluence.js');
+      await expect(confluenceCreatePageCommand(space, 'Title'))
+        .rejects.toThrow("Access to Confluence space 'RESTRICTED' is restricted by your settings.");
+    });
+  });
 });
