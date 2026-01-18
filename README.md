@@ -31,6 +31,7 @@ claude plugin marketplace add festoinc/management-plugins
 #### Step 2: Install the Plugin
 ```bash
 claude plugin install jira-ai-connector@management-plugins
+```
 
 Will be avalibale automatically as skill
 
