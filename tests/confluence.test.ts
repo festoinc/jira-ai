@@ -3,6 +3,8 @@ import { parseConfluenceUrl, listSpaces, getSpacePagesHierarchy, addPageComment 
 
 const mockGetSpaces = vi.fn();
 const mockGetContent = vi.fn();
+const mockGetContentById = vi.fn();
+const mockUpdateContent = vi.fn();
 const mockGetContentChildrenByType = vi.fn();
 const mockCreateContent = vi.fn();
 
@@ -15,6 +17,8 @@ vi.mock('confluence.js', () => ({
       },
       content: {
         getContent: mockGetContent,
+        getContentById: mockGetContentById,
+        updateContent: mockUpdateContent,
         createContent: mockCreateContent,
       },
       contentChildrenAndDescendants: {
@@ -187,6 +191,64 @@ describe('Confluence Client', () => {
           },
         },
       });
+    });
+  });
+
+  describe('updatePageContent', () => {
+    it('should call updateContent with correct parameters', async () => {
+      const url = 'https://example.atlassian.net/wiki/spaces/SPACE/pages/123/Title';
+      const adfContent = { type: 'doc', version: 1, content: [{ type: 'paragraph', content: [] }] };
+      const pageId = '123';
+      
+      mockGetContentById.mockResolvedValue({
+        id: pageId,
+        version: { number: 1 },
+        title: 'Original Title',
+        space: { key: 'SPACE' }
+      });
+      mockUpdateContent.mockResolvedValue({ id: pageId });
+
+      // @ts-ignore
+      const { updatePageContent } = await import('../src/lib/confluence-client.js');
+      await updatePageContent(url, adfContent);
+
+      expect(mockGetContentById).toHaveBeenCalledWith({
+        id: pageId,
+        expand: ['version', 'space'],
+      });
+
+      expect(mockUpdateContent).toHaveBeenCalledWith({
+        id: pageId,
+        version: { number: 2 },
+        title: 'Original Title',
+        type: 'page',
+        body: {
+          atlas_doc_format: {
+            value: JSON.stringify(adfContent),
+            representation: 'atlas_doc_format',
+          },
+        },
+      });
+    });
+
+    it('should throw CommandError when 409 conflict occurs', async () => {
+      const url = 'https://example.atlassian.net/wiki/spaces/SPACE/pages/123/Title';
+      const adfContent = { type: 'doc', content: [] };
+      
+      mockGetContentById.mockResolvedValue({
+        id: '123',
+        version: { number: 1 },
+        title: 'Title',
+        space: { key: 'SPACE' }
+      });
+      mockUpdateContent.mockRejectedValue({
+        message: 'Conflict',
+        status: 409
+      });
+
+      // @ts-ignore
+      const { updatePageContent } = await import('../src/lib/confluence-client.js');
+      await expect(updatePageContent(url, adfContent)).rejects.toThrow(/version mismatch/i);
     });
   });
 });

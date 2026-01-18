@@ -1,6 +1,7 @@
 import { ConfluenceClient } from 'confluence.js';
 import { loadCredentials, getCurrentOrganizationAlias, setOrganizationOverride as setAuthOrgOverride } from './auth-storage.js';
 import { convertADFToMarkdown } from './utils.js';
+import { CommandError } from './errors.js';
 
 let confluenceClient: ConfluenceClient | null = null;
 
@@ -282,4 +283,49 @@ export async function createPage(spaceKey: string, title: string, parentId?: str
   // @ts-ignore - accessing host to construct URL
   const host = client.config.host || '';
   return `${host.replace(/\/$/, '')}/pages/${response.id}`;
+}
+
+/**
+ * Update the content of an existing Confluence page
+ */
+export async function updatePageContent(url: string, adfContent: any): Promise<void> {
+  const client = getConfluenceClient();
+  const { pageId } = parseConfluenceUrl(url);
+
+  // 1. Fetch current page details to get version and title
+  let page;
+  try {
+    page = await client.content.getContentById({
+      id: pageId,
+      expand: ['version', 'space'],
+    });
+  } catch (error: any) {
+    throw new Error(`Failed to fetch page details: ${error.message}`);
+  }
+
+  const currentVersion = page.version?.number || 0;
+  const title = page.title;
+
+  // 2. Update the page content
+  try {
+    await client.content.updateContent({
+      id: pageId,
+      version: { number: currentVersion + 1 },
+      title,
+      type: 'page',
+      body: {
+        atlas_doc_format: {
+          value: JSON.stringify(adfContent),
+          representation: 'atlas_doc_format',
+        },
+      },
+    });
+  } catch (error: any) {
+    if (error.status === 409 || error.message?.includes('409') || error.message?.toLowerCase().includes('conflict')) {
+      throw new CommandError('Version mismatch when updating Confluence page. Someone else might have updated it. Please try again.', {
+        hints: ['Reload the page content and try your update again.']
+      });
+    }
+    throw new Error(`Failed to update page content: ${error.message}`);
+  }
 }
