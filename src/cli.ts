@@ -371,27 +371,34 @@ program
 Examples:
   $ jira-ai settings
   $ jira-ai settings --validate my-settings.yaml
-    $ jira-ai settings --apply my-settings.yaml
-    $ jira-ai settings --reset
+  $ jira-ai settings --apply my-settings.yaml
+  $ jira-ai settings --reset
   
   Settings File Structure:
-    projects:
-    - all                       # Allow all projects
-    - PROJ                      # Allow specific project by key
-    - key: PM                   # Project-specific configuration
-      commands:                 # Limit commands for this project
-        - task-with-details
-      filters:
-        participated:           # Filter by user participation
-          was_assignee: true
-          was_reporter: true
-          was_commenter: true
-          is_watcher: true
-        jql: "issuetype = Bug"  # Custom JQL filter
-  commands:
-    - all                       # Allow all commands globally
-    - me
-    - projects
+    defaults:
+      allowed-jira-projects:
+        - all                   # Allow all projects
+      allowed-commands:
+        - all                   # Allow all commands globally
+      allowed-confluence-spaces:
+        - all                   # Allow all Confluence spaces
+
+    organizations:
+      work:
+        allowed-jira-projects:
+          - PROJ                # Allow specific project by key
+          - key: PM             # Project-specific configuration
+            commands:           # Limit commands for this project
+              - task-with-details
+            filters:
+              participated:     # Filter by user participation
+                was_assignee: true
+                was_reporter: true
+        allowed-commands:
+          - me
+          - projects
+        allowed-confluence-spaces:
+          - SPACE1              # Allow specific Confluence space
 `)
   .action((options) => settingsCommand(options));
 
