@@ -21,4 +21,19 @@ describe('Confluence URL Parsing', () => {
     const url = 'https://example.com/not-confluence';
     expect(() => parseConfluenceUrl(url)).toThrow('Could not extract Page ID from URL');
   });
+
+  it('should parse URL with multiple query parameters', () => {
+    const url = 'https://example.atlassian.net/wiki/pages/viewpage.action?pageId=123&focusedCommentId=456';
+    expect(parseConfluenceUrl(url)).toBe('123');
+  });
+
+  it('should parse URL with trailing slash', () => {
+    const url = 'https://example.atlassian.net/wiki/spaces/SPACE/pages/123456789/';
+    expect(parseConfluenceUrl(url)).toBe('123456789');
+  });
+
+  it('should parse URL without /wiki prefix', () => {
+    const url = 'https://example.atlassian.net/spaces/SPACE/pages/123456789/Page+Title';
+    expect(parseConfluenceUrl(url)).toBe('123456789');
+  });
 });
