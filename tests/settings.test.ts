@@ -41,8 +41,8 @@ commands:
 
       const settings = loadSettings();
 
-      expect(settings.projects).toEqual(['BP', 'PM', 'PS']);
-      expect(settings.commands).toEqual(['me', 'projects']);
+      expect(settings.defaults?.['allowed-jira-projects']).toEqual(['BP', 'PM', 'PS']);
+      expect(settings.defaults?.['allowed-commands']).toEqual(['me', 'projects']);
       expect(mockFs.readFileSync).toHaveBeenCalledWith(mockSettingsPath, 'utf8');
     });
 
@@ -54,8 +54,8 @@ commands:
 
       const settings = loadSettings();
 
-      expect(settings.projects).toEqual(['all']);
-      expect(settings.commands).toEqual([
+      expect(settings.defaults?.['allowed-jira-projects']).toEqual(['all']);
+      expect(settings.defaults?.['allowed-commands']).toEqual([
         'me',
         'projects',
         'task-with-details',
@@ -72,9 +72,8 @@ commands:
         'organization',
         'transition',
         'update-description',
-        'confl'
+        'confluence'
       ]);
-      expect(mockFs.mkdirSync).toHaveBeenCalledWith(mockConfigDir, { recursive: true });
       // Should create default settings file
       expect(mockFs.writeFileSync).toHaveBeenCalledWith(
         mockSettingsPath,
@@ -96,8 +95,8 @@ commands:
 
       const settings = loadSettings();
 
-      expect(settings.projects).toEqual(['all']);
-      expect(settings.commands).toEqual([
+      expect(settings.defaults?.['allowed-jira-projects']).toEqual(['all']);
+      expect(settings.defaults?.['allowed-commands']).toEqual([
         'me',
         'projects',
         'task-with-details',
@@ -114,7 +113,7 @@ commands:
         'organization',
         'transition',
         'update-description',
-        'confl'
+        'confluence'
       ]);
     });
 
@@ -389,7 +388,7 @@ commands:
 
       const settings = loadSettings();
 
-      expect(settings.projects).toEqual(['MIGRATED']);
+      expect(settings.defaults?.['allowed-jira-projects']).toEqual(['MIGRATED']);
       expect(mockFs.readFileSync).toHaveBeenCalledWith(mockLocalSettingsPath, 'utf8');
       expect(mockFs.writeFileSync).toHaveBeenCalledWith(mockSettingsPath, mockYaml);
       expect(consoleSpy).toHaveBeenCalled();

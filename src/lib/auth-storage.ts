@@ -168,10 +168,40 @@ export function getOrganizations(): Record<string, AuthCredentials> {
   return config.organizations;
 }
 
+let organizationOverride: string | undefined = undefined;
+
+
+
 /**
- * Get the currently active organization alias
+
+ * Set a global organization override for the current execution
+
  */
+
+export function setOrganizationOverride(alias: string): void {
+
+  organizationOverride = alias;
+
+}
+
+
+
+/**
+
+ * Get the currently active organization alias, respecting override
+
+ */
+
 export function getCurrentOrganizationAlias(): string | undefined {
+
+  if (organizationOverride) {
+
+    return organizationOverride;
+
+  }
+
   const config = loadConfig();
+
   return config.current;
+
 }

@@ -1,10 +1,22 @@
 import chalk from 'chalk';
-import { getPage, getPageComments } from '../lib/confluence-client.js';
+import { getPage, getPageComments, parseConfluenceUrl } from '../lib/confluence-client.js';
 import { formatConfluencePage } from '../lib/formatters.js';
 import { ui } from '../lib/ui.js';
 import { CommandError } from '../lib/errors.js';
+import { isConfluenceSpaceAllowed } from '../lib/settings.js';
 
 export async function confluenceGetPageCommand(url: string): Promise<void> {
+  // Check permission before fetching if space key can be extracted from URL
+  try {
+    const { spaceKey } = parseConfluenceUrl(url);
+    if (spaceKey && !isConfluenceSpaceAllowed(spaceKey)) {
+      throw new CommandError(`Access to Confluence space '${spaceKey}' is restricted by your settings.`);
+    }
+  } catch (e) {
+    if (e instanceof CommandError) throw e;
+    // If URL parsing fails, let the fetch attempt handle it or catch it later
+  }
+
   ui.startSpinner(`Fetching Confluence page details for: ${url}`);
 
   try {
@@ -12,6 +24,11 @@ export async function confluenceGetPageCommand(url: string): Promise<void> {
       getPage(url),
       getPageComments(url)
     ]);
+
+    // Double check with the actual space name/key from the fetched page
+    if (!isConfluenceSpaceAllowed(page.space)) {
+      throw new CommandError(`Access to Confluence space '${page.space}' is restricted by your settings.`);
+    }
 
     ui.succeedSpinner(chalk.green('Confluence page details retrieved'));
     console.log(formatConfluencePage(page, comments));
