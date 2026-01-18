@@ -5,6 +5,7 @@ import yaml from 'js-yaml';
 import chalk from 'chalk';
 import { CliError } from '../types/errors.js';
 import { SettingsSchema } from './validation.js';
+import { getCurrentOrganizationAlias } from './auth-storage.js';
 
 export interface ProjectFilters {
   participated?: {
@@ -24,14 +25,20 @@ export interface ProjectConfig {
 
 export type ProjectSetting = string | ProjectConfig;
 
-export interface Settings {
-  projects: ProjectSetting[];
-  commands: string[];
+export interface OrganizationSettings {
+  'allowed-jira-projects': ProjectSetting[];
+  'allowed-commands': string[];
+  'allowed-confluence-spaces': string[];
 }
 
-export const DEFAULT_SETTINGS: Settings = {
-  projects: ['all'],
-  commands: [
+export interface Settings {
+  defaults?: OrganizationSettings;
+  organizations?: Record<string, OrganizationSettings>;
+}
+
+export const DEFAULT_ORG_SETTINGS: OrganizationSettings = {
+  'allowed-jira-projects': ['all'],
+  'allowed-commands': [
     'me',
     'projects',
     'task-with-details',
@@ -48,8 +55,13 @@ export const DEFAULT_SETTINGS: Settings = {
     'organization',
     'transition',
     'update-description',
-    'confl'
-  ]
+    'confluence'
+  ],
+  'allowed-confluence-spaces': ['all']
+};
+
+export const DEFAULT_SETTINGS: Settings = {
+  defaults: DEFAULT_ORG_SETTINGS
 };
 
 const CONFIG_DIR = path.join(os.homedir(), '.jira-ai');
@@ -59,6 +71,27 @@ let cachedSettings: Settings | null = null;
 
 export function getSettingsPath(): string {
   return SETTINGS_FILE;
+}
+
+export function migrateSettings(settings: any): Settings {
+  // Migration logic: if old structure exists, move it to defaults
+  if (settings.projects || settings.commands) {
+    const migratedDefaults: OrganizationSettings = {
+      'allowed-jira-projects': settings.projects || DEFAULT_ORG_SETTINGS['allowed-jira-projects'],
+      'allowed-commands': settings.commands || DEFAULT_ORG_SETTINGS['allowed-commands'],
+      'allowed-confluence-spaces': DEFAULT_ORG_SETTINGS['allowed-confluence-spaces']
+    };
+    
+    const newSettings = {
+      ...settings,
+      defaults: migratedDefaults,
+    };
+    // Remove old fields
+    delete newSettings.projects;
+    delete newSettings.commands;
+    return newSettings;
+  }
+  return settings;
 }
 
 export function loadSettings(): Settings {
@@ -108,17 +141,15 @@ export function loadSettings(): Settings {
       result.error.issues.forEach(issue => {
         console.warn(chalk.yellow(`  - ${issue.path.join('.')}: ${issue.message}`));
       });
-      // Fallback to raw settings or default if parsing fails completely
-      const settings = rawSettings as any;
-      cachedSettings = {
-        projects: settings?.projects || DEFAULT_SETTINGS.projects,
-        commands: settings?.commands || DEFAULT_SETTINGS.commands
-      };
-    } else {
-      cachedSettings = result.data;
+      // Fallback to defaults if parsing fails completely
+      return DEFAULT_SETTINGS;
     }
+    
+    let settings = result.data as any;
+    settings = migrateSettings(settings);
 
-    return cachedSettings;
+    cachedSettings = settings;
+    return settings;
   } catch (error) {
     throw new CliError(`Error loading ${SETTINGS_FILE}: ${error instanceof Error ? error.message : String(error)}`);
   }
@@ -139,10 +170,22 @@ export function saveSettings(settings: Settings): void {
   }
 }
 
-export function isProjectAllowed(projectKey: string): boolean {
+function getEffectiveSettings(orgAlias?: string): OrganizationSettings | null {
   const settings = loadSettings();
+  const alias = orgAlias || getCurrentOrganizationAlias();
 
-  const isAllowed = settings.projects.some(p => {
+  if (alias && settings.organizations && settings.organizations[alias]) {
+    return settings.organizations[alias];
+  }
+
+  return settings.defaults || null;
+}
+
+export function isProjectAllowed(projectKey: string, orgAlias?: string): boolean {
+  const settings = getEffectiveSettings(orgAlias);
+  if (!settings) return false;
+
+  const isAllowed = settings['allowed-jira-projects'].some(p => {
     if (typeof p === 'string') {
       return p === 'all' || p === projectKey;
     }
@@ -152,18 +195,19 @@ export function isProjectAllowed(projectKey: string): boolean {
   return isAllowed;
 }
 
-export function isCommandAllowed(commandName: string, projectKey?: string): boolean {
-  const settings = loadSettings();
-
+export function isCommandAllowed(commandName: string, projectKey?: string, orgAlias?: string): boolean {
   // about, auth, and settings are always allowed
   if (['about', 'auth', 'settings'].includes(commandName)) {
     return true;
   }
 
+  const settings = getEffectiveSettings(orgAlias);
+  if (!settings) return false;
+
   if (projectKey) {
-    let project = settings.projects.find(p => typeof p !== 'string' && p.key === projectKey);
+    let project = settings['allowed-jira-projects'].find(p => typeof p !== 'string' && p.key === projectKey);
     if (!project) {
-      project = settings.projects.find(p => typeof p === 'string' && (p === 'all' || p === projectKey));
+      project = settings['allowed-jira-projects'].find(p => typeof p === 'string' && (p === 'all' || p === projectKey));
     }
     
     if (project && typeof project !== 'string' && project.commands) {
@@ -171,12 +215,12 @@ export function isCommandAllowed(commandName: string, projectKey?: string): bool
     }
   } else {
     // For visibility/global check: allowed if in global list OR in any project-specific list
-    const allowedGlobally = settings.commands.includes('all') || settings.commands.includes(commandName);
+    const allowedGlobally = settings['allowed-commands'].includes('all') || settings['allowed-commands'].includes(commandName);
     if (allowedGlobally) {
       return true;
     }
 
-    const allowedInAnyProject = settings.projects.some(p => 
+    const allowedInAnyProject = settings['allowed-jira-projects'].some(p => 
       typeof p !== 'string' && p.commands && p.commands.includes(commandName)
     );
     if (allowedInAnyProject) {
@@ -186,27 +230,35 @@ export function isCommandAllowed(commandName: string, projectKey?: string): bool
     return false;
   }
 
-  if (settings.commands.includes('all')) {
+  if (settings['allowed-commands'].includes('all')) {
     return true;
   }
 
-  return settings.commands.includes(commandName);
+  return settings['allowed-commands'].includes(commandName);
 }
 
-export function getAllowedProjects(): ProjectSetting[] {
-  const settings = loadSettings();
-  return settings.projects;
+export function isConfluenceSpaceAllowed(spaceKey: string, orgAlias?: string): boolean {
+  const settings = getEffectiveSettings(orgAlias);
+  if (!settings) return false;
+
+  return settings['allowed-confluence-spaces'].some(s => s === 'all' || s === spaceKey);
 }
 
-export function getAllowedCommands(): string[] {
-  const settings = loadSettings();
-  return settings.commands;
+export function getAllowedProjects(orgAlias?: string): ProjectSetting[] {
+  const settings = getEffectiveSettings(orgAlias);
+  return settings ? settings['allowed-jira-projects'] : [];
 }
 
-export function applyGlobalFilters(jql: string): string {
-  const settings = loadSettings();
+export function getAllowedCommands(orgAlias?: string): string[] {
+  const settings = getEffectiveSettings(orgAlias);
+  return settings ? settings['allowed-commands'] : [];
+}
+
+export function applyGlobalFilters(jql: string, orgAlias?: string): string {
+  const settings = getEffectiveSettings(orgAlias);
+  if (!settings) return jql;
   
-  const allAllowed = settings.projects.some(p => p === 'all');
+  const allAllowed = settings['allowed-jira-projects'].some(p => p === 'all');
   if (allAllowed) {
     return jql;
   }
@@ -220,7 +272,7 @@ export function applyGlobalFilters(jql: string): string {
     orderByPart = ` ORDER BY ${orderByMatch[2].trim()}`;
   }
   
-  const projectFilters = settings.projects.map(p => {
+  const projectFilters = settings['allowed-jira-projects'].map(p => {
     const key = typeof p === 'string' ? p : p.key;
     const projectJql = typeof p === 'string' ? null : p.filters?.jql;
     
@@ -241,16 +293,18 @@ export function applyGlobalFilters(jql: string): string {
   return `(${combinedProjectFilter})${filterJql}${orderByPart}`;
 }
 
-export function validateIssueAgainstFilters(issue: any, currentUserId: string): boolean {
-  const settings = loadSettings();
+export function validateIssueAgainstFilters(issue: any, currentUserId: string, orgAlias?: string): boolean {
+  const settings = getEffectiveSettings(orgAlias);
+  if (!settings) return false;
+
   const projectKey = issue.key.split('-')[0];
   
   // Find specific project config first
-  let project = settings.projects.find(p => typeof p !== 'string' && p.key === projectKey);
+  let project = settings['allowed-jira-projects'].find(p => typeof p !== 'string' && p.key === projectKey);
   
   // If not found, look for string match (exact project key or 'all')
   if (!project) {
-    project = settings.projects.find(p => typeof p === 'string' && (p === 'all' || p === projectKey));
+    project = settings['allowed-jira-projects'].find(p => typeof p === 'string' && (p === 'all' || p === projectKey));
   }
 
   if (!project) {
