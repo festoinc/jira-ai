@@ -139,7 +139,11 @@ describe('Jira Client', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockCurrentOrg = undefined;
-    // ...
+    vi.mocked(authStorage.loadCredentials).mockReturnValue({
+      host: 'https://test.atlassian.net',
+      email: 'test@example.com',
+      apiToken: 'test-token'
+    });
   });
 
   describe('getTaskWithDetails', () => {

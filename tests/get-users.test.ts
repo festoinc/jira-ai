@@ -1,10 +1,20 @@
 import { vi, describe, it, expect, beforeEach, beforeAll } from 'vitest';
 import { getUsers } from '../src/lib/jira-client.js';
+import * as authStorage from '../src/lib/auth-storage.js';
 
 // Mock dependencies
 const { mockFindUsers, mockFindAssignableUsers } = vi.hoisted(() => ({
   mockFindUsers: vi.fn(),
   mockFindAssignableUsers: vi.fn(),
+}));
+
+vi.mock('../src/lib/auth-storage.js', () => ({
+  loadCredentials: vi.fn(() => ({
+    host: 'https://test.atlassian.net',
+    email: 'test@example.com',
+    apiToken: 'test-token'
+  })),
+  getCurrentOrganizationAlias: vi.fn(),
 }));
 
 vi.mock('jira.js', () => ({
@@ -22,12 +32,6 @@ vi.mock('jira.js', () => ({
 }));
 
 describe('Jira Client - getUsers', () => {
-  beforeAll(() => {
-    process.env.JIRA_HOST = 'https://test.atlassian.net';
-    process.env.JIRA_USER_EMAIL = 'test@example.com';
-    process.env.JIRA_API_TOKEN = 'test-token';
-  });
-
   beforeEach(() => {
     vi.clearAllMocks();
   });

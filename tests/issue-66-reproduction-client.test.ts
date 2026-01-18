@@ -2,7 +2,16 @@ import { vi, describe, it, expect, beforeEach, beforeAll } from 'vitest';
 import { searchIssuesByJql } from '../src/lib/jira-client.js';
 import * as settings from '../src/lib/settings.js';
 
-vi.mock('../src/lib/auth-storage.js');
+import * as authStorage from '../src/lib/auth-storage.js';
+
+vi.mock('../src/lib/auth-storage.js', () => ({
+  loadCredentials: vi.fn(() => ({
+    host: 'https://test.atlassian.net',
+    email: 'test@example.com',
+    apiToken: 'test-token'
+  })),
+  getCurrentOrganizationAlias: vi.fn(),
+}));
 vi.mock('../src/lib/settings.js');
 
 const {
@@ -28,16 +37,9 @@ vi.mock('jira.js', () => ({
 const mockSettings = settings as vi.Mocked<typeof settings>;
 
 describe('Issue 66 Reproduction: searchIssuesByJql should use enhanced Search API', () => {
-  beforeAll(() => {
-    process.env.JIRA_HOST = 'https://test.atlassian.net';
-    process.env.JIRA_USER_EMAIL = 'test@example.com';
-    process.env.JIRA_API_TOKEN = 'test-token';
-    
-    mockSettings.applyGlobalFilters.mockImplementation(jql => jql);
-  });
-
   beforeEach(() => {
     vi.clearAllMocks();
+    mockSettings.applyGlobalFilters.mockImplementation(jql => jql);
   });
 
   it('should use enhanced Search API', async () => {

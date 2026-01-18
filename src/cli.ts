@@ -57,10 +57,6 @@ import {
 } from './lib/validation.js';
 import { realpathSync } from 'fs';
 
-// Load environment variables
-// @ts-ignore - quiet option exists but is not in types
-dotenv.config({ quiet: true });
-
 // Create CLI program
 const program = new Command();
 
@@ -410,13 +406,7 @@ Examples:
  * Configure command visibility based on auth status and settings
  */
 export function configureCommandVisibility(program: Command) {
-  const hasCreds = hasCredentials();
-  const envVarsSet = !!(
-    process.env.JIRA_HOST && 
-    process.env.JIRA_USER_EMAIL && 
-    process.env.JIRA_API_TOKEN
-  );
-  const isAuthorized = hasCreds || envVarsSet;
+  const isAuthorized = hasCredentials();
 
   if (!isAuthorized) {
     program.commands.forEach(cmd => {

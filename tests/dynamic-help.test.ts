@@ -89,7 +89,7 @@ describe('Dynamic Help Structure', () => {
     });
   });
 
-  it('should show authorized if environment variables are set', () => {
+  it('should NOT show authorized even if environment variables are set', () => {
     process.env.JIRA_HOST = 'test.atlassian.net';
     process.env.JIRA_USER_EMAIL = 'test@example.com';
     process.env.JIRA_API_TOKEN = 'token';
@@ -98,6 +98,6 @@ describe('Dynamic Help Structure', () => {
     configureCommandVisibility(program);
     
     const meCmd = program.commands.find(c => c.name() === 'me');
-    expect(meCmd?._hidden).toBe(false);
+    expect(meCmd?._hidden).toBe(true);
   });
 });
