@@ -45,9 +45,10 @@ commands:
 
       const settings = loadSettings();
 
-      expect(settings.projects).toHaveLength(2);
-      expect(settings.projects[0]).toBe('BP');
-      expect(settings.projects[1]).toEqual({
+      const allowedProjects = settings.defaults?.['allowed-jira-projects'] || [];
+      expect(allowedProjects).toHaveLength(2);
+      expect(allowedProjects[0]).toBe('BP');
+      expect(allowedProjects[1]).toEqual({
         key: 'PM',
         commands: ['task-with-details', 'add-comment'],
         filters: {

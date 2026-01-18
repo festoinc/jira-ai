@@ -51,16 +51,21 @@ describe('Issue #54 Reproduction: Post-Fetch Validation', () => {
     mockSettings.isProjectAllowed.mockReturnValue(true);
     mockSettings.isCommandAllowed.mockReturnValue(true);
     mockSettings.validateIssueAgainstFilters.mockReturnValue(true);
+    const mockProjects = [
+      {
+        key: 'AT',
+        filters: {
+          jql: 'issuetype = Bug'
+        }
+      }
+    ];
+    mockSettings.getAllowedProjects.mockReturnValue(mockProjects);
     mockSettings.loadSettings.mockReturnValue({
-        projects: [
-            {
-                key: 'AT',
-                filters: {
-                    jql: 'issuetype = Bug'
-                }
-            }
-        ],
-        commands: ['all']
+      defaults: {
+        'allowed-jira-projects': mockProjects,
+        'allowed-commands': ['all'],
+        'allowed-confluence-spaces': ['all']
+      }
     });
 
     mockGetCurrentUser.mockResolvedValue({

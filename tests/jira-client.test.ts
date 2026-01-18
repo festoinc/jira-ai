@@ -24,7 +24,16 @@ import * as authStorage from '../src/lib/auth-storage.js';
 import { Version3Client } from 'jira.js';
 import * as settings from '../src/lib/settings.js';
 
-vi.mock('../src/lib/auth-storage.js');
+let mockCurrentOrg: string | undefined = undefined;
+vi.mock('../src/lib/auth-storage.js', () => ({
+  loadCredentials: vi.fn(),
+  getCurrentOrganizationAlias: vi.fn(() => mockCurrentOrg),
+  setOrganizationOverride: vi.fn((alias) => { mockCurrentOrg = alias; }),
+  hasCredentials: vi.fn(),
+  loadConfig: vi.fn(),
+  saveConfig: vi.fn(),
+  extractAliasFromHost: vi.fn(),
+}));
 vi.mock('../src/lib/settings.js');
 
 // Mock dependencies
@@ -129,6 +138,8 @@ describe('Jira Client', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockCurrentOrg = undefined;
+    // ...
   });
 
   describe('getTaskWithDetails', () => {

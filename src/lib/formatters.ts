@@ -564,20 +564,23 @@ export function formatWorklogs(worklogs: WorklogWithIssue[], groupByIssue: boole
 }
 
 /**
- * Format settings
+ * Format organization settings
  */
-export function formatSettings(settings: Settings): string {
-  let output = '\n' + chalk.bold.cyan('Active Configuration') + '\n\n';
+function formatOrgSettings(settings: any, title: string): string {
+  let output = chalk.bold(`${title}:`) + '\n';
+  
+  const commands = settings['allowed-commands'] || [];
+  output += `  ${chalk.bold('Allowed Commands:')} ${commands.join(', ')}\n`;
+  
+  const spaces = settings['allowed-confluence-spaces'] || [];
+  output += `  ${chalk.bold('Allowed Confluence Spaces:')} ${spaces.join(', ')}\n\n`;
 
-  // Global Commands
-  output += chalk.bold('Global Commands:') + '\n';
-  output += `  ${settings.commands.join(', ')}\n\n`;
-
-  // Projects
-  output += chalk.bold(`Projects (${settings.projects.length}):`) + '\n';
+  const projects = settings['allowed-jira-projects'] || [];
+  output += `  ${chalk.bold(`Allowed Jira Projects (${projects.length}):`)}\n`;
+  
   const table = createTable(['Project', 'Commands', 'Filters'], [15, 30, 50]);
 
-  settings.projects.forEach((p) => {
+  projects.forEach((p: any) => {
     let key: string;
     let commands: string = 'global';
     let filters: string = 'none';
@@ -615,7 +618,26 @@ export function formatSettings(settings: Settings): string {
     ]);
   });
 
-  output += table.toString() + '\n';
+  output += table.toString().split('\n').map(line => '  ' + line).join('\n') + '\n\n';
+  return output;
+}
+
+/**
+ * Format settings
+ */
+export function formatSettings(settings: Settings): string {
+  let output = '\n' + chalk.bold.cyan('Active Configuration') + '\n\n';
+
+  if (settings.defaults) {
+    output += formatOrgSettings(settings.defaults, 'Default Settings');
+  }
+
+  if (settings.organizations && Object.keys(settings.organizations).length > 0) {
+    output += chalk.bold.blue('Organization-Specific Settings:') + '\n\n';
+    for (const [alias, orgSettings] of Object.entries(settings.organizations)) {
+      output += formatOrgSettings(orgSettings, `Organization: ${alias}`);
+    }
+  }
 
   return output;
 }
