@@ -71,7 +71,8 @@ commands:
         'get-person-worklog',
         'organization',
         'transition',
-        'update-description'
+        'update-description',
+        'confl'
       ]);
       expect(mockFs.mkdirSync).toHaveBeenCalledWith(mockConfigDir, { recursive: true });
       // Should create default settings file
@@ -112,7 +113,8 @@ commands:
         'get-person-worklog',
         'organization',
         'transition',
-        'update-description'
+        'update-description',
+        'confl'
       ]);
     });
 

@@ -19,6 +19,7 @@ import { createTaskCommand } from './commands/create-task.js';
 import { transitionCommand } from './commands/transition.js';
 import { getIssueStatisticsCommand } from './commands/get-issue-statistics.js';
 import { getPersonWorklogCommand } from './commands/get-person-worklog.js';
+import { confluenceGetPageCommand } from './commands/confluence.js';
 import { aboutCommand } from './commands/about.js';
 import { authCommand } from './commands/auth.js';
 import { settingsCommand } from './commands/settings.js';
@@ -303,6 +304,17 @@ program
       validateOptions(TimeframeSchema, args[1]);
     }
   }));
+
+
+// Confluence commands
+const confl = program
+  .command('confl')
+  .description('Interact with Confluence pages and content');
+
+confl
+  .command('get-page <url>')
+  .description('Download and display Confluence page content and comments from a given URL.')
+  .action(withPermission('confl', confluenceGetPageCommand, { skipValidation: false }));
 
 
 // About command (always allowed)
