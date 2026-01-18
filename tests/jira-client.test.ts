@@ -44,6 +44,7 @@ const {
   mockFindUsers,
   mockFindAssignableUsers,
   mockGetIssueWorklog,
+  mockSearchEnhanced,
   mockConfig
 } = vi.hoisted(() => ({
   mockGetIssue: vi.fn(),
@@ -61,6 +62,7 @@ const {
   mockFindUsers: vi.fn(),
   mockFindAssignableUsers: vi.fn(),
   mockGetIssueWorklog: vi.fn(),
+  mockSearchEnhanced: vi.fn(),
   mockConfig: { host: 'https://test.atlassian.net' }
 }));
 
@@ -88,7 +90,8 @@ vi.mock('jira.js', () => ({
         getProjectComponents: vi.fn()
       },
       issueSearch: {
-        searchForIssuesUsingJqlPost: mockIssueSearch
+        searchForIssuesUsingJqlPost: mockIssueSearch,
+        searchForIssuesUsingJqlEnhancedSearch: mockSearchEnhanced
       },
       issueComments: {
         addComment: mockAddComment
@@ -537,7 +540,7 @@ describe('Jira Client', () => {
 
   describe('searchIssuesByJql', () => {
     it('should execute JQL search and format results', async () => {
-      mockIssueSearch.mockResolvedValue({
+      mockSearchEnhanced.mockResolvedValue({
         issues: [
           {
             key: 'TEST-1',
@@ -553,7 +556,7 @@ describe('Jira Client', () => {
 
       const result = await searchIssuesByJql('project = TEST', 50);
 
-      expect(mockIssueSearch).toHaveBeenCalledWith({
+      expect(mockSearchEnhanced).toHaveBeenCalledWith({
         jql: 'project = TEST',
         maxResults: 50,
         fields: ['summary', 'status', 'assignee', 'priority']

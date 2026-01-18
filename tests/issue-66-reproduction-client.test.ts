@@ -27,7 +27,7 @@ vi.mock('jira.js', () => ({
 
 const mockSettings = settings as vi.Mocked<typeof settings>;
 
-describe('Issue 66 Reproduction: searchIssuesByJql should use standard Search API', () => {
+describe('Issue 66 Reproduction: searchIssuesByJql should use enhanced Search API', () => {
   beforeAll(() => {
     process.env.JIRA_HOST = 'https://test.atlassian.net';
     process.env.JIRA_USER_EMAIL = 'test@example.com';
@@ -40,12 +40,12 @@ describe('Issue 66 Reproduction: searchIssuesByJql should use standard Search AP
     vi.clearAllMocks();
   });
 
-  it('should use standard Search API', async () => {
-    mockIssueSearchStandard.mockResolvedValue({ issues: [] });
+  it('should use enhanced Search API', async () => {
+    mockIssueSearchEnhanced.mockResolvedValue({ issues: [] });
     
     await searchIssuesByJql('project = TEST', 50);
 
-    expect(mockIssueSearchStandard).toHaveBeenCalled();
-    expect(mockIssueSearchEnhanced).not.toHaveBeenCalled();
+    expect(mockIssueSearchEnhanced).toHaveBeenCalled();
+    expect(mockIssueSearchStandard).not.toHaveBeenCalled();
   });
 });
