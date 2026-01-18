@@ -2,7 +2,7 @@ import chalk from 'chalk';
 import Table from 'cli-table3';
 import { decode } from 'html-entities';
 import { UserInfo, Project, TaskDetails, Status, JqlIssue, IssueType, IssueStatistics, HistoryEntry, WorklogWithIssue } from './jira-client.js';
-import { ConfluencePage, ConfluenceComment } from './confluence-client.js';
+import { ConfluencePage, ConfluenceComment, ConfluenceSpace, ConfluencePageHierarchy } from './confluence-client.js';
 import { formatTimestamp, truncate, formatDuration } from './utils.js';
 import { Settings, ProjectSetting } from './settings.js';
 
@@ -681,5 +681,58 @@ export function formatConfluencePage(page: ConfluencePage, comments: ConfluenceC
     output += chalk.gray('No comments found.\n\n');
   }
 
+  return output;
+}
+
+/**
+ * Format Confluence spaces list
+ */
+export function formatConfluenceSpaces(spaces: ConfluenceSpace[]): string {
+  if (spaces.length === 0) {
+    return chalk.yellow('No allowed Confluence spaces found.');
+  }
+
+  const table = createTable(['Key', 'Name'], [15, 55]);
+
+  spaces.forEach((space) => {
+    table.push([
+      chalk.cyan(space.key),
+      truncate(space.name, 55),
+    ]);
+  });
+
+  let output = '\n' + chalk.bold(`Confluence Spaces (${spaces.length} total)`) + '\n\n';
+  output += table.toString() + '\n';
+
+  return output;
+}
+
+/**
+ * Format Confluence page hierarchy
+ */
+export function formatConfluencePageHierarchy(hierarchy: ConfluencePageHierarchy[]): string {
+  if (hierarchy.length === 0) {
+    return chalk.yellow('No pages found in this space.');
+  }
+
+  let output = '\n' + chalk.bold('Confluence Page Hierarchy:') + '\n';
+
+  function renderTree(nodes: ConfluencePageHierarchy[], prefix: string = ''): string {
+    let tree = '';
+    nodes.forEach((node, index) => {
+      const isLast = index === nodes.length - 1;
+      const connector = isLast ? '└── ' : '├── ';
+      const childPrefix = isLast ? '    ' : '│   ';
+      
+      tree += `${prefix}${connector}${node.title} ${chalk.gray(`(ID: ${node.id})`)}\n`;
+      
+      if (node.children && node.children.length > 0) {
+        tree += renderTree(node.children, prefix + childPrefix);
+      }
+    });
+    return tree;
+  }
+
+  output += renderTree(hierarchy);
   return output;
 }

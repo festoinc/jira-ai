@@ -1,39 +1,114 @@
-import { describe, it, expect, vi } from 'vitest';
-import { parseConfluenceUrl } from '../src/lib/confluence-client.js';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { parseConfluenceUrl, listSpaces, getSpacePagesHierarchy } from '../src/lib/confluence-client.js';
 
-describe('Confluence URL Parsing', () => {
-  it('should parse standard wiki pages URL', () => {
-    const url = 'https://example.atlassian.net/wiki/spaces/SPACE/pages/123456789/Page+Title';
-    expect(parseConfluenceUrl(url)).toEqual({ pageId: '123456789', spaceKey: 'SPACE' });
+const mockGetSpaces = vi.fn();
+const mockGetContent = vi.fn();
+const mockGetContentChildrenByType = vi.fn();
+
+vi.mock('confluence.js', () => ({
+  ConfluenceClient: vi.fn().mockImplementation(function() {
+    return {
+      space: {
+        getSpaces: mockGetSpaces,
+      },
+      content: {
+        getContent: mockGetContent,
+      },
+      contentChildrenAndDescendants: {
+        getContentChildrenByType: mockGetContentChildrenByType,
+      },
+    };
+  }),
+}));
+
+vi.mock('../src/lib/auth-storage.js', () => ({
+  loadCredentials: vi.fn(() => ({ host: 'https://test.atlassian.net', email: 'test@example.com', apiToken: 'token' })),
+  getCurrentOrganizationAlias: vi.fn(() => 'test-org'),
+  setOrganizationOverride: vi.fn(),
+}));
+
+describe('Confluence Client', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
-  it('should parse viewpage.action URL with pageId', () => {
-    const url = 'https://example.atlassian.net/wiki/pages/viewpage.action?pageId=987654321';
-    expect(parseConfluenceUrl(url)).toEqual({ pageId: '987654321', spaceKey: undefined });
+  describe('Confluence URL Parsing', () => {
+    it('should parse standard wiki pages URL', () => {
+      const url = 'https://example.atlassian.net/wiki/spaces/SPACE/pages/123456789/Page+Title';
+      expect(parseConfluenceUrl(url)).toEqual({ pageId: '123456789', spaceKey: 'SPACE' });
+    });
+
+    it('should parse viewpage.action URL with pageId', () => {
+      const url = 'https://example.atlassian.net/wiki/pages/viewpage.action?pageId=987654321';
+      expect(parseConfluenceUrl(url)).toEqual({ pageId: '987654321', spaceKey: undefined });
+    });
+
+    it('should parse viewpage.action URL with space and pageId', () => {
+      const url = 'https://example.atlassian.net/wiki/spaces/TS/pages/viewpage.action?pageId=456';
+      expect(parseConfluenceUrl(url)).toEqual({ pageId: '456', spaceKey: 'TS' });
+    });
+
+    it('should throw error for invalid URL', () => {
+      const url = 'https://example.com/not-confluence';
+      expect(() => parseConfluenceUrl(url)).toThrow('Could not extract Page ID from URL');
+    });
+
+    it('should parse URL with multiple query parameters', () => {
+      const url = 'https://example.atlassian.net/wiki/pages/viewpage.action?pageId=123&focusedCommentId=456';
+      expect(parseConfluenceUrl(url)).toEqual({ pageId: '123', spaceKey: undefined });
+    });
+
+    it('should parse URL with trailing slash', () => {
+      const url = 'https://example.atlassian.net/wiki/spaces/SPACE/pages/123456789/';
+      expect(parseConfluenceUrl(url)).toEqual({ pageId: '123456789', spaceKey: 'SPACE' });
+    });
+
+    it('should parse URL without /wiki prefix', () => {
+      const url = 'https://example.atlassian.net/spaces/SPACE/pages/123456789/Page+Title';
+      expect(parseConfluenceUrl(url)).toEqual({ pageId: '123456789', spaceKey: 'SPACE' });
+    });
   });
 
-  it('should parse viewpage.action URL with space and pageId', () => {
-    const url = 'https://example.atlassian.net/wiki/spaces/TS/pages/viewpage.action?pageId=456';
-    expect(parseConfluenceUrl(url)).toEqual({ pageId: '456', spaceKey: 'TS' });
+  describe('listSpaces', () => {
+    it('should fetch and format spaces', async () => {
+      mockGetSpaces.mockResolvedValue({
+        results: [
+          { key: 'SPACE1', name: 'Space One' },
+          { key: 'SPACE2', name: 'Space Two' },
+        ],
+      });
+
+      const spaces = await listSpaces();
+      expect(spaces).toEqual([
+        { key: 'SPACE1', name: 'Space One' },
+        { key: 'SPACE2', name: 'Space Two' },
+      ]);
+      expect(mockGetSpaces).toHaveBeenCalledWith({ limit: 50 });
+    });
   });
 
-  it('should throw error for invalid URL', () => {
-    const url = 'https://example.com/not-confluence';
-    expect(() => parseConfluenceUrl(url)).toThrow('Could not extract Page ID from URL');
-  });
+  describe('getSpacePagesHierarchy', () => {
+    it('should fetch root pages and their children', async () => {
+      mockGetContent.mockResolvedValue({
+        results: [
+          { id: '1', title: 'Root Page', ancestors: [] },
+          { id: '2', title: 'Child Page', ancestors: [{ id: '1' }] },
+        ],
+      });
 
-  it('should parse URL with multiple query parameters', () => {
-    const url = 'https://example.atlassian.net/wiki/pages/viewpage.action?pageId=123&focusedCommentId=456';
-    expect(parseConfluenceUrl(url)).toEqual({ pageId: '123', spaceKey: undefined });
-  });
+      mockGetContentChildrenByType.mockResolvedValueOnce({
+        results: [
+          { id: '2', title: 'Child Page' },
+        ],
+      });
+      mockGetContentChildrenByType.mockResolvedValue({ results: [] });
 
-  it('should parse URL with trailing slash', () => {
-    const url = 'https://example.atlassian.net/wiki/spaces/SPACE/pages/123456789/';
-    expect(parseConfluenceUrl(url)).toEqual({ pageId: '123456789', spaceKey: 'SPACE' });
-  });
-
-  it('should parse URL without /wiki prefix', () => {
-    const url = 'https://example.atlassian.net/spaces/SPACE/pages/123456789/Page+Title';
-    expect(parseConfluenceUrl(url)).toEqual({ pageId: '123456789', spaceKey: 'SPACE' });
+      const hierarchy = await getSpacePagesHierarchy('SPACE1', 2);
+      
+      expect(hierarchy).toHaveLength(1);
+      expect(hierarchy[0].id).toBe('1');
+      expect(hierarchy[0].children).toHaveLength(1);
+      expect(hierarchy[0].children[0].id).toBe('2');
+    });
   });
 });
