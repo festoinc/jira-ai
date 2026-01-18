@@ -2,7 +2,7 @@ import chalk from 'chalk';
 import * as fs from 'fs';
 import * as path from 'path';
 import { markdownToAdf } from 'marklassian';
-import { getPage, getPageComments, parseConfluenceUrl, listSpaces, getSpacePagesHierarchy, addPageComment, createPage } from '../lib/confluence-client.js';
+import { getPage, getPageComments, parseConfluenceUrl, listSpaces, getSpacePagesHierarchy, addPageComment, createPage, updatePageContent } from '../lib/confluence-client.js';
 import { formatConfluencePage, formatConfluenceSpaces, formatConfluencePageHierarchy } from '../lib/formatters.js';
 import { ui } from '../lib/ui.js';
 import { CommandError } from '../lib/errors.js';
@@ -192,5 +192,68 @@ export async function confluenceGetSpacePagesHierarchyCommand(spaceKey: string):
   } catch (error: any) {
     ui.failSpinner();
     throw new CommandError(`Failed to fetch page hierarchy: ${error.message}`);
+  }
+}
+
+export async function confluenceUpdateDescriptionCommand(url: string, options: { fromFile: string }): Promise<void> {
+  const { fromFile } = options;
+
+  // Validate space key before proceeding
+  try {
+    const { spaceKey } = parseConfluenceUrl(url);
+    if (spaceKey && !isConfluenceSpaceAllowed(spaceKey)) {
+      throw new CommandError(`Access to Confluence space '${spaceKey}' is restricted by your settings.`);
+    }
+  } catch (e) {
+    if (e instanceof CommandError) throw e;
+  }
+
+  // Resolve and read file
+  const absolutePath = path.resolve(fromFile);
+  let markdownContent: string;
+  try {
+    markdownContent = fs.readFileSync(absolutePath, 'utf-8');
+  } catch (error: any) {
+    throw new CommandError(`Error reading file: ${error.message}`, {
+      hints: ['Make sure the file exists and you have permission to read it.']
+    });
+  }
+
+  if (markdownContent.trim() === '') {
+    throw new CommandError('Markdown file is empty');
+  }
+
+  // Convert Markdown to ADF
+  let adfContent: any;
+  try {
+    adfContent = markdownToAdf(markdownContent);
+  } catch (error: any) {
+    throw new CommandError(`Error converting Markdown to ADF: ${error.message}`, {
+      hints: ['Ensure the Markdown content is valid.']
+    });
+  }
+
+  ui.startSpinner('Updating Confluence page content...');
+
+  try {
+    await updatePageContent(url, adfContent);
+    ui.succeedSpinner(chalk.green('Confluence page content updated successfully'));
+    console.log(chalk.gray(`\nPage: ${url}`));
+    console.log(chalk.gray(`File: ${absolutePath}`));
+  } catch (error: any) {
+    ui.failSpinner();
+
+    if (error instanceof CommandError) throw error;
+
+    const errorMsg = error.message?.toLowerCase() || '';
+    const hints: string[] = [];
+
+    if (errorMsg.includes('404') || errorMsg.includes('not found')) {
+      hints.push('The Confluence page was not found. Check if the URL is correct.');
+    } else if (errorMsg.includes('401') || errorMsg.includes('403') || errorMsg.includes('unauthorized')) {
+      hints.push('Authentication failed or you do not have permission to update this page.');
+    }
+
+    throw new CommandError(`Failed to update Confluence page: ${error.message}`, { hints });
   }
 }
