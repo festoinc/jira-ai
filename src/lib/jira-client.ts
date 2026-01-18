@@ -448,7 +448,7 @@ export async function searchIssuesByJql(jqlQuery: string, maxResults: number): P
 
   const filteredJql = applyGlobalFilters(jqlQuery);
 
-  const response = await client.issueSearch.searchForIssuesUsingJqlPost({
+  const response = await client.issueSearch.searchForIssuesUsingJqlEnhancedSearch({
     jql: filteredJql,
     maxResults,
     fields: ['summary', 'status', 'assignee', 'priority'],
