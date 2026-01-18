@@ -88,7 +88,7 @@ vi.mock('jira.js', () => ({
         getProjectComponents: vi.fn()
       },
       issueSearch: {
-        searchForIssuesUsingJqlEnhancedSearch: mockIssueSearch
+        searchForIssuesUsingJqlPost: mockIssueSearch
       },
       issueComments: {
         addComment: mockAddComment

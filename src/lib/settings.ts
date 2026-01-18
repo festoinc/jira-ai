@@ -209,6 +209,15 @@ export function applyGlobalFilters(jql: string): string {
   if (allAllowed) {
     return jql;
   }
+
+  // Handle ORDER BY
+  let filterPart = jql;
+  let orderByPart = '';
+  const orderByMatch = jql.match(/(.*)\bORDER BY\b(.*)/i);
+  if (orderByMatch) {
+    filterPart = orderByMatch[1].trim();
+    orderByPart = ` ORDER BY ${orderByMatch[2].trim()}`;
+  }
   
   const projectFilters = settings.projects.map(p => {
     const key = typeof p === 'string' ? p : p.key;
@@ -222,11 +231,13 @@ export function applyGlobalFilters(jql: string): string {
   });
   
   if (projectFilters.length === 0) {
-    return `project = "NONE" AND (${jql})`;
+    const filterJql = filterPart.trim() ? ` AND (${filterPart})` : '';
+    return `project = "NONE"${filterJql}${orderByPart}`;
   }
   
-  const combinedProjectFilter = `(${projectFilters.join(' OR ')})`;
-  return `(${combinedProjectFilter}) AND (${jql})`;
+  const combinedProjectFilter = projectFilters.join(' OR ');
+  const filterJql = filterPart.trim() ? ` AND (${filterPart})` : '';
+  return `(${combinedProjectFilter})${filterJql}${orderByPart}`;
 }
 
 export function validateIssueAgainstFilters(issue: any, currentUserId: string): boolean {
