@@ -117,6 +117,6 @@ export const ProjectSettingSchema = z.union([
 
 export const SettingsSchema = z.object({
   projects: z.array(ProjectSettingSchema).nullish().transform(val => val || ['all']),
-  commands: z.array(z.string()).nullish().transform(val => val || ['me', 'projects', 'task-with-details', 'run-jql', 'list-issue-types', 'project-statuses', 'create-task', 'list-colleagues', 'add-comment', 'add-label-to-issue', 'delete-label-from-issue', 'get-issue-statistics', 'get-person-worklog', 'organization', 'transition', 'update-description']),
+  commands: z.array(z.string()).nullish().transform(val => val || ['me', 'projects', 'task-with-details', 'run-jql', 'list-issue-types', 'project-statuses', 'create-task', 'list-colleagues', 'add-comment', 'add-label-to-issue', 'delete-label-from-issue', 'get-issue-statistics', 'get-person-worklog', 'organization', 'transition', 'update-description', 'confl']),
 });
 

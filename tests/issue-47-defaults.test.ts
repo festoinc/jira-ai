@@ -42,7 +42,8 @@ describe('Issue 47: Initial Settings Defaults', () => {
       'get-person-worklog',
       'organization',
       'transition',
-      'update-description'
+      'update-description',
+      'confl'
     ]);
   });
 
@@ -78,7 +79,8 @@ commands:
       'get-person-worklog',
       'organization',
       'transition',
-      'update-description'
+      'update-description',
+      'confl'
     ]);
   });
 });

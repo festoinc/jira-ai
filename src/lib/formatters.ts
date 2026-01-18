@@ -2,6 +2,7 @@ import chalk from 'chalk';
 import Table from 'cli-table3';
 import { decode } from 'html-entities';
 import { UserInfo, Project, TaskDetails, Status, JqlIssue, IssueType, IssueStatistics, HistoryEntry, WorklogWithIssue } from './jira-client.js';
+import { ConfluencePage, ConfluenceComment } from './confluence-client.js';
 import { formatTimestamp, truncate, formatDuration } from './utils.js';
 import { Settings, ProjectSetting } from './settings.js';
 
@@ -615,6 +616,48 @@ export function formatSettings(settings: Settings): string {
   });
 
   output += table.toString() + '\n';
+
+  return output;
+}
+
+/**
+ * Format Confluence page details
+ */
+export function formatConfluencePage(page: ConfluencePage, comments: ConfluenceComment[]): string {
+  let output = '\n' + chalk.bold.cyan(`Confluence Page: ${decode(page.title)}`) + '\n\n';
+
+  // Basic info table
+  const infoTable = createTable(['Property', 'Value'], [15, 65]);
+
+  infoTable.push(
+    ['Space', page.space],
+    ['Author', page.author],
+    ['Last Updated', formatTimestamp(page.lastUpdated)],
+    ['URL', page.url]
+  );
+
+  output += infoTable.toString() + '\n\n';
+
+  // Content
+  output += chalk.bold('Content:') + '\n';
+  output += chalk.dim('─'.repeat(80)) + '\n';
+  output += decode(page.content) + '\n';
+  output += chalk.dim('─'.repeat(80)) + '\n\n';
+
+  // Comments
+  if (comments.length > 0) {
+    output += chalk.bold(`Comments (${comments.length}):`) + '\n\n';
+
+    comments.forEach((comment, index) => {
+      output += chalk.cyan(`${index + 1}. ${comment.author}`) +
+                chalk.gray(` - ${formatTimestamp(comment.created)}`) + '\n';
+      output += chalk.dim('─'.repeat(80)) + '\n';
+      output += decode(comment.body) + '\n';
+      output += chalk.dim('─'.repeat(80)) + '\n\n';
+    });
+  } else {
+    output += chalk.gray('No comments found.\n\n');
+  }
 
   return output;
 }

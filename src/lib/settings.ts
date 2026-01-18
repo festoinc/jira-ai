@@ -47,7 +47,8 @@ export const DEFAULT_SETTINGS: Settings = {
     'get-person-worklog',
     'organization',
     'transition',
-    'update-description'
+    'update-description',
+    'confl'
   ]
 };
 
