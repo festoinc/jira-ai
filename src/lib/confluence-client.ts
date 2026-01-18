@@ -24,7 +24,7 @@ export function getConfluenceClient(): ConfluenceClient {
 
     if (host && email && apiToken) {
       confluenceClient = new ConfluenceClient({
-        host: host.includes('/wiki') ? host : `${host.replace(/\/$/, '')}/wiki`,
+        host: host.replace(/\/$/, ''),
         authentication: {
           basic: {
             email,
@@ -36,7 +36,7 @@ export function getConfluenceClient(): ConfluenceClient {
       const storedCreds = loadCredentials(organizationOverride);
       if (storedCreds) {
         confluenceClient = new ConfluenceClient({
-          host: storedCreds.host.includes('/wiki') ? storedCreds.host : `${storedCreds.host.replace(/\/$/, '')}/wiki`,
+          host: storedCreds.host.replace(/\/$/, ''),
           authentication: {
             basic: {
               email: storedCreds.email,
