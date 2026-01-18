@@ -19,7 +19,11 @@ import { createTaskCommand } from './commands/create-task.js';
 import { transitionCommand } from './commands/transition.js';
 import { getIssueStatisticsCommand } from './commands/get-issue-statistics.js';
 import { getPersonWorklogCommand } from './commands/get-person-worklog.js';
-import { confluenceGetPageCommand } from './commands/confluence.js';
+import { 
+  confluenceGetPageCommand, 
+  confluenceListSpacesCommand, 
+  confluenceGetSpacePagesHierarchyCommand 
+} from './commands/confluence.js';
 import { aboutCommand } from './commands/about.js';
 import { authCommand } from './commands/auth.js';
 import { settingsCommand } from './commands/settings.js';
@@ -315,6 +319,16 @@ confl
   .command('get-page <url>')
   .description('Download and display Confluence page content and comments from a given URL.')
   .action(withPermission('confl', confluenceGetPageCommand, { skipValidation: false }));
+
+confl
+  .command('spaces')
+  .description('List all allowed Confluence spaces.')
+  .action(withPermission('confl', confluenceListSpacesCommand, { skipValidation: false }));
+
+confl
+  .command('pages <space-key>')
+  .description('Display a hierarchical tree view of pages within a specific space.')
+  .action(withPermission('confl', confluenceGetSpacePagesHierarchyCommand, { skipValidation: false }));
 
 
 // About command (always allowed)
