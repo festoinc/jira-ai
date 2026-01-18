@@ -113,7 +113,9 @@ export async function getPage(url: string): Promise<ConfluencePage> {
   });
 
   const adfBody = page.body?.atlas_doc_format?.value;
-  const content = adfBody ? convertADFToMarkdown(JSON.parse(adfBody)) : 'No content available.';
+  const content = adfBody 
+    ? convertADFToMarkdown(typeof adfBody === 'string' ? JSON.parse(adfBody) : adfBody) 
+    : 'No content available.';
 
   // @ts-ignore - accessing host to show it in UI
   const host = client.config.host || '';
@@ -144,7 +146,9 @@ export async function getPageComments(url: string): Promise<ConfluenceComment[]>
 
   return (response.results || []).map((comment: any) => {
     const adfBody = comment.body?.atlas_doc_format?.value;
-    const body = adfBody ? convertADFToMarkdown(JSON.parse(adfBody)) : 'No content available.';
+    const body = adfBody 
+      ? convertADFToMarkdown(typeof adfBody === 'string' ? JSON.parse(adfBody) : adfBody) 
+      : 'No content available.';
 
     return {
       id: comment.id,
