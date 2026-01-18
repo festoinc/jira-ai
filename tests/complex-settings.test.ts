@@ -196,7 +196,7 @@ commands:
       
       const jql = 'priority = High';
       const result = applyGlobalFilters(jql);
-      expect(result).toBe('((project = "BP" OR project = "PM")) AND (priority = High)');
+      expect(result).toBe('(project = "BP" OR project = "PM") AND (priority = High)');
     });
 
     it('should append project-specific JQL filters', () => {
@@ -218,7 +218,7 @@ commands:
       
       const jql = 'priority = High';
       const result = applyGlobalFilters(jql);
-      expect(result).toBe('((project = "BP" OR (project = "PM" AND (issuetype = Bug)))) AND (priority = High)');
+      expect(result).toBe('(project = "BP" OR (project = "PM" AND (issuetype = Bug))) AND (priority = High)');
     });
   });
 
