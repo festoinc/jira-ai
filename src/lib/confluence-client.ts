@@ -72,6 +72,17 @@ export interface ConfluenceComment {
   created: string;
 }
 
+export interface ConfluenceSpace {
+  key: string;
+  name: string;
+}
+
+export interface ConfluencePageHierarchy {
+  id: string;
+  title: string;
+  children: ConfluencePageHierarchy[];
+}
+
 /**
  * Parse Confluence URL to extract page ID and space key
  */
@@ -160,4 +171,67 @@ export async function getPageComments(url: string): Promise<ConfluenceComment[]>
       created: comment.history?.createdDate || comment.version?.when || '',
     };
   });
+}
+
+/**
+ * List all available Confluence spaces
+ */
+export async function listSpaces(): Promise<ConfluenceSpace[]> {
+  const client = getConfluenceClient();
+  const response = await client.space.getSpaces({ limit: 50 });
+  return (response.results || []).map((space: any) => ({
+    key: space.key,
+    name: space.name,
+  }));
+}
+
+/**
+ * Get page hierarchy for a space
+ */
+export async function getSpacePagesHierarchy(spaceKey: string, maxDepth: number = 5): Promise<ConfluencePageHierarchy[]> {
+  const client = getConfluenceClient();
+  
+  // Get all pages in the space to identify roots
+  // We expand 'ancestors' to check if a page is a root page (no ancestors)
+  const allPagesResponse = await client.content.getContent({
+    spaceKey,
+    type: 'page',
+    expand: ['ancestors'],
+    limit: 100
+  });
+
+  const rootPages = (allPagesResponse.results || []).filter((p: any) => !p.ancestors || p.ancestors.length === 0);
+
+  const fetchChildren = async (parentId: string, currentDepth: number): Promise<ConfluencePageHierarchy[]> => {
+    if (currentDepth >= maxDepth) return [];
+
+    const childrenResponse = await client.contentChildrenAndDescendants.getContentChildrenByType({
+      id: parentId,
+      type: 'page',
+    });
+
+    const children = childrenResponse.results || [];
+    const result: ConfluencePageHierarchy[] = [];
+
+    for (const child of children) {
+      result.push({
+        id: child.id,
+        title: child.title,
+        children: await fetchChildren(child.id, currentDepth + 1),
+      });
+    }
+
+    return result;
+  };
+
+  const hierarchy: ConfluencePageHierarchy[] = [];
+  for (const page of rootPages) {
+    hierarchy.push({
+      id: page.id,
+      title: page.title,
+      children: await fetchChildren(page.id, 1),
+    });
+  }
+
+  return hierarchy;
 }

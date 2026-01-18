@@ -1,6 +1,6 @@
 import chalk from 'chalk';
-import { getPage, getPageComments, parseConfluenceUrl } from '../lib/confluence-client.js';
-import { formatConfluencePage } from '../lib/formatters.js';
+import { getPage, getPageComments, parseConfluenceUrl, listSpaces, getSpacePagesHierarchy } from '../lib/confluence-client.js';
+import { formatConfluencePage, formatConfluenceSpaces, formatConfluencePageHierarchy } from '../lib/formatters.js';
 import { ui } from '../lib/ui.js';
 import { CommandError } from '../lib/errors.js';
 import { isConfluenceSpaceAllowed } from '../lib/settings.js';
@@ -50,5 +50,50 @@ export async function confluenceGetPageCommand(url: string): Promise<void> {
     }
 
     throw new CommandError(`Failed to fetch Confluence page: ${error.message}`, { hints });
+  }
+}
+
+export async function confluenceListSpacesCommand(): Promise<void> {
+  ui.startSpinner('Fetching Confluence spaces...');
+
+  try {
+    const spaces = await listSpaces();
+    
+    // Filter spaces based on settings
+    const allowedSpaces = spaces.filter(space => isConfluenceSpaceAllowed(space.key));
+
+    if (allowedSpaces.length === 0) {
+      ui.failSpinner('No allowed Confluence spaces found.');
+      console.log(chalk.yellow('\nHint: Add allowed spaces to your settings.yaml under "allowed-confluence-spaces".'));
+      console.log(chalk.gray('Example:'));
+      console.log(chalk.gray('  allowed-confluence-spaces:'));
+      console.log(chalk.gray('    - SPACE1'));
+      console.log(chalk.gray('    - SPACE2'));
+      return;
+    }
+
+    ui.succeedSpinner(chalk.green('Confluence spaces retrieved'));
+    console.log(formatConfluenceSpaces(allowedSpaces));
+  } catch (error: any) {
+    ui.failSpinner();
+    throw new CommandError(`Failed to fetch Confluence spaces: ${error.message}`);
+  }
+}
+
+export async function confluenceGetSpacePagesHierarchyCommand(spaceKey: string): Promise<void> {
+  // Validate space key against allowed spaces
+  if (!isConfluenceSpaceAllowed(spaceKey)) {
+    throw new CommandError(`Access to Confluence space '${spaceKey}' is restricted by your settings.`);
+  }
+
+  ui.startSpinner(`Fetching page hierarchy for space: ${spaceKey}`);
+
+  try {
+    const hierarchy = await getSpacePagesHierarchy(spaceKey);
+    ui.succeedSpinner(chalk.green('Confluence page hierarchy retrieved'));
+    console.log(formatConfluencePageHierarchy(hierarchy));
+  } catch (error: any) {
+    ui.failSpinner();
+    throw new CommandError(`Failed to fetch page hierarchy: ${error.message}`);
   }
 }
