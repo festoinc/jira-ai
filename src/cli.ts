@@ -135,7 +135,11 @@ program
   .option('--from-json <json_string>', 'Accepts a raw JSON string with credentials')
   .option('--from-file <path>', 'Accepts a path to a file (typically .env) with credentials')
   .option('--alias <alias>', 'Alias for this organization')
-  .action((options) => authCommand(options));
+  .option('--logout', 'Logout from all organizations')
+  .action((options) => authCommand(options))
+  .command('logout')
+  .description('Logout from all organizations')
+  .action(() => authCommand({ logout: true }));
 
 // Organization commands
 const org = program
