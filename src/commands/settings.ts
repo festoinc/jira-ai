@@ -1,7 +1,13 @@
 import chalk from 'chalk';
 import fs from 'fs';
 import yaml from 'js-yaml';
-import { loadSettings, saveSettings, Settings, DEFAULT_SETTINGS } from '../lib/settings.js';
+import { 
+  loadSettings, 
+  saveSettings, 
+  Settings, 
+  DEFAULT_SETTINGS, 
+  migrateSettings 
+} from '../lib/settings.js';
 import { formatSettings } from '../lib/formatters.js';
 import { ui } from '../lib/ui.js';
 import { SettingsSchema } from '../lib/validation.js';
@@ -70,7 +76,7 @@ async function validateSettingsFile(filePath: string): Promise<Settings> {
     throw new CommandError(`Invalid settings structure:\n${messages}`);
   }
 
-  const settings = result.data;
+  const settings = migrateSettings(result.data);
 
   // Deep Validation
   ui.updateSpinner('Performing deep validation against Jira...');
@@ -79,18 +85,29 @@ async function validateSettingsFile(filePath: string): Promise<Settings> {
     const projects = await getProjects();
     const projectKeys = new Set(projects.map(p => p.key));
 
-    for (const p of settings.projects) {
-      const key = typeof p === 'string' ? p : p.key;
-      
-      if (key === 'all') continue;
+    const validateOrg = (orgSettings: any, label: string) => {
+      const projectsToValidate = orgSettings['allowed-jira-projects'] || [];
+      for (const p of projectsToValidate) {
+        const key = typeof p === 'string' ? p : p.key;
+        
+        if (key === 'all') continue;
 
-      if (!projectKeys.has(key)) {
-        ui.failSpinner(`Deep validation failed: Project "${key}" not found in Jira.`);
-        throw new CommandError(`Project "${key}" not found in Jira.`);
+        if (!projectKeys.has(key)) {
+          const msg = `Project "${key}" (in ${label}) not found in Jira.`;
+          ui.failSpinner(`Deep validation failed: ${msg}`);
+          throw new CommandError(msg);
+        }
       }
+    };
 
-      // If project has specific commands, we could validate them too, 
-      // but they are just strings matched against command names.
+    if (settings.defaults) {
+      validateOrg(settings.defaults, 'defaults');
+    }
+
+    if (settings.organizations) {
+      for (const [alias, orgSettings] of Object.entries(settings.organizations)) {
+        validateOrg(orgSettings, `organizations.${alias}`);
+      }
     }
 
     ui.succeedSpinner(chalk.green('Settings are valid!'));

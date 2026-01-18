@@ -35,16 +35,19 @@ describe('Settings Command', () => {
 
   describe('saveSettings', () => {
     it('should save settings to file', () => {
-      const settings = {
-        projects: ['PROJ'],
-        commands: ['me']
+      const settings: any = {
+        defaults: {
+          'allowed-jira-projects': ['PROJ'],
+          'allowed-commands': ['me'],
+          'allowed-confluence-spaces': ['all']
+        }
       };
 
       settingsLib.saveSettings(settings);
 
       expect(mockFs.writeFileSync).toHaveBeenCalledWith(
         expect.stringContaining('settings.yaml'),
-        expect.stringContaining('projects:\n  - PROJ')
+        expect.stringContaining('allowed-jira-projects:\n    - PROJ')
       );
     });
   });
@@ -52,8 +55,11 @@ describe('Settings Command', () => {
   describe('settingsCommand', () => {
     it('should display settings when no options provided', async () => {
       const mockSettings = {
-        projects: ['P1'],
-        commands: ['all']
+        defaults: {
+          'allowed-jira-projects': ['P1'],
+          'allowed-commands': ['all'],
+          'allowed-confluence-spaces': ['all']
+        }
       };
       
       mockFs.existsSync.mockReturnValue(true);
@@ -94,7 +100,7 @@ describe('Settings Command', () => {
       (jiraClient.getProjects as any).mockResolvedValue([{ key: 'PROJ' }]);
       
       await expect(settingsCommand({ validate: 'invalid.yaml' }))
-        .rejects.toThrow('Project "NONEXISTENT" not found in Jira.');
+        .rejects.toThrow('Project "NONEXISTENT" (in defaults) not found in Jira.');
       
       expect(ui.failSpinner).toHaveBeenCalledWith(expect.stringContaining('Deep validation failed'));
     });
@@ -239,7 +245,7 @@ describe('Settings Command', () => {
       expect(ui.startSpinner).toHaveBeenCalledWith(expect.stringContaining('Resetting settings'));
       expect(mockFs.writeFileSync).toHaveBeenCalledWith(
         expect.stringContaining('settings.yaml'),
-        expect.stringContaining('projects:\n  - all')
+        expect.stringContaining('allowed-jira-projects:\n    - all')
       );
       expect(ui.succeedSpinner).toHaveBeenCalledWith(expect.stringContaining('Settings reset to default successfully!'));
     });

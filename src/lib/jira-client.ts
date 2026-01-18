@@ -1,7 +1,14 @@
 import { Version3Client } from 'jira.js';
 import { calculateStatusStatistics, convertADFToMarkdown } from './utils.js';
-import { loadCredentials } from './auth-storage.js';
-import { applyGlobalFilters, isProjectAllowed, isCommandAllowed, validateIssueAgainstFilters, loadSettings } from './settings.js';
+import { loadCredentials, getCurrentOrganizationAlias, setOrganizationOverride as setAuthOrgOverride } from './auth-storage.js';
+import { 
+  applyGlobalFilters, 
+  isProjectAllowed, 
+  isCommandAllowed, 
+  validateIssueAgainstFilters, 
+  loadSettings,
+  getAllowedProjects 
+} from './settings.js';
 import { CommandError } from './errors.js';
 
 export interface Transition {
@@ -160,13 +167,12 @@ export interface IssueType {
 }
 
 let jiraClient: Version3Client | null = null;
-let organizationOverride: string | undefined = undefined;
 
 /**
  * Set a global organization override for the current execution
  */
 export function setOrganizationOverride(alias: string): void {
-  organizationOverride = alias;
+  setAuthOrgOverride(alias);
   jiraClient = null; // Force client recreation
 }
 
@@ -190,7 +196,8 @@ export function getJiraClient(): Version3Client {
         },
       });
     } else {
-      const storedCreds = loadCredentials(organizationOverride);
+      const alias = getCurrentOrganizationAlias();
+      const storedCreds = loadCredentials(alias);
       if (storedCreds) {
         jiraClient = new Version3Client({
           host: storedCreds.host,
@@ -202,8 +209,8 @@ export function getJiraClient(): Version3Client {
           },
         });
       } else {
-        const errorMsg = organizationOverride 
-          ? `Jira credentials for organization "${organizationOverride}" not found.`
+        const errorMsg = alias 
+          ? `Jira credentials for organization "${alias}" not found.`
           : 'Jira credentials not found. Please set environment variables or run "jira-ai auth"';
         throw new Error(errorMsg);
       }
@@ -592,10 +599,10 @@ export async function validateIssuePermissions(
   }
 
   // Check JQL filters
-  const settings = loadSettings();
-  let project = settings.projects.find(p => typeof p !== 'string' && p.key === projectKey);
+  const allowedProjects = getAllowedProjects();
+  let project = allowedProjects.find(p => typeof p !== 'string' && p.key === projectKey);
   if (!project) {
-    project = settings.projects.find(p => typeof p === 'string' && (p === 'all' || p === projectKey));
+    project = allowedProjects.find(p => typeof p === 'string' && (p === 'all' || p === projectKey));
   }
 
   if (project && typeof project !== 'string' && project.filters?.jql) {

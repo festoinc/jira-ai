@@ -1,15 +1,14 @@
 import { ConfluenceClient } from 'confluence.js';
-import { loadCredentials } from './auth-storage.js';
+import { loadCredentials, getCurrentOrganizationAlias, setOrganizationOverride as setAuthOrgOverride } from './auth-storage.js';
 import { convertADFToMarkdown } from './utils.js';
 
 let confluenceClient: ConfluenceClient | null = null;
-let organizationOverride: string | undefined = undefined;
 
 /**
  * Set a global organization override for the current execution
  */
 export function setOrganizationOverride(alias: string): void {
-  organizationOverride = alias;
+  setAuthOrgOverride(alias);
   confluenceClient = null; // Force client recreation
 }
 
@@ -33,7 +32,8 @@ export function getConfluenceClient(): ConfluenceClient {
         },
       });
     } else {
-      const storedCreds = loadCredentials(organizationOverride);
+      const alias = getCurrentOrganizationAlias();
+      const storedCreds = loadCredentials(alias);
       if (storedCreds) {
         confluenceClient = new ConfluenceClient({
           host: storedCreds.host.replace(/\/$/, ''),
@@ -45,8 +45,8 @@ export function getConfluenceClient(): ConfluenceClient {
           },
         });
       } else {
-        const errorMsg = organizationOverride 
-          ? `Credentials for organization "${organizationOverride}" not found.`
+        const errorMsg = alias 
+          ? `Credentials for organization "${alias}" not found.`
           : 'Credentials not found. Please set environment variables or run "jira-ai auth"';
         throw new Error(errorMsg);
       }
@@ -73,22 +73,25 @@ export interface ConfluenceComment {
 }
 
 /**
- * Parse Confluence URL to extract page ID
+ * Parse Confluence URL to extract page ID and space key
  */
-export function parseConfluenceUrl(url: string): string {
+export function parseConfluenceUrl(url: string): { pageId: string; spaceKey?: string } {
   try {
     const parsedUrl = new URL(url);
     
     // Pattern: /wiki/spaces/SPACE/pages/PAGE_ID/TITLE
+    const spaceMatch = parsedUrl.pathname.match(/\/spaces\/([^/]+)/);
+    const spaceKey = spaceMatch ? spaceMatch[1] : undefined;
+
     const pagesMatch = parsedUrl.pathname.match(/\/pages\/(\d+)/);
     if (pagesMatch && pagesMatch[1]) {
-      return pagesMatch[1];
+      return { pageId: pagesMatch[1], spaceKey };
     }
 
     // Pattern: /wiki/pages/viewpage.action?pageId=PAGE_ID
     const pageIdParam = parsedUrl.searchParams.get('pageId');
     if (pageIdParam) {
-      return pageIdParam;
+      return { pageId: pageIdParam, spaceKey };
     }
 
     throw new Error('Could not extract Page ID from URL');
@@ -105,7 +108,7 @@ export function parseConfluenceUrl(url: string): string {
  */
 export async function getPage(url: string): Promise<ConfluencePage> {
   const client = getConfluenceClient();
-  const pageId = parseConfluenceUrl(url);
+  const { pageId } = parseConfluenceUrl(url);
 
   const page = await client.content.getContentById({
     id: pageId,
@@ -136,7 +139,7 @@ export async function getPage(url: string): Promise<ConfluencePage> {
  */
 export async function getPageComments(url: string): Promise<ConfluenceComment[]> {
   const client = getConfluenceClient();
-  const pageId = parseConfluenceUrl(url);
+  const { pageId } = parseConfluenceUrl(url);
 
   const response = await client.contentChildrenAndDescendants.getContentChildrenByType({
     id: pageId,

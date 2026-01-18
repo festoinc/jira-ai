@@ -19,14 +19,10 @@ describe('Issue 47: Initial Settings Defaults', () => {
 
   it('should have correct default projects and commands when file does not exist', () => {
     // Mock that neither config dir nor settings files exist
-    mockFs.existsSync.mockReturnValue(false);
-    mockFs.mkdirSync.mockReturnValue(undefined);
-    mockFs.writeFileSync.mockReturnValue(undefined);
-
     const settings = loadSettings();
 
-    expect(settings.projects).toEqual(['all']);
-    expect(settings.commands).toEqual([
+    expect(settings.defaults?.['allowed-jira-projects']).toEqual(['all']);
+    expect(settings.defaults?.['allowed-commands']).toEqual([
       'me',
       'projects',
       'task-with-details',
@@ -43,7 +39,7 @@ describe('Issue 47: Initial Settings Defaults', () => {
       'organization',
       'transition',
       'update-description',
-      'confl'
+      'confluence'
     ]);
   });
 
@@ -62,8 +58,8 @@ commands:
 
     const settings = loadSettings();
 
-    expect(settings.projects).toEqual(['all']);
-    expect(settings.commands).toEqual([
+    expect(settings.defaults?.['allowed-jira-projects']).toEqual(['all']);
+    expect(settings.defaults?.['allowed-commands']).toEqual([
       'me',
       'projects',
       'task-with-details',
@@ -80,7 +76,7 @@ commands:
       'organization',
       'transition',
       'update-description',
-      'confl'
+      'confluence'
     ]);
   });
 });
