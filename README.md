@@ -10,6 +10,8 @@ An AI-friendly CLI for Jira that prioritizes efficiency and security.
 1.  **Context Efficiency:** Eliminates redundant context data, consuming significantly fewer tokens than Jira MCP or similar tools.
 2.  **Bullet-proof Security:** Restrict AI to only the actions you permit, ensuring your environment remains secure. 
 
+## Start
+[Quick walk through video](https://www.loom.com/share/defb69de020e413aa8c33eda0671c29f)
 
 ## Installation
 
