@@ -9,6 +9,7 @@ const mockCreateContent = vi.fn();
 vi.mock('confluence.js', () => ({
   ConfluenceClient: vi.fn().mockImplementation(function() {
     return {
+      config: { host: 'https://test.atlassian.net' },
       space: {
         getSpaces: mockGetSpaces,
       },
@@ -129,6 +130,59 @@ describe('Confluence Client', () => {
         body: {
           atlas_doc_format: {
             value: JSON.stringify(adfContent),
+            representation: 'atlas_doc_format',
+          },
+        },
+      });
+    });
+  });
+
+  describe('createPage', () => {
+    it('should call createContent with correct parameters for a root page', async () => {
+      const spaceKey = 'SPACE';
+      const title = 'New Page';
+      const createdId = '789';
+      
+      mockCreateContent.mockResolvedValue({ id: createdId });
+
+      // @ts-ignore - we'll implement this soon
+      const { createPage } = await import('../src/lib/confluence-client.js');
+      const url = await createPage(spaceKey, title);
+
+      expect(mockCreateContent).toHaveBeenCalledWith({
+        type: 'page',
+        title: title,
+        space: { key: spaceKey },
+        body: {
+          atlas_doc_format: {
+            value: JSON.stringify({ type: 'doc', version: 1, content: [] }),
+            representation: 'atlas_doc_format',
+          },
+        },
+      });
+      expect(url).toBe(`https://test.atlassian.net/pages/${createdId}`);
+    });
+
+    it('should call createContent with ancestors when parentId is provided', async () => {
+      const spaceKey = 'SPACE';
+      const title = 'Sub Page';
+      const parentId = '123';
+      const createdId = '456';
+      
+      mockCreateContent.mockResolvedValue({ id: createdId });
+
+      // @ts-ignore
+      const { createPage } = await import('../src/lib/confluence-client.js');
+      await createPage(spaceKey, title, parentId);
+
+      expect(mockCreateContent).toHaveBeenCalledWith({
+        type: 'page',
+        title: title,
+        space: { key: spaceKey },
+        ancestors: [{ id: parentId }],
+        body: {
+          atlas_doc_format: {
+            value: JSON.stringify({ type: 'doc', version: 1, content: [] }),
             representation: 'atlas_doc_format',
           },
         },

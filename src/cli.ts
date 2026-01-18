@@ -23,7 +23,8 @@ import {
   confluenceGetPageCommand, 
   confluenceListSpacesCommand, 
   confluenceGetSpacePagesHierarchyCommand,
-  confluenceAddCommentCommand
+  confluenceAddCommentCommand,
+  confluenceCreatePageCommand
 } from './commands/confluence.js';
 import { aboutCommand } from './commands/about.js';
 import { authCommand } from './commands/auth.js';
@@ -331,6 +332,11 @@ confl
   .command('pages <space-key>')
   .description('Display a hierarchical tree view of pages within a specific space.')
   .action(withPermission('confl', confluenceGetSpacePagesHierarchyCommand, { skipValidation: false }));
+
+confl
+  .command('create-page <space> <title> [parent-page]')
+  .description('Create a new Confluence page')
+  .action(withPermission('confl', confluenceCreatePageCommand, { skipValidation: false }));
 
 confl
   .command('add-comment <url>')

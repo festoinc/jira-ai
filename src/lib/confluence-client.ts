@@ -255,3 +255,31 @@ export async function addPageComment(url: string, adfContent: any): Promise<void
     }
   });
 }
+
+/**
+ * Create a new Confluence page
+ */
+export async function createPage(spaceKey: string, title: string, parentId?: string): Promise<string> {
+  const client = getConfluenceClient();
+  
+  const response = await client.content.createContent({
+    type: 'page',
+    title,
+    space: { key: spaceKey },
+    ancestors: parentId ? [{ id: parentId }] : undefined,
+    body: {
+      atlas_doc_format: {
+        value: JSON.stringify({
+          type: 'doc',
+          version: 1,
+          content: []
+        }),
+        representation: 'atlas_doc_format'
+      }
+    }
+  });
+
+  // @ts-ignore - accessing host to construct URL
+  const host = client.config.host || '';
+  return `${host.replace(/\/$/, '')}/pages/${response.id}`;
+}
