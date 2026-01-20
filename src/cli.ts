@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
-import dotenv from 'dotenv';
 import chalk from 'chalk';
 import { validateEnvVars, getVersion } from './lib/utils.js';
 import { meCommand } from './commands/me.js';
@@ -20,9 +19,9 @@ import { transitionCommand } from './commands/transition.js';
 import { issueAssignCommand } from './commands/issue.js';
 import { getIssueStatisticsCommand } from './commands/get-issue-statistics.js';
 import { getPersonWorklogCommand } from './commands/get-person-worklog.js';
-import { 
-  confluenceGetPageCommand, 
-  confluenceListSpacesCommand, 
+import {
+  confluenceGetPageCommand,
+  confluenceListSpacesCommand,
   confluenceGetSpacePagesHierarchyCommand,
   confluenceAddCommentCommand,
   confluenceCreatePageCommand,
@@ -31,10 +30,10 @@ import {
 import { aboutCommand } from './commands/about.js';
 import { authCommand } from './commands/auth.js';
 import { settingsCommand } from './commands/settings.js';
-import { 
-  listOrganizations, 
-  useOrganizationCommand, 
-  removeOrganizationCommand 
+import {
+  listOrganizations,
+  useOrganizationCommand,
+  removeOrganizationCommand
 } from './commands/organization.js';
 import { isCommandAllowed, getAllowedCommands } from './lib/settings.js';
 import { setOrganizationOverride } from './lib/jira-client.js';
@@ -138,89 +137,37 @@ program
   .description('Logout from all organizations')
   .action(() => authCommand({ logout: true }));
 
-// Organization commands
-const org = program
-  .command('organization')
-  .alias('org')
-  .description('Manage Jira organization profiles');
+// =============================================================================
+// ISSUE COMMANDS
+// =============================================================================
+const issue = program
+  .command('issue')
+  .description('Manage Jira issues');
 
-org
-  .command('list')
-  .description('List all saved Jira organization profiles, showing their aliases and associated host URLs.')
-  .action(() => listOrganizations());
-
-org
-  .command('use <alias>')
-  .description('Switch the active Jira organization profile to the one specified by the alias.')
-  .action((alias) => useOrganizationCommand(alias));
-
-org
-  .command('remove <alias>')
-  .description('Delete the saved credentials and profile for the specified organization alias.')
-  .action((alias) => removeOrganizationCommand(alias));
-
-org
-  .command('add <alias>')
-  .description('Interactive prompt to add a new Jira organization profile with the given alias.')
-  .action((alias) => authCommand({ alias }));
-
-// Me command
-program
-  .command('me')
-  .description('Show profile details for the currently authenticated user, including Jira host, display name, email, account ID, status, and time zone.')
-  .action(withPermission('me', meCommand));
-
-// Projects command
-program
-  .command('projects')
-  .description('List all accessible Jira projects showing their key, name, ID, type, and project lead.')
-  .action(withPermission('projects', projectsCommand));
-
-// List colleagues command
-program
-  .command('list-colleagues [project-key]')
-  .description('Search and list users within the organization or a specific project (if project-key is provided). Returns display name, email, and account ID.')
-  .action(withPermission('list-colleagues', listColleaguesCommand, {
-    validateArgs: (args) => {
-      if (args[0]) {
-        validateOptions(ProjectKeySchema, args[0]);
-      }
-    }
-  }));
-
-// Task with details command
-program
-  .command('task-with-details <task-id>')
-  .description('Retrieve comprehensive issue data including key, summary, status (name, category), assignee, reporter, creation/update dates, due date, labels, parent/subtasks, description, and comments. Use --include-detailed-history to fetch a chronological log of all changes including field updates and status transitions.')
+issue
+  .command('get <issue-id>')
+  .description('Retrieve comprehensive issue data including key, summary, status, assignee, reporter, dates, labels, description, and comments.')
   .option('--include-detailed-history', 'Include the full history of task actions')
   .option('--history-limit <number>', 'Number of history entries to show (default: 50)', '50')
   .option('--history-offset <number>', 'Number of history entries to skip (default: 0)', '0')
-  .action(withPermission('task-with-details', taskWithDetailsCommand, {
+  .action(withPermission('issue.get', taskWithDetailsCommand, {
     validateArgs: (args) => validateOptions(IssueKeySchema, args[0])
   }));
 
-// Project statuses command
-program
-  .command('project-statuses <project-id>')
-  .description('Fetch all available workflow statuses for a given project. Returns status name, ID, category (To Do, In Progress, Done), and description.')
-  .action(withPermission('project-statuses', projectStatusesCommand, {
-    validateArgs: (args) => validateOptions(ProjectKeySchema, args[0])
-  }));
+issue
+  .command('create')
+  .description('Create a new Jira issue with specified title, project key, and issue type.')
+  .requiredOption('--title <title>', 'Issue title/summary')
+  .requiredOption('--project <project>', 'Project key (e.g., PROJ)')
+  .requiredOption('--issue-type <type>', 'Issue type (e.g., Task, Epic, Subtask)')
+  .option('--parent <key>', 'Parent issue key (required for subtasks)')
+  .action(withPermission('issue.create', createTaskCommand, { schema: CreateTaskSchema }));
 
-// List issue types command
-program
-  .command('list-issue-types <project-key>')
-  .description('List all issue types (Standard and Subtask) available for a project, providing their name, ID, hierarchy level, and description.')
-  .action(withPermission('list-issue-types', listIssueTypesCommand, {
-    validateArgs: (args) => validateOptions(ProjectKeySchema, args[0])
-  }));
-
-// Run JQL command
-program
-  .command('run-jql <jql-query>')
-  .description('Execute a Jira Query Language (JQL) search. Returns a list of issues with their key, summary, status, assignee, and priority. Supports limiting results via --limit (default 50).')
+issue
+  .command('search <jql-query>')
+  .description('Execute a JQL search query. Returns issues with key, summary, status, assignee, and priority.')
   .option('-l, --limit <number>', 'Maximum number of results (default: 50)', '50')
-  .action(withPermission('run-jql', runJqlCommand, { 
+  .action(withPermission('issue.search', runJqlCommand, {
     schema: RunJqlSchema,
     validateArgs: (args) => {
       if (typeof args[0] !== 'string' || args[0].trim() === '') {
@@ -229,142 +176,205 @@ program
     }
   }));
 
+issue
+  .command('transition <issue-id> <to-status>')
+  .description('Change the status of a Jira issue. The <to-status> can be either the status name or ID.')
+  .action(withPermission('issue.transition', transitionCommand, {
+    validateArgs: (args) => validateOptions(IssueKeySchema, args[0])
+  }));
 
-// Update description command
-program
-  .command('update-description <task-id>')
-  .description('Update a Jira task\'s description using content from a local Markdown file. Requires the task ID and a valid file path.')
+issue
+  .command('update <issue-id>')
+  .description('Update a Jira issue\'s description using content from a local Markdown file.')
   .requiredOption('--from-file <path>', 'Path to Markdown file')
-  .action(withPermission('update-description', updateDescriptionCommand, {
+  .action(withPermission('issue.update', updateDescriptionCommand, {
     schema: UpdateDescriptionSchema,
     validateArgs: (args) => validateOptions(IssueKeySchema, args[0])
   }));
 
-// Add comment command
-program
-  .command('add-comment')
-  .description('Add a new comment to a Jira issue using content from a local Markdown file. Requires the issue key and a valid file path.')
-  .requiredOption('--file-path <path>', 'Path to Markdown file')
-  .requiredOption('--issue-key <key>', 'Jira issue key (e.g., PS-123)')
-  .action(withPermission('add-comment', addCommentCommand, { schema: AddCommentSchema }));
-
-// Add label command
-program
-  .command('add-label-to-issue <task-id> <labels>')
-  .description('Add one or more labels (comma-separated) to a specific Jira issue.')
-  .action(withPermission('add-label-to-issue', addLabelCommand, {
-    validateArgs: (args) => {
-      validateOptions(IssueKeySchema, args[0]);
-      if (typeof args[1] !== 'string' || args[1].trim() === '') {
-        throw new CliError('Labels are required (comma-separated)');
-      }
-    }
-  }));
-
-// Delete label command
-program
-  .command('delete-label-from-issue <task-id> <labels>')
-  .description('Remove one or more labels (comma-separated) from a specific Jira issue.')
-  .action(withPermission('delete-label-from-issue', deleteLabelCommand, {
-    validateArgs: (args) => {
-      validateOptions(IssueKeySchema, args[0]);
-      if (typeof args[1] !== 'string' || args[1].trim() === '') {
-        throw new CliError('Labels are required (comma-separated)');
-      }
-    }
-  }));
-
-
-// Create task command
-program
-  .command('create-task')
-  .description('Create a new Jira issue with specified title, project key, and issue type. Optional --parent key for subtasks. Returns the key of the newly created issue.')
-  .requiredOption('--title <title>', 'Issue title/summary')
-  .requiredOption('--project <project>', 'Project key (e.g., PROJ)')
-  .requiredOption('--issue-type <type>', 'Issue type (e.g., Task, Epic, Subtask)')
-  .option('--parent <key>', 'Parent issue key (required for subtasks)')
-  .action(withPermission('create-task', createTaskCommand, { schema: CreateTaskSchema }));
-
-// Transition command
-program
-  .command('transition <task-id> <to-status>')
-  .description('Change the status of a Jira task. The <to-status> can be either the status name or ID.')
-  .action(withPermission('transition', transitionCommand, {
+issue
+  .command('comment <issue-id>')
+  .description('Add a new comment to a Jira issue using content from a local Markdown file.')
+  .requiredOption('--from-file <path>', 'Path to Markdown file')
+  .action(withPermission('issue.comment', (issueKey: string, options: { fromFile: string }) => {
+    return addCommentCommand({ filePath: options.fromFile, issueKey });
+  }, {
+    schema: UpdateDescriptionSchema,
     validateArgs: (args) => validateOptions(IssueKeySchema, args[0])
   }));
-
-// Issue commands
-const issue = program
-  .command('issue')
-  .description('Manage Jira issues');
 
 issue
-  .command('assign <task-id> <account-id>')
-  .description('Assign or reassign a Jira issue to a specific user using their Account ID. Use "null" as account-id to unassign.')
-  .action(withPermission('issue', issueAssignCommand, {
-    validateArgs: (args) => validateOptions(IssueKeySchema, args[0])
-  }));
-
-// Get issue statistics command
-program
-  .command('get-issue-statistics <task-ids>')
-  .description('Calculate and display time-based metrics for one or more issues (comma-separated). Returns a table containing key, summary, total time logged, original estimate, and a detailed breakdown of duration spent in each status.')
+  .command('stats <issue-ids>')
+  .description('Calculate time-based metrics for one or more issues (comma-separated). Shows time logged, estimates, and status breakdown.')
   .option('--full-breakdown', 'Display each status in its own column')
-  .action(withPermission('get-issue-statistics', getIssueStatisticsCommand, {
+  .action(withPermission('issue.stats', getIssueStatisticsCommand, {
     schema: GetIssueStatisticsSchema
   }));
 
-// Get person worklog command
-program
-  .command('get-person-worklog <person> <timeframe>')
-  .description('Retrieve worklogs for a specific user over a timeframe (e.g., \'7d\', \'2w\'). Returns a list of entries with date, issue key, summary, time spent, and comments. Supports --group-by-issue.')
+issue
+  .command('assign <issue-id> <account-id>')
+  .description('Assign or reassign a Jira issue to a user. Use "null" as account-id to unassign.')
+  .action(withPermission('issue.assign', issueAssignCommand, {
+    validateArgs: (args) => validateOptions(IssueKeySchema, args[0])
+  }));
+
+// Issue label subcommands
+const issueLabel = issue
+  .command('label')
+  .description('Manage issue labels');
+
+issueLabel
+  .command('add <issue-id> <labels>')
+  .description('Add one or more labels (comma-separated) to a Jira issue.')
+  .action(withPermission('issue.label.add', addLabelCommand, {
+    validateArgs: (args) => {
+      validateOptions(IssueKeySchema, args[0]);
+      if (typeof args[1] !== 'string' || args[1].trim() === '') {
+        throw new CliError('Labels are required (comma-separated)');
+      }
+    }
+  }));
+
+issueLabel
+  .command('remove <issue-id> <labels>')
+  .description('Remove one or more labels (comma-separated) from a Jira issue.')
+  .action(withPermission('issue.label.remove', deleteLabelCommand, {
+    validateArgs: (args) => {
+      validateOptions(IssueKeySchema, args[0]);
+      if (typeof args[1] !== 'string' || args[1].trim() === '') {
+        throw new CliError('Labels are required (comma-separated)');
+      }
+    }
+  }));
+
+// =============================================================================
+// PROJECT COMMANDS
+// =============================================================================
+const project = program
+  .command('project')
+  .description('Manage Jira projects');
+
+project
+  .command('list')
+  .description('List all accessible Jira projects showing their key, name, ID, type, and project lead.')
+  .action(withPermission('project.list', projectsCommand));
+
+project
+  .command('statuses <project-key>')
+  .description('Fetch all available workflow statuses for a project (To Do, In Progress, Done).')
+  .action(withPermission('project.statuses', projectStatusesCommand, {
+    validateArgs: (args) => validateOptions(ProjectKeySchema, args[0])
+  }));
+
+project
+  .command('types <project-key>')
+  .description('List all issue types (Standard and Subtask) available for a project.')
+  .action(withPermission('project.types', listIssueTypesCommand, {
+    validateArgs: (args) => validateOptions(ProjectKeySchema, args[0])
+  }));
+
+// =============================================================================
+// USER COMMANDS
+// =============================================================================
+const user = program
+  .command('user')
+  .description('User information and worklogs');
+
+user
+  .command('me')
+  .description('Show profile details for the currently authenticated user.')
+  .action(withPermission('user.me', meCommand));
+
+user
+  .command('search [project-key]')
+  .description('Search and list users within the organization or a specific project.')
+  .action(withPermission('user.search', listColleaguesCommand, {
+    validateArgs: (args) => {
+      if (args[0]) {
+        validateOptions(ProjectKeySchema, args[0]);
+      }
+    }
+  }));
+
+user
+  .command('worklog <person> <timeframe>')
+  .description('Retrieve worklogs for a user over a timeframe (e.g., "7d", "2w").')
   .option('--group-by-issue', 'Group the output by issue')
-  .action(withPermission('get-person-worklog', getPersonWorklogCommand, {
+  .action(withPermission('user.worklog', getPersonWorklogCommand, {
     schema: GetPersonWorklogSchema,
     validateArgs: (args) => {
       validateOptions(TimeframeSchema, args[1]);
     }
   }));
 
+// =============================================================================
+// ORGANIZATION COMMANDS
+// =============================================================================
+const org = program
+  .command('org')
+  .alias('organization')
+  .description('Manage Jira organization profiles');
 
-// Confluence commands
+org
+  .command('list')
+  .description('List all saved Jira organization profiles.')
+  .action(() => listOrganizations());
+
+org
+  .command('use <alias>')
+  .description('Switch the active Jira organization profile.')
+  .action((alias) => useOrganizationCommand(alias));
+
+org
+  .command('remove <alias>')
+  .description('Delete credentials for the specified organization.')
+  .action((alias) => removeOrganizationCommand(alias));
+
+org
+  .command('add <alias>')
+  .description('Add a new Jira organization profile.')
+  .action((alias) => authCommand({ alias }));
+
+
+// =============================================================================
+// CONFLUENCE COMMANDS
+// =============================================================================
 const confl = program
   .command('confl')
+  .alias('confluence')
   .description('Interact with Confluence pages and content');
 
 confl
-  .command('get-page <url>')
+  .command('get <url>')
   .description('Download and display Confluence page content and comments from a given URL.')
-  .action(withPermission('confl', confluenceGetPageCommand, { skipValidation: false }));
+  .action(withPermission('confl.get', confluenceGetPageCommand, { skipValidation: false }));
 
 confl
   .command('spaces')
   .description('List all allowed Confluence spaces.')
-  .action(withPermission('confl', confluenceListSpacesCommand, { skipValidation: false }));
+  .action(withPermission('confl.spaces', confluenceListSpacesCommand, { skipValidation: false }));
 
 confl
   .command('pages <space-key>')
   .description('Display a hierarchical tree view of pages within a specific space.')
-  .action(withPermission('confl', confluenceGetSpacePagesHierarchyCommand, { skipValidation: false }));
+  .action(withPermission('confl.pages', confluenceGetSpacePagesHierarchyCommand, { skipValidation: false }));
 
 confl
-  .command('create-page <space> <title> [parent-page]')
-  .description('Create a new Confluence page')
-  .action(withPermission('confl', confluenceCreatePageCommand, { skipValidation: false }));
+  .command('create <space> <title> [parent-page]')
+  .description('Create a new Confluence page.')
+  .action(withPermission('confl.create', confluenceCreatePageCommand, { skipValidation: false }));
 
 confl
-  .command('add-comment')
-  .argument('<url>', 'The full URL of the Confluence page.')
-  .description('Add a new comment to a Confluence page using content from a local Markdown file.')
+  .command('comment <url>')
+  .description('Add a comment to a Confluence page using content from a Markdown file.')
   .option('-f, --from-file <path>', 'Path to the markdown file containing the comment content.')
-  .action(withPermission('confl', confluenceAddCommentCommand, { schema: ConfluenceAddCommentSchema }));
+  .action(withPermission('confl.comment', confluenceAddCommentCommand, { schema: ConfluenceAddCommentSchema }));
 
 confl
-  .command('update-description')
-  .argument('<url>', 'The full URL of the Confluence page.')
-  .description('Update the content of an existing Confluence page using a Markdown file.')
+  .command('update <url>')
+  .description('Update the content of a Confluence page using a Markdown file.')
   .option('-f, --from-file <path>', 'Path to the markdown file containing the new content.')
-  .action(withPermission('confl', confluenceUpdateDescriptionCommand, { schema: UpdateDescriptionSchema }));
+  .action(withPermission('confl.update', confluenceUpdateDescriptionCommand, { schema: UpdateDescriptionSchema }));
 
 
 // About command (always allowed)
@@ -376,7 +386,7 @@ program
 // Settings command
 program
   .command('settings')
-  .description('View, validate, or apply configuration settings. Use `settings` to view active config, `--validate <file>` to check a YAML file, or `--apply <file>` to update `~/.jira-ai/settings.yaml`.')
+  .description('View, validate, or apply configuration settings.')
   .option('--apply <path>', 'Validate and apply settings from a YAML file')
   .option('--validate <path>', 'Perform schema and deep validation of a settings YAML file')
   .option('--reset', 'Revert settings to default')
@@ -386,32 +396,44 @@ Examples:
   $ jira-ai settings --validate my-settings.yaml
   $ jira-ai settings --apply my-settings.yaml
   $ jira-ai settings --reset
-  
-  Settings File Structure:
-    defaults:
-      allowed-jira-projects:
-        - all                   # Allow all projects
-      allowed-commands:
-        - all                   # Allow all commands globally
-      allowed-confluence-spaces:
-        - all                   # Allow all Confluence spaces
 
-    organizations:
-      work:
-        allowed-jira-projects:
-          - PROJ                # Allow specific project by key
-          - key: PM             # Project-specific configuration
-            commands:           # Limit commands for this project
-              - task-with-details
-            filters:
-              participated:     # Filter by user participation
-                was_assignee: true
-                was_reporter: true
-        allowed-commands:
-          - me
-          - projects
-        allowed-confluence-spaces:
-          - SPACE1              # Allow specific Confluence space
+Settings File Structure:
+  defaults:
+    allowed-jira-projects:
+      - all                     # Allow all projects
+    allowed-commands:
+      - all                     # Allow all commands
+    allowed-confluence-spaces:
+      - all                     # Allow all Confluence spaces
+
+  organizations:
+    work:
+      allowed-jira-projects:
+        - PROJ                  # Allow specific project
+        - key: PM               # Project-specific config
+          commands:
+            - issue.get         # Only allow reading issues
+          filters:
+            participated:
+              was_assignee: true
+      allowed-commands:
+        - issue                 # All issue commands
+        - project.list          # Only project list
+        - user.me               # Only user me
+      allowed-confluence-spaces:
+        - DOCS
+
+Command Groups (use in allowed-commands):
+  issue       - get, create, search, transition, update, comment, stats, assign, label
+  project     - list, statuses, types
+  user        - me, search, worklog
+  org         - list, use, add, remove
+  confl       - get, spaces, pages, create, comment, update
+
+Examples:
+  - "issue"           → allows all issue subcommands
+  - "issue.get"       → allows only issue get
+  - "issue.label"     → allows issue label add and remove
 `)
   .action((options) => settingsCommand(options));
 
@@ -420,18 +442,20 @@ Examples:
  */
 export function configureCommandVisibility(program: Command) {
   const isAuthorized = hasCredentials();
+  const alwaysVisibleCommands = ['auth', 'about', 'settings'];
 
   if (!isAuthorized) {
     program.commands.forEach(cmd => {
-      if (cmd.name() !== 'auth' && cmd.name() !== 'about') {
+      if (!alwaysVisibleCommands.includes(cmd.name())) {
         (cmd as any)._hidden = true;
       }
     });
     program.addHelpText('after', `\n${chalk.yellow('You are not authorized. Please use `jira-ai auth` to authorize. Then you can run other commands.')}`);
   } else {
     program.commands.forEach(cmd => {
-      // auth and about are always visible
-      if (cmd.name() !== 'auth' && cmd.name() !== 'about') {
+      if (!alwaysVisibleCommands.includes(cmd.name())) {
+        // For hierarchical commands, check if the group is allowed
+        // e.g., 'issue' command group is allowed if 'issue' or any 'issue.*' is allowed
         if (!isCommandAllowed(cmd.name())) {
           (cmd as any)._hidden = true;
         }

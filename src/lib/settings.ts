@@ -36,27 +36,46 @@ export interface Settings {
   organizations?: Record<string, OrganizationSettings>;
 }
 
+// Mapping from old flat command names to new hierarchical paths
+export const LEGACY_COMMAND_MAP: Record<string, string> = {
+  'me': 'user.me',
+  'projects': 'project.list',
+  'task-with-details': 'issue.get',
+  'project-statuses': 'project.statuses',
+  'list-issue-types': 'project.types',
+  'list-colleagues': 'user.search',
+  'run-jql': 'issue.search',
+  'update-description': 'issue.update',
+  'add-comment': 'issue.comment',
+  'add-label-to-issue': 'issue.label.add',
+  'delete-label-from-issue': 'issue.label.remove',
+  'create-task': 'issue.create',
+  'transition': 'issue.transition',
+  'get-issue-statistics': 'issue.stats',
+  'get-person-worklog': 'user.worklog',
+  'organization': 'org',
+  'confluence': 'confl',
+  // Already hierarchical, keep as-is
+  'issue': 'issue',
+  'org': 'org',
+  'confl': 'confl'
+};
+
+/**
+ * Migrate legacy command names to new hierarchical format
+ */
+export function migrateCommandNames(commands: string[]): string[] {
+  return commands.map(cmd => LEGACY_COMMAND_MAP[cmd] || cmd);
+}
+
 export const DEFAULT_ORG_SETTINGS: OrganizationSettings = {
   'allowed-jira-projects': ['all'],
   'allowed-commands': [
-    'me',
-    'projects',
-    'task-with-details',
-    'run-jql',
-    'list-issue-types',
-    'project-statuses',
-    'create-task',
-    'list-colleagues',
-    'add-comment',
-    'add-label-to-issue',
-    'delete-label-from-issue',
-    'get-issue-statistics',
-    'get-person-worklog',
-    'organization',
-    'transition',
-    'update-description',
-    'confluence',
-    'issue'
+    'issue',      // All issue commands (get, create, search, transition, update, comment, stats, assign, label)
+    'project',    // All project commands (list, statuses, types)
+    'user',       // All user commands (me, search, worklog)
+    'org',        // Organization management
+    'confl'       // Confluence commands
   ],
   'allowed-confluence-spaces': ['all']
 };
@@ -76,13 +95,15 @@ export function getSettingsPath(): string {
 
 export function migrateSettings(settings: any): Settings {
   // Migration logic: if old structure exists, move it to defaults
+  // Note: We keep command names as-is in storage (don't migrate them here)
+  // Command name migration happens at runtime in isCommandAllowed()
   if (settings.projects || settings.commands) {
     const migratedDefaults: OrganizationSettings = {
       'allowed-jira-projects': settings.projects || DEFAULT_ORG_SETTINGS['allowed-jira-projects'],
       'allowed-commands': settings.commands || DEFAULT_ORG_SETTINGS['allowed-commands'],
       'allowed-confluence-spaces': DEFAULT_ORG_SETTINGS['allowed-confluence-spaces']
     };
-    
+
     const newSettings = {
       ...settings,
       defaults: migratedDefaults,
@@ -196,6 +217,25 @@ export function isProjectAllowed(projectKey: string, orgAlias?: string): boolean
   return isAllowed;
 }
 
+/**
+ * Check if a command matches any allowed command using hierarchical matching.
+ * e.g., if 'issue' is allowed, then 'issue.get', 'issue.label.add' are all allowed.
+ * If 'issue.label' is allowed, then 'issue.label.add' and 'issue.label.remove' are allowed.
+ */
+function matchesHierarchicalCommand(commandPath: string, allowedCommands: string[]): boolean {
+  // Check for 'all' permission
+  if (allowedCommands.includes('all')) return true;
+
+  // Check hierarchical permissions (most specific to least specific)
+  const parts = commandPath.split('.');
+  for (let i = parts.length; i > 0; i--) {
+    const checkPath = parts.slice(0, i).join('.');
+    if (allowedCommands.includes(checkPath)) return true;
+  }
+
+  return false;
+}
+
 export function isCommandAllowed(commandName: string, projectKey?: string, orgAlias?: string): boolean {
   // about, auth, and settings are always allowed
   if (['about', 'auth', 'settings'].includes(commandName)) {
@@ -205,37 +245,43 @@ export function isCommandAllowed(commandName: string, projectKey?: string, orgAl
   const settings = getEffectiveSettings(orgAlias);
   if (!settings) return false;
 
+  // Normalize the command name being checked (convert legacy to new format)
+  const normalizedCommandName = LEGACY_COMMAND_MAP[commandName] || commandName;
+
+  // Migrate legacy command names in settings to new format for checking
+  const migratedAllowedCommands = migrateCommandNames(settings['allowed-commands']);
+
   if (projectKey) {
     let project = settings['allowed-jira-projects'].find(p => typeof p !== 'string' && p.key === projectKey);
     if (!project) {
       project = settings['allowed-jira-projects'].find(p => typeof p === 'string' && (p === 'all' || p === projectKey));
     }
-    
+
     if (project && typeof project !== 'string' && project.commands) {
-      return project.commands.includes(commandName);
+      const migratedProjectCommands = migrateCommandNames(project.commands);
+      return matchesHierarchicalCommand(normalizedCommandName, migratedProjectCommands);
     }
   } else {
     // For visibility/global check: allowed if in global list OR in any project-specific list
-    const allowedGlobally = settings['allowed-commands'].includes('all') || settings['allowed-commands'].includes(commandName);
-    if (allowedGlobally) {
+    if (matchesHierarchicalCommand(normalizedCommandName, migratedAllowedCommands)) {
       return true;
     }
 
-    const allowedInAnyProject = settings['allowed-jira-projects'].some(p => 
-      typeof p !== 'string' && p.commands && p.commands.includes(commandName)
-    );
+    const allowedInAnyProject = settings['allowed-jira-projects'].some(p => {
+      if (typeof p !== 'string' && p.commands) {
+        const migratedProjectCommands = migrateCommandNames(p.commands);
+        return matchesHierarchicalCommand(normalizedCommandName, migratedProjectCommands);
+      }
+      return false;
+    });
     if (allowedInAnyProject) {
       return true;
     }
-    
+
     return false;
   }
 
-  if (settings['allowed-commands'].includes('all')) {
-    return true;
-  }
-
-  return settings['allowed-commands'].includes(commandName);
+  return matchesHierarchicalCommand(normalizedCommandName, migratedAllowedCommands);
 }
 
 export function isConfluenceSpaceAllowed(spaceKey: string, orgAlias?: string): boolean {

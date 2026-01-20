@@ -55,30 +55,18 @@ commands:
       const settings = loadSettings();
 
       expect(settings.defaults?.['allowed-jira-projects']).toEqual(['all']);
+      // New hierarchical command structure
       expect(settings.defaults?.['allowed-commands']).toEqual([
-        'me',
-        'projects',
-        'task-with-details',
-        'run-jql',
-        'list-issue-types',
-        'project-statuses',
-        'create-task',
-        'list-colleagues',
-        'add-comment',
-        'add-label-to-issue',
-        'delete-label-from-issue',
-        'get-issue-statistics',
-        'get-person-worklog',
-        'organization',
-        'transition',
-        'update-description',
-        'confluence',
-        'issue'
+        'issue',      // All issue commands
+        'project',    // All project commands
+        'user',       // All user commands
+        'org',        // Organization management
+        'confl'       // Confluence commands
       ]);
       // Should create default settings file
       expect(mockFs.writeFileSync).toHaveBeenCalledWith(
         mockSettingsPath,
-        expect.stringContaining('projects')
+        expect.stringContaining('issue')
       );
     });
 
@@ -97,25 +85,13 @@ commands:
       const settings = loadSettings();
 
       expect(settings.defaults?.['allowed-jira-projects']).toEqual(['all']);
+      // New hierarchical command structure
       expect(settings.defaults?.['allowed-commands']).toEqual([
-        'me',
-        'projects',
-        'task-with-details',
-        'run-jql',
-        'list-issue-types',
-        'project-statuses',
-        'create-task',
-        'list-colleagues',
-        'add-comment',
-        'add-label-to-issue',
-        'delete-label-from-issue',
-        'get-issue-statistics',
-        'get-person-worklog',
-        'organization',
-        'transition',
-        'update-description',
-        'confluence',
-        'issue'
+        'issue',
+        'project',
+        'user',
+        'org',
+        'confl'
       ]);
     });
 
@@ -269,6 +245,78 @@ commands:
 
       expect(isCommandAllowed('task-with-details')).toBe(false);
       expect(isCommandAllowed('project-statuses')).toBe(false);
+    });
+
+    it('should allow subcommands when parent group is allowed (hierarchical)', () => {
+      const mockYaml = `
+defaults:
+  allowed-jira-projects:
+    - all
+  allowed-commands:
+    - issue
+`;
+      mockFs.existsSync.mockImplementation((path) => {
+        if (path === mockConfigDir) return true;
+        if (path === mockSettingsPath) return true;
+        return false;
+      });
+      mockFs.readFileSync.mockReturnValue(mockYaml);
+
+      // Parent 'issue' allows all subcommands
+      expect(isCommandAllowed('issue')).toBe(true);
+      expect(isCommandAllowed('issue.get')).toBe(true);
+      expect(isCommandAllowed('issue.create')).toBe(true);
+      expect(isCommandAllowed('issue.label.add')).toBe(true);
+      expect(isCommandAllowed('issue.label.remove')).toBe(true);
+      // But not other groups
+      expect(isCommandAllowed('project')).toBe(false);
+      expect(isCommandAllowed('project.list')).toBe(false);
+    });
+
+    it('should allow specific subcommand without allowing parent', () => {
+      const mockYaml = `
+defaults:
+  allowed-jira-projects:
+    - all
+  allowed-commands:
+    - issue.get
+    - project.list
+`;
+      mockFs.existsSync.mockImplementation((path) => {
+        if (path === mockConfigDir) return true;
+        if (path === mockSettingsPath) return true;
+        return false;
+      });
+      mockFs.readFileSync.mockReturnValue(mockYaml);
+
+      expect(isCommandAllowed('issue.get')).toBe(true);
+      expect(isCommandAllowed('project.list')).toBe(true);
+      // Other subcommands not allowed
+      expect(isCommandAllowed('issue.create')).toBe(false);
+      expect(isCommandAllowed('project.statuses')).toBe(false);
+    });
+
+    it('should migrate legacy command names to hierarchical format', () => {
+      const mockYaml = `
+defaults:
+  allowed-jira-projects:
+    - all
+  allowed-commands:
+    - me
+    - projects
+    - task-with-details
+`;
+      mockFs.existsSync.mockImplementation((path) => {
+        if (path === mockConfigDir) return true;
+        if (path === mockSettingsPath) return true;
+        return false;
+      });
+      mockFs.readFileSync.mockReturnValue(mockYaml);
+
+      // Legacy commands should work with new hierarchical names
+      expect(isCommandAllowed('user.me')).toBe(true);
+      expect(isCommandAllowed('project.list')).toBe(true);
+      expect(isCommandAllowed('issue.get')).toBe(true);
     });
   });
 
