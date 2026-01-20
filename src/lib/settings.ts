@@ -55,7 +55,8 @@ export const DEFAULT_ORG_SETTINGS: OrganizationSettings = {
     'organization',
     'transition',
     'update-description',
-    'confluence'
+    'confluence',
+    'issue'
   ],
   'allowed-confluence-spaces': ['all']
 };

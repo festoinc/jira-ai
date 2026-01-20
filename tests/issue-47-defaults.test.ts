@@ -39,7 +39,8 @@ describe('Issue 47: Initial Settings Defaults', () => {
       'organization',
       'transition',
       'update-description',
-      'confluence'
+      'confluence',
+      'issue'
     ]);
   });
 
@@ -76,7 +77,8 @@ commands:
       'organization',
       'transition',
       'update-description',
-      'confluence'
+      'confluence',
+      'issue'
     ]);
   });
 });

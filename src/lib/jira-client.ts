@@ -555,6 +555,22 @@ export async function createIssue(
 }
 
 /**
+ * Assign or reassign an issue to a user
+ * @param issueIdOrKey - The issue key (e.g., "PROJ-123")
+ * @param accountId - The account ID of the user to assign the issue to, or null to unassign
+ */
+export async function assignIssue(
+  issueIdOrKey: string,
+  accountId: string | null
+): Promise<void> {
+  const client = getJiraClient();
+  await client.issues.assignIssue({
+    issueIdOrKey,
+    accountId,
+  });
+}
+
+/**
  * Validate that the current user has permission to perform a command on an issue
  */
 export async function validateIssuePermissions(

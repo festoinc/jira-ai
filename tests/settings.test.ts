@@ -72,7 +72,8 @@ commands:
         'organization',
         'transition',
         'update-description',
-        'confluence'
+        'confluence',
+        'issue'
       ]);
       // Should create default settings file
       expect(mockFs.writeFileSync).toHaveBeenCalledWith(
@@ -113,7 +114,8 @@ commands:
         'organization',
         'transition',
         'update-description',
-        'confluence'
+        'confluence',
+        'issue'
       ]);
     });
 

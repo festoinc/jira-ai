@@ -17,6 +17,7 @@ import { addLabelCommand } from './commands/add-label.js';
 import { deleteLabelCommand } from './commands/delete-label.js';
 import { createTaskCommand } from './commands/create-task.js';
 import { transitionCommand } from './commands/transition.js';
+import { issueAssignCommand } from './commands/issue.js';
 import { getIssueStatisticsCommand } from './commands/get-issue-statistics.js';
 import { getPersonWorklogCommand } from './commands/get-person-worklog.js';
 import { 
@@ -289,6 +290,18 @@ program
   .command('transition <task-id> <to-status>')
   .description('Change the status of a Jira task. The <to-status> can be either the status name or ID.')
   .action(withPermission('transition', transitionCommand, {
+    validateArgs: (args) => validateOptions(IssueKeySchema, args[0])
+  }));
+
+// Issue commands
+const issue = program
+  .command('issue')
+  .description('Manage Jira issues');
+
+issue
+  .command('assign <task-id> <account-id>')
+  .description('Assign or reassign a Jira issue to a specific user using their Account ID. Use "null" as account-id to unassign.')
+  .action(withPermission('issue', issueAssignCommand, {
     validateArgs: (args) => validateOptions(IssueKeySchema, args[0])
   }));
 

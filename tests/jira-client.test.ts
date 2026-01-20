@@ -16,6 +16,7 @@ import {
   getIssueStatistics,
   getUsers,
   getIssueWorklogs,
+  assignIssue,
   getJiraClient,
   createTemporaryClient,
   setOrganizationOverride
@@ -54,6 +55,7 @@ const {
   mockFindAssignableUsers,
   mockGetIssueWorklog,
   mockSearchEnhanced,
+  mockAssignIssue,
   mockConfig
 } = vi.hoisted(() => ({
   mockGetIssue: vi.fn(),
@@ -72,6 +74,7 @@ const {
   mockFindAssignableUsers: vi.fn(),
   mockGetIssueWorklog: vi.fn(),
   mockSearchEnhanced: vi.fn(),
+  mockAssignIssue: vi.fn(),
   mockConfig: { host: 'https://test.atlassian.net' }
 }));
 
@@ -87,7 +90,8 @@ vi.mock('jira.js', () => ({
         doTransition: mockDoTransition,
         addComment: mockAddComment,
         createIssue: mockCreateIssue,
-        getChangeLogs: mockGetChangeLogs
+        getChangeLogs: mockGetChangeLogs,
+        assignIssue: mockAssignIssue
       },
       myself: {
         getCurrentUser: mockGetCurrentUser
@@ -835,6 +839,30 @@ describe('Jira Client', () => {
       expect(result[0].id).toBe('');
       expect(result[0].author.displayName).toBe('Unknown');
       expect(result[0].author.accountId).toBe('');
+    });
+  });
+
+  describe('assignIssue', () => {
+    it('should call assignIssue with correct parameters', async () => {
+      mockAssignIssue.mockResolvedValue({});
+
+      await assignIssue('PROJ-123', 'user-123');
+
+      expect(mockAssignIssue).toHaveBeenCalledWith({
+        issueIdOrKey: 'PROJ-123',
+        accountId: 'user-123'
+      });
+    });
+
+    it('should allow unassigning with null accountId', async () => {
+      mockAssignIssue.mockResolvedValue({});
+
+      await assignIssue('PROJ-123', null);
+
+      expect(mockAssignIssue).toHaveBeenCalledWith({
+        issueIdOrKey: 'PROJ-123',
+        accountId: null
+      });
     });
   });
 
