@@ -19,7 +19,10 @@ import {
   assignIssue,
   getJiraClient,
   createTemporaryClient,
-  setOrganizationOverride
+  setOrganizationOverride,
+  searchUsers,
+  resolveUserByName,
+  clearUserCache
 } from '../src/lib/jira-client.js';
 import * as authStorage from '../src/lib/auth-storage.js';
 import { Version3Client } from 'jira.js';
@@ -142,6 +145,7 @@ describe('Jira Client', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    clearUserCache();
     mockCurrentOrg = undefined;
     vi.mocked(authStorage.loadCredentials).mockReturnValue({
       host: 'https://test.atlassian.net',
@@ -839,6 +843,58 @@ describe('Jira Client', () => {
       expect(result[0].id).toBe('');
       expect(result[0].author.displayName).toBe('Unknown');
       expect(result[0].author.accountId).toBe('');
+    });
+  });
+
+  describe('searchUsers', () => {
+    it('should search for users and format results', async () => {
+      const mockUsers = [
+        { accountId: '1', displayName: 'User 1', active: true, accountType: 'atlassian' }
+      ];
+      mockFindUsers.mockResolvedValue(mockUsers as any);
+
+      const result = await searchUsers('User 1');
+
+      expect(mockFindUsers).toHaveBeenCalledWith({
+        query: 'User 1',
+        maxResults: 10
+      });
+      expect(result).toHaveLength(1);
+      expect(result[0].displayName).toBe('User 1');
+    });
+  });
+
+  describe('resolveUserByName', () => {
+    it('should resolve user by display name', async () => {
+      const mockUsers = [
+        { accountId: 'id-123', displayName: 'Anatolii Fesiuk', active: true, accountType: 'atlassian' }
+      ];
+      mockFindUsers.mockResolvedValue(mockUsers as any);
+
+      const result = await resolveUserByName('Anatolii Fesiuk');
+
+      expect(result).toBe('id-123');
+    });
+
+    it('should use cache for subsequent calls', async () => {
+      const mockUsers = [
+        { accountId: 'id-123', displayName: 'Anatolii Fesiuk', active: true, accountType: 'atlassian' }
+      ];
+      mockFindUsers.mockResolvedValue(mockUsers as any);
+
+      await resolveUserByName('Anatolii Fesiuk');
+      const result = await resolveUserByName('Anatolii Fesiuk');
+
+      expect(result).toBe('id-123');
+      expect(mockFindUsers).toHaveBeenCalledTimes(1);
+    });
+
+    it('should return null if user not found', async () => {
+      mockFindUsers.mockResolvedValue([] as any);
+
+      const result = await resolveUserByName('Unknown User');
+
+      expect(result).toBeNull();
     });
   });
 
