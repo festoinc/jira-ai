@@ -108,9 +108,27 @@ export const ProjectFiltersSchema = z.object({
   jql: z.string().optional(),
 });
 
+/**
+ * Schema for hierarchical command names (e.g., "issue", "issue.get", "issue.label.add")
+ * Also accepts 'all' for allowing all commands
+ */
+export const HierarchicalCommandSchema = z.string().regex(
+  /^(all|[a-z]+(\.[a-z]+)*)$/,
+  'Command must be "all" or lowercase dot-separated (e.g., "issue", "issue.get", "issue.label.add")'
+);
+
+// Default allowed commands using hierarchical structure
+const DEFAULT_ALLOWED_COMMANDS = [
+  'issue',    // All issue commands
+  'project',  // All project commands
+  'user',     // All user commands
+  'org',      // Organization management
+  'confl'     // Confluence commands
+];
+
 export const ProjectConfigSchema = z.object({
   key: z.string().trim().min(1),
-  commands: z.array(z.string()).optional(),
+  commands: z.array(z.string()).optional(),  // Can be legacy or hierarchical
   filters: ProjectFiltersSchema.optional(),
 });
 
@@ -121,7 +139,7 @@ export const ProjectSettingSchema = z.union([
 
 export const OrganizationSettingsSchema = z.object({
   'allowed-jira-projects': z.array(ProjectSettingSchema).nullish().transform(val => val || ['all']),
-  'allowed-commands': z.array(z.string()).nullish().transform(val => val || ['me', 'projects', 'task-with-details', 'run-jql', 'list-issue-types', 'project-statuses', 'create-task', 'list-colleagues', 'add-comment', 'add-label-to-issue', 'delete-label-from-issue', 'get-issue-statistics', 'get-person-worklog', 'organization', 'transition', 'update-description', 'confluence']),
+  'allowed-commands': z.array(z.string()).nullish().transform(val => val || DEFAULT_ALLOWED_COMMANDS),
   'allowed-confluence-spaces': z.array(z.string()).nullish().transform(val => val || ['all']),
 });
 

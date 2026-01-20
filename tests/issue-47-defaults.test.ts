@@ -22,25 +22,13 @@ describe('Issue 47: Initial Settings Defaults', () => {
     const settings = loadSettings();
 
     expect(settings.defaults?.['allowed-jira-projects']).toEqual(['all']);
+    // New hierarchical command structure
     expect(settings.defaults?.['allowed-commands']).toEqual([
-      'me',
-      'projects',
-      'task-with-details',
-      'run-jql',
-      'list-issue-types',
-      'project-statuses',
-      'create-task',
-      'list-colleagues',
-      'add-comment',
-      'add-label-to-issue',
-      'delete-label-from-issue',
-      'get-issue-statistics',
-      'get-person-worklog',
-      'organization',
-      'transition',
-      'update-description',
-      'confluence',
-      'issue'
+      'issue',    // All issue commands
+      'project',  // All project commands
+      'user',     // All user commands
+      'org',      // Organization management
+      'confl'     // Confluence commands
     ]);
   });
 
@@ -60,25 +48,13 @@ commands:
     const settings = loadSettings();
 
     expect(settings.defaults?.['allowed-jira-projects']).toEqual(['all']);
+    // New hierarchical command structure
     expect(settings.defaults?.['allowed-commands']).toEqual([
-      'me',
-      'projects',
-      'task-with-details',
-      'run-jql',
-      'list-issue-types',
-      'project-statuses',
-      'create-task',
-      'list-colleagues',
-      'add-comment',
-      'add-label-to-issue',
-      'delete-label-from-issue',
-      'get-issue-statistics',
-      'get-person-worklog',
-      'organization',
-      'transition',
-      'update-description',
-      'confluence',
-      'issue'
+      'issue',
+      'project',
+      'user',
+      'org',
+      'confl'
     ]);
   });
 });
