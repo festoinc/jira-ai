@@ -2,7 +2,8 @@ import chalk from 'chalk';
 import * as fs from 'fs';
 import * as path from 'path';
 import { markdownToAdf } from 'marklassian';
-import { updateIssueDescription, validateIssuePermissions } from '../lib/jira-client.js';
+import { updateIssueDescription, validateIssuePermissions, resolveUserByName } from '../lib/jira-client.js';
+import { processMentionsInADF } from '../lib/adf-mentions.js';
 import { CommandError } from '../lib/errors.js';
 import { ui } from '../lib/ui.js';
 import { validateOptions, UpdateDescriptionSchema, IssueKeySchema } from '../lib/validation.js';
@@ -42,6 +43,8 @@ export async function updateDescriptionCommand(
   let adfContent: any;
   try {
     adfContent = markdownToAdf(markdownContent);
+    // Process mentions in ADF
+    adfContent = await processMentionsInADF(adfContent, resolveUserByName);
   } catch (error: any) {
     throw new CommandError(`Error converting Markdown to ADF: ${error.message}`, {
       hints: ['Ensure the Markdown content is valid.']

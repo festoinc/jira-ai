@@ -763,6 +763,61 @@ export async function getUsers(projectKey?: string): Promise<UserInfo[]> {
 }
 
 /**
+ * Search for users by name or email
+ */
+export async function searchUsers(query: string): Promise<UserInfo[]> {
+  const client = getJiraClient();
+  const users = await client.userSearch.findUsers({
+    query,
+    maxResults: 10,
+  });
+
+  return users
+    .filter((user: any) => user.active && user.accountType === 'atlassian')
+    .map((user: any) => ({
+      accountId: user.accountId || '',
+      displayName: user.displayName || '',
+      emailAddress: user.emailAddress || '',
+      active: user.active || false,
+      timeZone: user.timeZone || '',
+      // @ts-ignore
+      host: client.config.host || 'N/A',
+    }));
+}
+
+const userCache = new Map<string, string | null>();
+
+/**
+ * Clear the user cache (primarily for testing)
+ */
+export function clearUserCache(): void {
+  userCache.clear();
+}
+
+/**
+ * Resolves a display name to an accountId with in-memory caching
+ */
+export async function resolveUserByName(displayName: string): Promise<string | null> {
+  if (userCache.has(displayName)) {
+    return userCache.get(displayName)!;
+  }
+
+  try {
+    const users = await searchUsers(displayName);
+    
+    // Find the best match. Ideally an exact match on displayName.
+    const exactMatch = users.find(u => u.displayName.toLowerCase() === displayName.toLowerCase());
+    const accountId = exactMatch ? exactMatch.accountId : (users.length > 0 ? users[0].accountId : null);
+    
+    userCache.set(displayName, accountId);
+    return accountId;
+  } catch (error) {
+    console.error(`Error resolving user "${displayName}":`, error);
+    return null;
+  }
+}
+
+/**
  * Get all worklogs for an issue
  */
 export async function getIssueWorklogs(issueIdOrKey: string): Promise<Worklog[]> {
