@@ -75,6 +75,9 @@ export function formatTaskDetails(task: TaskDetails): string {
 
   infoTable.push(
     ['Status', chalk.green(task.status.name)],
+    ['Type', task.type || chalk.gray('N/A')],
+    ['Priority', task.priority || chalk.gray('N/A')],
+    ['Resolution', task.resolution || chalk.gray('Unresolved')],
     ['Assignee', task.assignee?.displayName || chalk.gray('Unassigned')],
     ['Reporter', task.reporter?.displayName || chalk.gray('N/A')],
     ['Created', formatTimestamp(task.created)],
@@ -149,7 +152,8 @@ export function formatTaskDetails(task: TaskDetails): string {
 
     task.comments.forEach((comment, index) => {
       output += chalk.cyan(`${index + 1}. ${comment.author.displayName}`) +
-                chalk.gray(` - ${formatTimestamp(comment.created)}`) + '\n';
+                chalk.gray(` - ${formatTimestamp(comment.created)}`) +
+                chalk.gray(` [ID: ${comment.id}]`) + '\n';
       output += chalk.dim('─'.repeat(80)) + '\n';
       output += decode(comment.body) + '\n';
       output += chalk.dim('─'.repeat(80)) + '\n\n';
