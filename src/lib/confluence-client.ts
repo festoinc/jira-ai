@@ -108,13 +108,15 @@ export async function getPage(url: string): Promise<ConfluencePage> {
 
   const page = await client.content.getContentById({
     id: pageId,
-    expand: ['body.atlas_doc_format', 'version', 'space', 'history.lastUpdated'],
+    expand: ['body.atlas_doc_format', 'body.storage', 'version', 'space', 'history'],
   });
 
   const adfBody = page.body?.atlas_doc_format?.value;
+  const storageBody = page.body?.storage?.value;
+  
   const content = adfBody 
     ? convertADFToMarkdown(typeof adfBody === 'string' ? JSON.parse(adfBody) : adfBody) 
-    : 'No content available.';
+    : (storageBody ? convertADFToMarkdown(storageBody) : 'No content available.');
 
   // @ts-ignore - accessing host to show it in UI
   const host = client.config.host || '';
@@ -124,9 +126,16 @@ export async function getPage(url: string): Promise<ConfluencePage> {
     title: page.title || '',
     content,
     space: page.space?.name || page.space?.key || 'Unknown',
-    author: page.history?.createdBy?.displayName || 'Unknown',
-    lastUpdated: page.history?.lastUpdated?.when || page.version?.when || '',
-    url: `${host}/pages/${page.id}`,
+    author: page.history?.createdBy?.displayName || 
+            page.history?.createdBy?.publicName || 
+            page.version?.by?.displayName || 
+            page.version?.by?.publicName || 
+            'Unknown',
+    lastUpdated: page.version?.when || 
+                 page.history?.lastUpdated?.when || 
+                 page.history?.createdDate || 
+                 '',
+    url: `${host.replace(/\/$/, '')}/pages/${page.id}`,
   };
 }
 
@@ -137,21 +146,47 @@ export async function getPageComments(url: string): Promise<ConfluenceComment[]>
   const client = getConfluenceClient();
   const { pageId } = parseConfluenceUrl(url);
 
-  const response = await client.contentChildrenAndDescendants.getContentChildrenByType({
-    id: pageId,
-    type: 'comment',
-    expand: ['body.atlas_doc_format', 'history.lastUpdated', 'version'],
-  });
+  let allComments: any[] = [];
+  let start = 0;
+  const limit = 50;
+  let hasMore = true;
 
-  return (response.results || []).map((comment: any) => {
+  while (hasMore) {
+    // Using descendants to get both page and inline comments
+    // @ts-ignore - getContentDescendantsByType exists in the API but might be missing in types
+    const response = await client.contentChildrenAndDescendants.getContentDescendantsByType({
+      id: pageId,
+      type: 'comment',
+      expand: ['body.atlas_doc_format', 'body.storage', 'history', 'version'],
+      start,
+      limit,
+    });
+
+    const results = response.results || [];
+    allComments = [...allComments, ...results];
+
+    if (results.length < limit) {
+      hasMore = false;
+    } else {
+      start += limit;
+    }
+  }
+
+  return allComments.map((comment: any) => {
     const adfBody = comment.body?.atlas_doc_format?.value;
+    const storageBody = comment.body?.storage?.value;
+
     const body = adfBody 
       ? convertADFToMarkdown(typeof adfBody === 'string' ? JSON.parse(adfBody) : adfBody) 
-      : 'No content available.';
+      : (storageBody ? convertADFToMarkdown(storageBody) : 'No content available.');
 
     return {
       id: comment.id,
-      author: comment.history?.createdBy?.displayName || 'Unknown',
+      author: comment.history?.createdBy?.displayName || 
+              comment.history?.createdBy?.publicName || 
+              comment.version?.by?.displayName || 
+              comment.version?.by?.publicName || 
+              'Unknown',
       body,
       created: comment.history?.createdDate || comment.version?.when || '',
     };
