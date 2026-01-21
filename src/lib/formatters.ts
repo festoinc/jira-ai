@@ -692,12 +692,18 @@ export function formatConfluenceSpaces(spaces: ConfluenceSpace[]): string {
     return chalk.yellow('No allowed Confluence spaces found.');
   }
 
-  const table = createTable(['Key', 'Name'], [15, 55]);
+  // Calculate dynamic column widths
+  // Key column: max key length or header "Key" (3)
+  const maxKeyLength = Math.max(3, ...spaces.map(s => s.key.length));
+  // Name column: max name length or header "Name" (4), capped at 60
+  const maxNameLength = Math.min(60, Math.max(4, ...spaces.map(s => s.name.length)));
+
+  const table = createTable(['Key', 'Name'], [maxKeyLength + 2, maxNameLength + 2]);
 
   spaces.forEach((space) => {
     table.push([
       chalk.cyan(space.key),
-      truncate(space.name, 55),
+      truncate(space.name, maxNameLength),
     ]);
   });
 
