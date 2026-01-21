@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { getPage, getPageComments } from '../src/lib/confluence-client.js';
 
 const mockGetContentById = vi.fn();
-const mockGetContentDescendantsByType = vi.fn();
+const mockGetDescendantsOfType = vi.fn();
 
 vi.mock('confluence.js', () => ({
   ConfluenceClient: vi.fn().mockImplementation(function() {
@@ -12,7 +12,7 @@ vi.mock('confluence.js', () => ({
         getContentById: mockGetContentById,
       },
       contentChildrenAndDescendants: {
-        getContentDescendantsByType: mockGetContentDescendantsByType,
+        getDescendantsOfType: mockGetDescendantsOfType,
       },
     };
   }),
@@ -93,7 +93,7 @@ describe('Issue 95 Reproduction: Confluence comments and metadata', () => {
   describe('getPageComments', () => {
     it('should fetch comments with correct author and timestamp', async () => {
       const url = 'https://test.atlassian.net/wiki/spaces/SPACE/pages/123/Title';
-      mockGetContentDescendantsByType.mockResolvedValue({
+      mockGetDescendantsOfType.mockResolvedValue({
         results: [
           {
             id: 'comment-1',
@@ -114,14 +114,14 @@ describe('Issue 95 Reproduction: Confluence comments and metadata', () => {
       expect(comments[0].author).toBe('Jane Smith');
       expect(comments[0].created).toBe('2023-01-05T10:00:00.000Z');
       expect(comments[0].body).toContain('Hello');
-      expect(mockGetContentDescendantsByType).toHaveBeenCalledWith(expect.objectContaining({
+      expect(mockGetDescendantsOfType).toHaveBeenCalledWith(expect.objectContaining({
         expand: expect.arrayContaining(['history'])
       }));
     });
 
     it('should handle author in version.by for comments', async () => {
       const url = 'https://test.atlassian.net/wiki/spaces/SPACE/pages/123/Title';
-      mockGetContentDescendantsByType.mockResolvedValue({
+      mockGetDescendantsOfType.mockResolvedValue({
         results: [
           {
             id: 'comment-2',
@@ -143,7 +143,7 @@ describe('Issue 95 Reproduction: Confluence comments and metadata', () => {
 
     it('should handle missing ADF by falling back to storage format', async () => {
         const url = 'https://test.atlassian.net/wiki/spaces/SPACE/pages/123/Title';
-        mockGetContentDescendantsByType.mockResolvedValue({
+        mockGetDescendantsOfType.mockResolvedValue({
           results: [
             {
               id: 'comment-2',
