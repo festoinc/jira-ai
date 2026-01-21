@@ -153,8 +153,8 @@ export async function getPageComments(url: string): Promise<ConfluenceComment[]>
 
   while (hasMore) {
     // Using descendants to get both page and inline comments
-    // @ts-ignore - getContentDescendantsByType exists in the API but might be missing in types
-    const response = await client.contentChildrenAndDescendants.getContentDescendantsByType({
+    // @ts-ignore - getDescendantsOfType exists in the API but might be missing in types
+    const response = await client.contentChildrenAndDescendants.getDescendantsOfType({
       id: pageId,
       type: 'comment',
       expand: ['body.atlas_doc_format', 'body.storage', 'history', 'version'],
