@@ -114,6 +114,9 @@ export interface TaskDetails {
   id: string;
   key: string;
   summary: string;
+  type?: string;
+  priority?: string;
+  resolution?: string;
   description?: string;
   status: {
     name: string;
@@ -287,6 +290,9 @@ export async function getTaskWithDetails(
       'subtasks',
       'labels',
       'watches',
+      'issuetype',
+      'priority',
+      'resolution',
     ],
   });
 
@@ -372,6 +378,9 @@ export async function getTaskWithDetails(
     id: issue.id || '',
     key: issue.key || '',
     summary: issue.fields.summary || '',
+    type: issue.fields.issuetype?.name,
+    priority: issue.fields.priority?.name,
+    resolution: issue.fields.resolution?.name,
     description,
     status: {
       name: issue.fields.status?.name || 'Unknown',
