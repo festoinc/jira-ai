@@ -347,6 +347,7 @@ const confl = program
 confl
   .command('get <url>')
   .description('Download and display Confluence page content and comments from a given URL.')
+  .option('--return-both-urls', 'Return both the full URL and the legacy short URL')
   .action(withPermission('confl.get', confluenceGetPageCommand, { skipValidation: false }));
 
 confl
@@ -362,6 +363,7 @@ confl
 confl
   .command('create <space> <title> [parent-page]')
   .description('Create a new Confluence page.')
+  .option('--return-both-urls', 'Return both the full URL and the legacy short URL')
   .action(withPermission('confl.create', confluenceCreatePageCommand, { skipValidation: false }));
 
 confl

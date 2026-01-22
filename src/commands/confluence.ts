@@ -8,7 +8,12 @@ import { ui } from '../lib/ui.js';
 import { CommandError } from '../lib/errors.js';
 import { isConfluenceSpaceAllowed } from '../lib/settings.js';
 
-export async function confluenceCreatePageCommand(space: string, title: string, parentPage?: string): Promise<void> {
+export async function confluenceCreatePageCommand(
+  space: string, 
+  title: string, 
+  parentPage?: string, 
+  options: { returnBothUrls?: boolean } = {}
+): Promise<void> {
   // Validate space key
   if (!isConfluenceSpaceAllowed(space)) {
     throw new CommandError(`Access to Confluence space '${space}' is restricted by your settings.`);
@@ -17,9 +22,15 @@ export async function confluenceCreatePageCommand(space: string, title: string, 
   ui.startSpinner(`Creating Confluence page '${title}' in space '${space}'...`);
 
   try {
-    const url = await createPage(space, title, parentPage);
+    const result = await createPage(space, title, parentPage, { returnBoth: options.returnBothUrls });
     ui.succeedSpinner(chalk.green('Confluence page created successfully'));
-    console.log(chalk.cyan(`\nURL: ${url}`));
+    
+    if (typeof result === 'object') {
+      console.log(chalk.cyan(`\nFull URL:  ${result.url}`));
+      console.log(chalk.cyan(`Short URL: ${result.shortUrl}`));
+    } else {
+      console.log(chalk.cyan(`\nURL: ${result}`));
+    }
   } catch (error: any) {
     ui.failSpinner();
 
@@ -102,7 +113,7 @@ export async function confluenceAddCommentCommand(url: string, options: { fromFi
   }
 }
 
-export async function confluenceGetPageCommand(url: string): Promise<void> {
+export async function confluenceGetPageCommand(url: string, options: { returnBothUrls?: boolean } = {}): Promise<void> {
   // Check permission before fetching if space key can be extracted from URL
   try {
     const { spaceKey } = parseConfluenceUrl(url);
@@ -118,7 +129,7 @@ export async function confluenceGetPageCommand(url: string): Promise<void> {
 
   try {
     const [page, comments] = await Promise.all([
-      getPage(url),
+      getPage(url, { returnBoth: options.returnBothUrls }),
       getPageComments(url)
     ]);
 
