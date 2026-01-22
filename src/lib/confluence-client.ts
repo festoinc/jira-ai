@@ -48,6 +48,8 @@ export interface ConfluencePage {
   author: string;
   lastUpdated: string;
   url: string;
+  shortUrl?: string;
+  fullUrl?: string;
 }
 
 export interface ConfluenceComment {
@@ -100,9 +102,31 @@ export function parseConfluenceUrl(url: string): { pageId: string; spaceKey?: st
 }
 
 /**
+ * Helper to construct Confluence page URLs
+ */
+function formatPageUrl(response: any, host: string, returnBoth: boolean = false): string | { url: string; shortUrl: string } {
+  const baseUrl = response._links?.base || host || '';
+  const webui = response._links?.webui;
+  const shortUrl = `${baseUrl.replace(/\/$/, '')}/pages/${response.id}`;
+
+  if (webui) {
+    const fullUrl = `${baseUrl.replace(/\/$/, '')}${webui}`;
+    if (returnBoth) {
+      return { url: fullUrl, shortUrl };
+    }
+    return fullUrl;
+  }
+
+  if (returnBoth) {
+    return { url: shortUrl, shortUrl };
+  }
+  return shortUrl;
+}
+
+/**
  * Get Confluence page details
  */
-export async function getPage(url: string): Promise<ConfluencePage> {
+export async function getPage(url: string, options: { returnBoth?: boolean } = {}): Promise<ConfluencePage> {
   const client = getConfluenceClient();
   const { pageId } = parseConfluenceUrl(url);
 
@@ -120,6 +144,7 @@ export async function getPage(url: string): Promise<ConfluencePage> {
 
   // @ts-ignore - accessing host to show it in UI
   const host = client.config.host || '';
+  const urlResult = formatPageUrl(page, host, options.returnBoth);
 
   return {
     id: page.id || '',
@@ -135,7 +160,9 @@ export async function getPage(url: string): Promise<ConfluencePage> {
                  page.history?.lastUpdated?.when || 
                  page.history?.createdDate || 
                  '',
-    url: `${host.replace(/\/$/, '')}/pages/${page.id}`,
+    url: typeof urlResult === 'string' ? urlResult : urlResult.url,
+    shortUrl: typeof urlResult === 'object' ? urlResult.shortUrl : undefined,
+    fullUrl: typeof urlResult === 'string' ? urlResult : urlResult.url,
   };
 }
 
@@ -279,7 +306,12 @@ export async function addPageComment(url: string, adfContent: any): Promise<void
 /**
  * Create a new Confluence page
  */
-export async function createPage(spaceKey: string, title: string, parentId?: string): Promise<string> {
+export async function createPage(
+  spaceKey: string, 
+  title: string, 
+  parentId?: string, 
+  options: { returnBoth?: boolean } = {}
+): Promise<string | { url: string; shortUrl: string }> {
   const client = getConfluenceClient();
   
   const response = await client.content.createContent({
@@ -301,7 +333,7 @@ export async function createPage(spaceKey: string, title: string, parentId?: str
 
   // @ts-ignore - accessing host to construct URL
   const host = client.config.host || '';
-  return `${host.replace(/\/$/, '')}/pages/${response.id}`;
+  return formatPageUrl(response, host, options.returnBoth);
 }
 
 /**

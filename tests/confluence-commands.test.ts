@@ -132,7 +132,7 @@ describe('Confluence Commands', () => {
 
       expect(ui.startSpinner).toHaveBeenCalledWith(expect.stringContaining('Creating Confluence page'));
       // @ts-ignore
-      expect(confluenceClient.createPage).toHaveBeenCalledWith(space, title, undefined);
+      expect(confluenceClient.createPage).toHaveBeenCalledWith(space, title, undefined, { returnBoth: undefined });
       expect(ui.succeedSpinner).toHaveBeenCalled();
       expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining(createdUrl));
     });
@@ -154,7 +154,7 @@ describe('Confluence Commands', () => {
       await confluenceCreatePageCommand(space, title, parent);
 
       // @ts-ignore
-      expect(confluenceClient.createPage).toHaveBeenCalledWith(space, title, parent);
+      expect(confluenceClient.createPage).toHaveBeenCalledWith(space, title, parent, { returnBoth: undefined });
       expect(ui.succeedSpinner).toHaveBeenCalled();
     });
 

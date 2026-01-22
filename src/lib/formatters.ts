@@ -658,9 +658,15 @@ export function formatConfluencePage(page: ConfluencePage, comments: ConfluenceC
   infoTable.push(
     ['Space', page.space],
     ['Author', page.author],
-    ['Last Updated', formatTimestamp(page.lastUpdated)],
-    ['URL', page.url]
+    ['Last Updated', formatTimestamp(page.lastUpdated)]
   );
+
+  if (page.shortUrl && page.shortUrl !== page.url) {
+    infoTable.push(['Full URL', page.url]);
+    infoTable.push(['Short URL', page.shortUrl]);
+  } else {
+    infoTable.push(['URL', page.url]);
+  }
 
   output += infoTable.toString() + '\n\n';
 
