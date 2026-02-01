@@ -2,6 +2,7 @@ import { ConfluenceClient } from 'confluence.js';
 import { loadCredentials, getCurrentOrganizationAlias, setOrganizationOverride as setAuthOrgOverride } from './auth-storage.js';
 import { convertADFToMarkdown } from './utils.js';
 import { CommandError } from './errors.js';
+import { getAllowedConfluenceSpaces } from './settings.js';
 
 let confluenceClient: ConfluenceClient | null = null;
 
@@ -45,6 +46,7 @@ export interface ConfluencePage {
   title: string;
   content: string;
   space: string;
+  spaceKey?: string;
   author: string;
   lastUpdated: string;
   url: string;
@@ -387,12 +389,22 @@ export async function updatePageContent(url: string, adfContent: any): Promise<v
 export async function searchContent(query: string, limit: number = 20): Promise<ConfluencePage[]> {
   const client = getConfluenceClient();
   
+  // Get allowed spaces from settings
+  const allowedSpaces = getAllowedConfluenceSpaces();
+  let cql = `text ~ "${query}"`;
+  
+  // If not all spaces are allowed, add space filtering to CQL
+  if (allowedSpaces && allowedSpaces.length > 0 && !allowedSpaces.includes('all')) {
+    const spaceFilter = allowedSpaces.map(s => `"${s}"`).join(',');
+    cql += ` AND space in (${spaceFilter})`;
+  }
+
   // Use CQL search to find content
-  // We use text ~ "query" for a full-text search
-  // @ts-ignore - searchContent might be missing in types but exists in API
-  const response = await client.search.searchContent({
-    cql: `text ~ "${query}"`,
+  // @ts-ignore - searchByCQL exists in the API
+  const response = await client.search.searchByCQL({
+    cql,
     limit,
+    expand: ['content.space'],
   });
 
   // @ts-ignore - accessing host to construct full URLs
@@ -407,7 +419,8 @@ export async function searchContent(query: string, limit: number = 20): Promise<
       id: content?.id || '',
       title: content?.title || result.title || 'Untitled',
       content: '', // Search results don't include full content by default
-      space: result.resultGlobalContainer?.title || 'Unknown',
+      space: content?.space?.name || result.resultGlobalContainer?.title || 'Unknown',
+      spaceKey: content?.space?.key,
       lastUpdated: result.lastModified || '',
       url: webui ? `${baseUrl}${webui}` : `${baseUrl}/pages/${content?.id}`,
       author: 'Unknown', // Not easily available in basic search results without further expansion
