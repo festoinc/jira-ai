@@ -293,9 +293,13 @@ export async function confluenceSearchCommand(query: string, options: { limit?: 
     const results = await searchContent(query, limit);
     
     // Filter results based on allowed spaces
-    // Since search results might not have the space key easily available, 
-    // we use the space name for filtering if it matches a key, or just allow it if 'all'
-    const filteredResults = results.filter(result => isConfluenceSpaceAllowed(result.space));
+    // We prefer filtering by spaceKey, falling back to space name if key is missing
+    const filteredResults = results.filter(result => {
+      if (result.spaceKey) {
+        return isConfluenceSpaceAllowed(result.spaceKey);
+      }
+      return isConfluenceSpaceAllowed(result.space);
+    });
 
     ui.succeedSpinner(chalk.green('Confluence search completed'));
     console.log(formatConfluenceSearchResults(filteredResults));

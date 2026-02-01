@@ -301,6 +301,11 @@ export function getAllowedCommands(orgAlias?: string): string[] {
   return settings ? settings['allowed-commands'] : [];
 }
 
+export function getAllowedConfluenceSpaces(orgAlias?: string): string[] {
+  const settings = getEffectiveSettings(orgAlias);
+  return settings ? settings['allowed-confluence-spaces'] : ['all'];
+}
+
 export function applyGlobalFilters(jql: string, orgAlias?: string): string {
   const settings = getEffectiveSettings(orgAlias);
   if (!settings) return jql;
