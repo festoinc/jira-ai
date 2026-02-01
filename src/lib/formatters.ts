@@ -752,3 +752,28 @@ export function formatConfluencePageHierarchy(hierarchy: ConfluencePageHierarchy
   output += renderTree(hierarchy);
   return output;
 }
+
+/**
+ * Format Confluence search results
+ */
+export function formatConfluenceSearchResults(results: ConfluencePage[]): string {
+  if (results.length === 0) {
+    return chalk.yellow('\nNo results found for your search.\n');
+  }
+
+  const table = createTable(['Title', 'Space', 'Last Updated', 'URL'], [40, 20, 22, 50]);
+
+  results.forEach((result) => {
+    table.push([
+      truncate(decode(result.title), 40),
+      truncate(result.space, 20),
+      formatTimestamp(result.lastUpdated),
+      result.url,
+    ]);
+  });
+
+  let output = '\n' + chalk.bold(`Search Results (${results.length} total)`) + '\n\n';
+  output += table.toString() + '\n';
+
+  return output;
+}

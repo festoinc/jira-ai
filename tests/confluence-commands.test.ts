@@ -200,4 +200,68 @@ describe('Confluence Commands', () => {
         .rejects.toThrow("Access to Confluence space 'RESTRICTED' is restricted by your settings.");
     });
   });
+
+  describe('confluenceSearchCommand', () => {
+    it('should search and display results', async () => {
+      const mockResults = [
+        {
+          id: '1',
+          title: 'Found Page',
+          space: 'SPACE',
+          lastUpdated: '2023-01-01T10:00:00.000Z',
+          url: 'https://test.atlassian.net/wiki/spaces/SPACE/pages/1',
+          author: 'Unknown',
+          content: '',
+        },
+      ];
+      // @ts-ignore
+      vi.mocked(confluenceClient.searchContent).mockResolvedValue(mockResults);
+      vi.mocked(settings.isConfluenceSpaceAllowed).mockReturnValue(true);
+
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const { confluenceSearchCommand } = await import('../src/commands/confluence.js');
+      await confluenceSearchCommand('test query');
+
+      expect(ui.startSpinner).toHaveBeenCalledWith(expect.stringContaining('test query'));
+      expect(confluenceClient.searchContent).toHaveBeenCalledWith('test query', 20);
+      expect(ui.succeedSpinner).toHaveBeenCalled();
+      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Found Page'));
+      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('SPACE'));
+    });
+
+    it('should filter results by allowed spaces', async () => {
+      const mockResults = [
+        {
+          id: '1',
+          title: 'Allowed Page',
+          space: 'ALLOWED',
+          lastUpdated: '2023-01-01T10:00:00.000Z',
+          url: 'https://test.atlassian.net/wiki/spaces/ALLOWED/pages/1',
+          author: 'Unknown',
+          content: '',
+        },
+        {
+          id: '2',
+          title: 'Restricted Page',
+          space: 'RESTRICTED',
+          lastUpdated: '2023-01-01T10:00:00.000Z',
+          url: 'https://test.atlassian.net/wiki/spaces/RESTRICTED/pages/2',
+          author: 'Unknown',
+          content: '',
+        },
+      ];
+      // @ts-ignore
+      vi.mocked(confluenceClient.searchContent).mockResolvedValue(mockResults);
+      vi.mocked(settings.isConfluenceSpaceAllowed).mockImplementation((space) => space === 'ALLOWED');
+
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+      const { confluenceSearchCommand } = await import('../src/commands/confluence.js');
+      await confluenceSearchCommand('test query');
+
+      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Allowed Page'));
+      expect(consoleSpy).not.toHaveBeenCalledWith(expect.stringContaining('Restricted Page'));
+    });
+  });
 });
