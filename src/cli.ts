@@ -25,7 +25,8 @@ import {
   confluenceGetSpacePagesHierarchyCommand,
   confluenceAddCommentCommand,
   confluenceCreatePageCommand,
-  confluenceUpdateDescriptionCommand
+  confluenceUpdateDescriptionCommand,
+  confluenceSearchCommand
 } from './commands/confluence.js';
 import { aboutCommand } from './commands/about.js';
 import { authCommand } from './commands/auth.js';
@@ -377,6 +378,18 @@ confl
   .description('Update the content of a Confluence page using a Markdown file.')
   .option('-f, --from-file <path>', 'Path to the markdown file containing the new content.')
   .action(withPermission('confl.update', confluenceUpdateDescriptionCommand, { schema: UpdateDescriptionSchema }));
+
+confl
+  .command('search <query>')
+  .description('Search Confluence content using a search phrase.')
+  .option('-l, --limit <number>', 'Maximum number of results (default: 20)', '20')
+  .action(withPermission('confl.search', confluenceSearchCommand, {
+    validateArgs: (args) => {
+      if (typeof args[0] !== 'string' || args[0].trim() === '') {
+        throw new CliError('Search query cannot be empty');
+      }
+    }
+  }));
 
 
 // About command (always allowed)
