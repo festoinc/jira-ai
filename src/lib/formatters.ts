@@ -761,12 +761,23 @@ export function formatConfluenceSearchResults(results: ConfluencePage[]): string
     return chalk.yellow('\nNo results found for your search.\n');
   }
 
-  const table = createTable(['Title', 'Space', 'Last Updated', 'URL'], [40, 20, 22, 50]);
+  // Calculate dynamic column widths
+  const maxTitleLength = Math.max(5, ...results.map(r => decode(r.title).length));
+  const maxSpaceLength = Math.max(5, ...results.map(r => r.space.length));
+  const maxUrlLength = Math.max(3, ...results.map(r => r.url.length));
+
+  // Prioritize URL column, then space and title
+  const urlWidth = maxUrlLength + 2;
+  const updatedWidth = 22;
+  const spaceWidth = Math.min(20, maxSpaceLength + 2);
+  const titleWidth = Math.min(40, maxTitleLength + 2);
+
+  const table = createTable(['Title', 'Space', 'Last Updated', 'URL'], [titleWidth, spaceWidth, updatedWidth, urlWidth]);
 
   results.forEach((result) => {
     table.push([
-      truncate(decode(result.title), 40),
-      truncate(result.space, 20),
+      truncate(decode(result.title), titleWidth - 2),
+      truncate(result.space, spaceWidth - 2),
       formatTimestamp(result.lastUpdated),
       result.url,
     ]);
