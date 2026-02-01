@@ -2,8 +2,23 @@ import chalk from 'chalk';
 import * as fs from 'fs';
 import * as path from 'path';
 import { markdownToAdf } from 'marklassian';
-import { getPage, getPageComments, parseConfluenceUrl, listSpaces, getSpacePagesHierarchy, addPageComment, createPage, updatePageContent } from '../lib/confluence-client.js';
-import { formatConfluencePage, formatConfluenceSpaces, formatConfluencePageHierarchy } from '../lib/formatters.js';
+import { 
+  getPage, 
+  getPageComments, 
+  parseConfluenceUrl, 
+  listSpaces, 
+  getSpacePagesHierarchy, 
+  addPageComment, 
+  createPage, 
+  updatePageContent,
+  searchContent
+} from '../lib/confluence-client.js';
+import { 
+  formatConfluencePage, 
+  formatConfluenceSpaces, 
+  formatConfluencePageHierarchy,
+  formatConfluenceSearchResults
+} from '../lib/formatters.js';
 import { ui } from '../lib/ui.js';
 import { CommandError } from '../lib/errors.js';
 import { isConfluenceSpaceAllowed } from '../lib/settings.js';
@@ -266,5 +281,36 @@ export async function confluenceUpdateDescriptionCommand(url: string, options: {
     }
 
     throw new CommandError(`Failed to update Confluence page: ${error.message}`, { hints });
+  }
+}
+
+export async function confluenceSearchCommand(query: string, options: { limit?: number } = {}): Promise<void> {
+  const limit = options.limit || 20;
+
+  ui.startSpinner(`Searching Confluence for: "${query}"...`);
+
+  try {
+    const results = await searchContent(query, limit);
+    
+    // Filter results based on allowed spaces
+    // Since search results might not have the space key easily available, 
+    // we use the space name for filtering if it matches a key, or just allow it if 'all'
+    const filteredResults = results.filter(result => isConfluenceSpaceAllowed(result.space));
+
+    ui.succeedSpinner(chalk.green('Confluence search completed'));
+    console.log(formatConfluenceSearchResults(filteredResults));
+  } catch (error: any) {
+    ui.failSpinner();
+    
+    if (error instanceof CommandError) throw error;
+
+    const errorMsg = error.message?.toLowerCase() || '';
+    const hints: string[] = [];
+
+    if (errorMsg.includes('401') || errorMsg.includes('403') || errorMsg.includes('unauthorized')) {
+      hints.push('Authentication failed. Check your credentials with "jira-ai me".');
+    }
+
+    throw new CommandError(`Failed to search Confluence: ${error.message}`, { hints });
   }
 }

@@ -380,3 +380,37 @@ export async function updatePageContent(url: string, adfContent: any): Promise<v
     throw new Error(`Failed to update page content: ${error.message}`);
   }
 }
+
+/**
+ * Search Confluence content using CQL
+ */
+export async function searchContent(query: string, limit: number = 20): Promise<ConfluencePage[]> {
+  const client = getConfluenceClient();
+  
+  // Use CQL search to find content
+  // We use text ~ "query" for a full-text search
+  // @ts-ignore - searchContent might be missing in types but exists in API
+  const response = await client.search.searchContent({
+    cql: `text ~ "${query}"`,
+    limit,
+  });
+
+  // @ts-ignore - accessing host to construct full URLs
+  const host = client.config.host || '';
+  const baseUrl = host.replace(/\/$/, '');
+
+  return (response.results || []).map((result: any) => {
+    const content = result.content;
+    const webui = content?._links?.webui || '';
+    
+    return {
+      id: content?.id || '',
+      title: content?.title || result.title || 'Untitled',
+      content: '', // Search results don't include full content by default
+      space: result.resultGlobalContainer?.title || 'Unknown',
+      lastUpdated: result.lastModified || '',
+      url: webui ? `${baseUrl}${webui}` : `${baseUrl}/pages/${content?.id}`,
+      author: 'Unknown', // Not easily available in basic search results without further expansion
+    };
+  });
+}
