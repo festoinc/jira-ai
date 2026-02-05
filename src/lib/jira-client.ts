@@ -180,6 +180,17 @@ export function setOrganizationOverride(alias: string): void {
 }
 
 /**
+ * Resolve the effective host URL for a set of credentials.
+ * Service accounts must use the Atlassian gateway URL.
+ */
+function resolveHost(creds: { host: string; authType?: string; cloudId?: string }): string {
+  if (creds.authType === 'service_account' && creds.cloudId) {
+    return `https://api.atlassian.com/ex/jira/${creds.cloudId}`;
+  }
+  return creds.host;
+}
+
+/**
  * Get or create Jira client instance
  */
 export function getJiraClient(): Version3Client {
@@ -187,8 +198,9 @@ export function getJiraClient(): Version3Client {
     const alias = getCurrentOrganizationAlias();
     const storedCreds = loadCredentials(alias);
     if (storedCreds) {
+      const host = resolveHost(storedCreds);
       jiraClient = new Version3Client({
-        host: storedCreds.host,
+        host,
         authentication: {
           basic: {
             email: storedCreds.email,
@@ -209,9 +221,15 @@ export function getJiraClient(): Version3Client {
 /**
  * Initialize a temporary Jira client for verification
  */
-export function createTemporaryClient(host: string, email: string, apiToken: string): Version3Client {
+export function createTemporaryClient(
+  host: string,
+  email: string,
+  apiToken: string,
+  options?: { authType?: string; cloudId?: string }
+): Version3Client {
+  const effectiveHost = resolveHost({ host, ...options });
   return new Version3Client({
-    host,
+    host: effectiveHost,
     authentication: {
       basic: {
         email,

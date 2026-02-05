@@ -6,6 +6,8 @@ export interface AuthCredentials {
   host: string;
   email: string;
   apiToken: string;
+  authType?: 'basic' | 'service_account';
+  cloudId?: string;
 }
 
 export interface Config {

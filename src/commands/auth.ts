@@ -12,6 +12,29 @@ interface AuthOptions {
   fromFile?: string;
   alias?: string;
   logout?: boolean;
+  serviceAccount?: boolean;
+  cloudId?: string;
+}
+
+/**
+ * Auto-discover the Atlassian Cloud ID for a given site hostname.
+ */
+async function discoverCloudId(host: string): Promise<string> {
+  const hostname = host.replace(/^https?:\/\//, '').replace(/\/+$/, '');
+  const url = `https://${hostname}/_edge/tenant_info`;
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new CommandError(`Failed to discover Cloud ID from ${url} (HTTP ${response.status}).`, {
+      hints: ['Provide the Cloud ID explicitly with --cloud-id.'],
+    });
+  }
+  const data = (await response.json()) as any;
+  if (!data.cloudId) {
+    throw new CommandError(`No cloudId found in tenant_info response from ${url}.`, {
+      hints: ['Provide the Cloud ID explicitly with --cloud-id.'],
+    });
+  }
+  return data.cloudId as string;
 }
 
 export async function logoutCommand(): Promise<void> {
@@ -40,6 +63,8 @@ export async function authCommand(options: AuthOptions = {}): Promise<void> {
   let host: string = '';
   let email: string = '';
   let apiToken: string = '';
+  let authType: 'basic' | 'service_account' = options.serviceAccount ? 'service_account' : 'basic';
+  let cloudId: string | undefined = options.cloudId;
 
   if (options.fromJson) {
     try {
@@ -69,6 +94,14 @@ export async function authCommand(options: AuthOptions = {}): Promise<void> {
       host = config.JIRA_HOST;
       email = config.JIRA_USER_EMAIL;
       apiToken = config.JIRA_API_TOKEN;
+
+      // Support JIRA_AUTH_TYPE and JIRA_CLOUD_ID from .env
+      if (config.JIRA_AUTH_TYPE === 'service_account') {
+        authType = 'service_account';
+      }
+      if (config.JIRA_CLOUD_ID) {
+        cloudId = config.JIRA_CLOUD_ID;
+      }
 
       if (!host || !email || !apiToken) {
         throw new CommandError('Missing required environment variables in file.', {
@@ -108,22 +141,40 @@ export async function authCommand(options: AuthOptions = {}): Promise<void> {
     rl.close();
   }
 
+  // Auto-discover Cloud ID for service accounts if not provided
+  if (authType === 'service_account' && !cloudId) {
+    ui.startSpinner('Discovering Cloud ID...');
+    try {
+      cloudId = await discoverCloudId(host);
+      ui.succeedSpinner(chalk.green(`Discovered Cloud ID: ${cloudId}`));
+    } catch (error: any) {
+      ui.failSpinner('Failed to discover Cloud ID');
+      throw error;
+    }
+  }
+
   ui.startSpinner('Verifying credentials...');
 
   try {
-    const tempClient = createTemporaryClient(host, email, apiToken);
+    const tempClient = createTemporaryClient(host, email, apiToken, { authType, cloudId });
     const user = await tempClient.myself.getCurrentUser();
 
     ui.succeedSpinner(chalk.green('Authentication successful!'));
     console.log(chalk.blue(`\nWelcome, ${user.displayName} (${user.emailAddress})`));
+    if (authType === 'service_account') {
+      console.log(chalk.gray(`Auth type: service_account (via api.atlassian.com gateway)`));
+    }
 
-    saveCredentials({ host, email, apiToken }, options.alias);
+    saveCredentials({ host, email, apiToken, authType, cloudId }, options.alias);
     console.log(chalk.green('\nCredentials saved successfully to ~/.jira-ai/config.json'));
     console.log(chalk.gray('These credentials will be used for future commands on this machine.'));
   } catch (error: any) {
     const hints: string[] = [];
     if (error.response && error.response.status === 401) {
       hints.push('Check if your email and API token are correct.');
+    }
+    if (authType === 'service_account') {
+      hints.push('Service accounts require the api.atlassian.com gateway. Verify your Cloud ID is correct.');
     }
     throw new CommandError(`Authentication failed: ${error.message}`, { hints });
   }

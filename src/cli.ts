@@ -133,6 +133,8 @@ program
   .option('--from-file <path>', 'Accepts a path to a file (typically .env) with credentials')
   .option('--alias <alias>', 'Alias for this organization')
   .option('--logout', 'Logout from all organizations')
+  .option('--service-account', 'Use Atlassian service account auth via api.atlassian.com gateway')
+  .option('--cloud-id <id>', 'Atlassian Cloud ID (auto-discovered if not provided)')
   .action((options) => authCommand(options))
   .command('logout')
   .description('Logout from all organizations')
