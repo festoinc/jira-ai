@@ -62,6 +62,57 @@ See all available commands:
 jira-ai --help
 ```
 
+## Service Account Authentication
+
+Atlassian service accounts use scoped API tokens that must authenticate through the `api.atlassian.com` gateway rather than direct site URLs.
+
+### Using a `.env` file
+
+Create a `.env` file with your service account credentials:
+
+```env
+JIRA_HOST=your-domain.atlassian.net
+JIRA_USER_EMAIL=your-bot@serviceaccount.atlassian.com
+JIRA_API_TOKEN=your-service-account-api-token
+JIRA_AUTH_TYPE=service_account
+```
+
+Then authenticate:
+
+```bash
+jira-ai auth --from-file path/to/.env
+```
+
+The Cloud ID will be auto-discovered from your site URL. To provide it explicitly:
+
+```env
+JIRA_CLOUD_ID=your-cloud-id
+```
+
+### Using CLI flags
+
+```bash
+jira-ai auth --service-account
+```
+
+Or with an explicit Cloud ID:
+
+```bash
+jira-ai auth --service-account --cloud-id your-cloud-id
+```
+
+### How it works
+
+Standard Jira API tokens authenticate directly against `your-domain.atlassian.net`. Service account tokens are scoped and must route through the Atlassian API gateway at `api.atlassian.com/ex/jira/{cloudId}/...`.
+
+When `authType` is set to `service_account`, jira-ai automatically:
+
+1. Discovers your Cloud ID from `https://your-domain.atlassian.net/_edge/tenant_info` (if not provided)
+2. Routes all API requests through `https://api.atlassian.com/ex/jira/{cloudId}` instead of the direct site URL
+3. Uses the same basic auth (email + API token) — just through the gateway
+
+Existing configurations using standard API tokens are unaffected.
+
 ## Configuration & Restrictions
 
 Tool allows you to have very complex configutations of what Projects/Jira commands/Issue types you would have acess to thought the tool.
