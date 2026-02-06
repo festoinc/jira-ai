@@ -977,5 +977,95 @@ describe('Jira Client', () => {
       expect(client).toBeDefined();
       expect(Version3Client).toHaveBeenCalled();
     });
+
+    it('should use normal host for basic authType', () => {
+      createTemporaryClient('https://temp.atlassian.net', 'temp@example.com', 'temp-token', {
+        authType: 'basic',
+        cloudId: undefined
+      });
+      expect(Version3Client).toHaveBeenCalledWith(
+        expect.objectContaining({ host: 'https://temp.atlassian.net' })
+      );
+    });
+
+    it('should use gateway URL for service_account authType with cloudId', () => {
+      createTemporaryClient('https://temp.atlassian.net', 'bot@example.com', 'bot-token', {
+        authType: 'service_account',
+        cloudId: 'cloud-abc-123'
+      });
+      expect(Version3Client).toHaveBeenCalledWith(
+        expect.objectContaining({ host: 'https://api.atlassian.com/ex/jira/cloud-abc-123' })
+      );
+    });
+
+    it('should use normal host for service_account without cloudId', () => {
+      createTemporaryClient('https://temp.atlassian.net', 'bot@example.com', 'bot-token', {
+        authType: 'service_account'
+      });
+      expect(Version3Client).toHaveBeenCalledWith(
+        expect.objectContaining({ host: 'https://temp.atlassian.net' })
+      );
+    });
+  });
+
+  describe('getJiraClient with service account credentials', () => {
+    beforeEach(() => {
+      setOrganizationOverride(undefined as any);
+    });
+
+    afterEach(() => {
+      setOrganizationOverride(undefined as any);
+    });
+
+    it('should use gateway URL when stored credentials have service_account authType', () => {
+      vi.mocked(authStorage.loadCredentials).mockReturnValue({
+        host: 'https://mycompany.atlassian.net',
+        email: 'bot@example.com',
+        apiToken: 'bot-token',
+        authType: 'service_account',
+        cloudId: 'stored-cloud-id'
+      });
+
+      getJiraClient();
+
+      expect(Version3Client).toHaveBeenCalledWith(
+        expect.objectContaining({
+          host: 'https://api.atlassian.com/ex/jira/stored-cloud-id'
+        })
+      );
+    });
+
+    it('should use normal host when stored credentials have basic authType', () => {
+      vi.mocked(authStorage.loadCredentials).mockReturnValue({
+        host: 'https://mycompany.atlassian.net',
+        email: 'user@example.com',
+        apiToken: 'user-token',
+        authType: 'basic'
+      });
+
+      getJiraClient();
+
+      expect(Version3Client).toHaveBeenCalledWith(
+        expect.objectContaining({
+          host: 'https://mycompany.atlassian.net'
+        })
+      );
+    });
+
+    it('should use normal host when stored credentials have no authType', () => {
+      vi.mocked(authStorage.loadCredentials).mockReturnValue({
+        host: 'https://mycompany.atlassian.net',
+        email: 'user@example.com',
+        apiToken: 'user-token'
+      });
+
+      getJiraClient();
+
+      expect(Version3Client).toHaveBeenCalledWith(
+        expect.objectContaining({
+          host: 'https://mycompany.atlassian.net'
+        })
+      );
+    });
   });
 });
