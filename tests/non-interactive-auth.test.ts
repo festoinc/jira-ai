@@ -64,12 +64,15 @@ describe('authCommand non-interactive', () => {
     expect(jiraClient.createTemporaryClient).toHaveBeenCalledWith(
       'https://test.atlassian.net',
       'test@example.com',
-      'test-token'
+      'test-token',
+      { authType: 'basic', cloudId: undefined }
     );
     expect(authStorage.saveCredentials).toHaveBeenCalledWith({
       host: 'https://test.atlassian.net',
       email: 'test@example.com',
-      apiToken: 'test-token'
+      apiToken: 'test-token',
+      authType: 'basic',
+      cloudId: undefined
     }, undefined);
     expect(mockSpinner.succeed).toHaveBeenCalled();
   });
@@ -95,12 +98,15 @@ JIRA_API_TOKEN=file-token
     expect(jiraClient.createTemporaryClient).toHaveBeenCalledWith(
       'https://file.atlassian.net',
       'file@example.com',
-      'file-token'
+      'file-token',
+      { authType: 'basic', cloudId: undefined }
     );
     expect(authStorage.saveCredentials).toHaveBeenCalledWith({
       host: 'https://file.atlassian.net',
       email: 'file@example.com',
-      apiToken: 'file-token'
+      apiToken: 'file-token',
+      authType: 'basic',
+      cloudId: undefined
     }, undefined);
   });
 
