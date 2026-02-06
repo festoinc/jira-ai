@@ -57,7 +57,8 @@ describe('authCommand interactive', () => {
     expect(jiraClient.createTemporaryClient).toHaveBeenCalledWith(
       'https://test.atlassian.net',
       'test@example.com',
-      'test-token'
+      'test-token',
+      { authType: 'basic', cloudId: undefined }
     );
     expect(authStorage.saveCredentials).toHaveBeenCalled();
     expect(rlMock.close).toHaveBeenCalled();
@@ -134,7 +135,8 @@ describe('authCommand interactive', () => {
     expect(jiraClient.createTemporaryClient).toHaveBeenCalledWith(
       'https://test.atlassian.net',
       'test@example.com',
-      'test-token'
+      'test-token',
+      { authType: 'basic', cloudId: undefined }
     );
   });
 
