@@ -11,7 +11,8 @@ An AI-friendly CLI for Jira that prioritizes efficiency and security.
 2.  **Bullet-proof Security:** Restrict AI to only the actions you permit, ensuring your environment remains secure. 
 
 ## Start
-[Quick walk through video](https://www.loom.com/share/defb69de020e413aa8c33eda0671c29f)
+- **Human:** [Quick walk through video](https://www.loom.com/share/defb69de020e413aa8c33eda0671c29f)
+- **AI Agent:** [Project overview and commands](https://raw.githubusercontent.com/festoinc/jira-ai/main/SKILL.md)
 
 ## Installation
 
