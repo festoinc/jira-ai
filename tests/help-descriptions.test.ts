@@ -7,12 +7,6 @@ describe('CLI Help Descriptions', () => {
     expect(cmd?.description()).toBe('Set up Jira authentication credentials. Supports interactive input, raw JSON string via --from-json, or .env file via --from-file.');
   });
 
-  it('should have updated description for org list command', () => {
-    const orgCmd = program.commands.find(c => c.name() === 'org');
-    const listCmd = orgCmd?.commands.find(c => c.name() === 'list');
-    expect(listCmd?.description()).toBe('List all saved Jira organization profiles.');
-  });
-
   it('should have updated description for user me command', () => {
     const userCmd = program.commands.find(c => c.name() === 'user');
     const meCmd = userCmd?.commands.find(c => c.name() === 'me');

@@ -19,6 +19,7 @@ import { transitionCommand } from './commands/transition.js';
 import { issueAssignCommand } from './commands/issue.js';
 import { getIssueStatisticsCommand } from './commands/get-issue-statistics.js';
 import { getPersonWorklogCommand } from './commands/get-person-worklog.js';
+import { isCommandAllowed, getAllowedCommands } from './lib/settings.js';
 import {
   confluenceGetPageCommand,
   confluenceListSpacesCommand,
@@ -31,13 +32,6 @@ import {
 import { aboutCommand } from './commands/about.js';
 import { authCommand } from './commands/auth.js';
 import { settingsCommand } from './commands/settings.js';
-import {
-  listOrganizations,
-  useOrganizationCommand,
-  removeOrganizationCommand
-} from './commands/organization.js';
-import { isCommandAllowed, getAllowedCommands } from './lib/settings.js';
-import { setOrganizationOverride } from './lib/jira-client.js';
 import { hasCredentials } from './lib/auth-storage.js';
 import { checkForUpdate, formatUpdateMessage, checkForUpdateSync } from './lib/update-check.js';
 import { CliError } from './types/errors.js';
@@ -65,7 +59,6 @@ program
   .name('jira-ai')
   .description('CLI tool for interacting with Atlassian Jira')
   .version(getVersion())
-  .option('-o, --organization <alias>', 'Override the active Jira organization')
   .addHelpText('after', () => {
     const latestVersion = checkForUpdateSync();
     if (latestVersion) {
@@ -73,11 +66,6 @@ program
     }
     return '';
   });
-
-// Hook to handle the global option before any command runs
-program.on('option:organization', (alias) => {
-  setOrganizationOverride(alias);
-});
 
 // Middleware to validate credentials for commands that need them
 const validateCredentials = () => {
@@ -131,7 +119,6 @@ program
   .description('Set up Jira authentication credentials. Supports interactive input, raw JSON string via --from-json, or .env file via --from-file.')
   .option('--from-json <json_string>', 'Accepts a raw JSON string with credentials')
   .option('--from-file <path>', 'Accepts a path to a file (typically .env) with credentials')
-  .option('--alias <alias>', 'Alias for this organization')
   .option('--logout', 'Logout from all organizations')
   .option('--service-account', 'Use Atlassian service account auth via api.atlassian.com gateway')
   .option('--cloud-id <id>', 'Atlassian Cloud ID (auto-discovered if not provided)')
@@ -311,35 +298,6 @@ user
   }));
 
 // =============================================================================
-// ORGANIZATION COMMANDS
-// =============================================================================
-const org = program
-  .command('org')
-  .alias('organization')
-  .description('Manage Jira organization profiles');
-
-org
-  .command('list')
-  .description('List all saved Jira organization profiles.')
-  .action(() => listOrganizations());
-
-org
-  .command('use <alias>')
-  .description('Switch the active Jira organization profile.')
-  .action((alias) => useOrganizationCommand(alias));
-
-org
-  .command('remove <alias>')
-  .description('Delete credentials for the specified organization.')
-  .action((alias) => removeOrganizationCommand(alias));
-
-org
-  .command('add <alias>')
-  .description('Add a new Jira organization profile.')
-  .action((alias) => authCommand({ alias }));
-
-
-// =============================================================================
 // CONFLUENCE COMMANDS
 // =============================================================================
 const confl = program
@@ -423,34 +381,18 @@ Settings File Structure:
     allowed-confluence-spaces:
       - all                     # Allow all Confluence spaces
 
-  organizations:
-    work:
-      allowed-jira-projects:
-        - PROJ                  # Allow specific project
-        - key: PM               # Project-specific config
-          commands:
-            - issue.get         # Only allow reading issues
-          filters:
-            participated:
-              was_assignee: true
-      allowed-commands:
-        - issue                 # All issue commands
-        - project.list          # Only project list
-        - user.me               # Only user me
-      allowed-confluence-spaces:
-        - DOCS
-
 Command Groups (use in allowed-commands):
   issue       - get, create, search, transition, update, comment, stats, assign, label
   project     - list, statuses, types
   user        - me, search, worklog
-  org         - list, use, add, remove
   confl       - get, spaces, pages, create, comment, update
 
 Examples:
   - "issue"           → allows all issue subcommands
   - "issue.get"       → allows only issue get
   - "issue.label"     → allows issue label add and remove
+  - "project.list"    → allows only project list
+  - "user.me"         → allows only user me
 `)
   .action((options) => settingsCommand(options));
 

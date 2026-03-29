@@ -57,11 +57,10 @@ commands:
       expect(settings.defaults?.['allowed-jira-projects']).toEqual(['all']);
       // New hierarchical command structure
       expect(settings.defaults?.['allowed-commands']).toEqual([
-        'issue',      // All issue commands
-        'project',    // All project commands
-        'user',       // All user commands
-        'org',        // Organization management
-        'confl'       // Confluence commands
+        'issue',
+        'project',
+        'user',
+        'confl'
       ]);
       // Should create default settings file
       expect(mockFs.writeFileSync).toHaveBeenCalledWith(
@@ -90,7 +89,6 @@ commands:
         'issue',
         'project',
         'user',
-        'org',
         'confl'
       ]);
     });

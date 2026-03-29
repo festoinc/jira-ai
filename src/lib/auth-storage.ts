@@ -11,58 +11,38 @@ export interface AuthCredentials {
 }
 
 export interface Config {
-  current?: string;
-  organizations: Record<string, AuthCredentials>;
+  host?: string;
+  email?: string;
+  apiToken?: string;
+  authType?: 'basic' | 'service_account';
+  cloudId?: string;
 }
 
 const CONFIG_DIR = path.join(os.homedir(), '.jira-ai');
 const CONFIG_FILE = path.join(CONFIG_DIR, 'config.json');
 
-/**
- * Extract default alias from Jira host
- */
-export function extractAliasFromHost(host: string): string {
-  try {
-    const url = new URL(host.startsWith('http') ? host : `https://${host}`);
-    const hostname = url.hostname;
-    const parts = hostname.split('.');
-    // For xxxx.atlassian.net
-    if (parts.length >= 3 && parts[parts.length - 1] === 'net' && parts[parts.length - 2] === 'atlassian') {
-      return parts[0];
-    }
-    return hostname;
-  } catch {
-    return host.replace(/https?:\/\//, '').split(/[./]/)[0] || 'default';
-  }
-}
-
 function loadConfig(): Config {
   if (!fs.existsSync(CONFIG_FILE)) {
-    return { organizations: {} };
+    return {};
   }
 
   try {
     const data = fs.readFileSync(CONFIG_FILE, 'utf8');
     const parsed = JSON.parse(data);
 
-    // Migration logic for old format
     if (parsed.host && parsed.email && parsed.apiToken) {
-      const alias = extractAliasFromHost(parsed.host);
       return {
-        current: alias,
-        organizations: {
-          [alias]: {
-            host: parsed.host,
-            email: parsed.email,
-            apiToken: parsed.apiToken,
-          },
-        },
+        host: parsed.host,
+        email: parsed.email,
+        apiToken: parsed.apiToken,
+        authType: parsed.authType,
+        cloudId: parsed.cloudId,
       };
     }
 
     return parsed as Config;
-  } catch (error) {
-    return { organizations: {} };
+  } catch {
+    return {};
   }
 }
 
@@ -72,138 +52,43 @@ function saveConfig(config: Config): void {
   }
 
   fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2), {
-    mode: 0o600, // Read/write for owner only
+    mode: 0o600,
   });
 }
 
-/**
- * Save credentials to local storage
- */
-export function saveCredentials(creds: AuthCredentials, alias?: string): void {
-  const config = loadConfig();
-  const effectiveAlias = alias || extractAliasFromHost(creds.host);
-  
-  config.organizations[effectiveAlias] = creds;
-  if (!config.current) {
-    config.current = effectiveAlias;
-  }
-  
-  saveConfig(config);
+export function saveCredentials(creds: AuthCredentials): void {
+  saveConfig({
+    host: creds.host,
+    email: creds.email,
+    apiToken: creds.apiToken,
+    authType: creds.authType,
+    cloudId: creds.cloudId,
+  });
 }
 
-/**
- * Load credentials from local storage
- */
-export function loadCredentials(alias?: string): AuthCredentials | null {
+export function loadCredentials(): AuthCredentials | null {
   const config = loadConfig();
-  const targetAlias = alias || config.current;
-  
-  if (!targetAlias || !config.organizations[targetAlias]) {
-    return null;
+
+  if (config.host && config.email && config.apiToken) {
+    return {
+      host: config.host,
+      email: config.email,
+      apiToken: config.apiToken,
+      authType: config.authType,
+      cloudId: config.cloudId,
+    };
   }
-  
-  return config.organizations[targetAlias];
+
+  return null;
 }
 
-/**
- * Check if credentials exist
- */
 export function hasCredentials(): boolean {
   const config = loadConfig();
-  return Object.keys(config.organizations).length > 0;
+  return !!(config.host && config.email && config.apiToken);
 }
 
-/**
- * Clear stored credentials
- */
 export function clearCredentials(): void {
   if (fs.existsSync(CONFIG_FILE)) {
     fs.unlinkSync(CONFIG_FILE);
   }
-}
-
-/**
- * Save organization credentials
- */
-export function saveOrganization(alias: string, creds: AuthCredentials): void {
-  saveCredentials(creds, alias);
-}
-
-/**
- * Switch the active organization
- */
-export function useOrganization(alias: string): void {
-  const config = loadConfig();
-  if (!config.organizations[alias]) {
-    throw new Error(`Organization "${alias}" not found.`);
-  }
-  config.current = alias;
-  saveConfig(config);
-}
-
-/**
- * Alias for useOrganization to match test expectations
- */
-export function setCurrentOrganization(alias: string): void {
-  useOrganization(alias);
-}
-
-/**
- * Remove an organization's credentials
- */
-export function removeOrganization(alias: string): void {
-  const config = loadConfig();
-  if (config.organizations[alias]) {
-    delete config.organizations[alias];
-    if (config.current === alias) {
-      config.current = Object.keys(config.organizations)[0];
-    }
-    saveConfig(config);
-  }
-}
-
-/**
- * Get all saved organizations
- */
-export function getOrganizations(): Record<string, AuthCredentials> {
-  const config = loadConfig();
-  return config.organizations;
-}
-
-let organizationOverride: string | undefined = undefined;
-
-
-
-/**
-
- * Set a global organization override for the current execution
-
- */
-
-export function setOrganizationOverride(alias: string): void {
-
-  organizationOverride = alias;
-
-}
-
-
-
-/**
-
- * Get the currently active organization alias, respecting override
-
- */
-
-export function getCurrentOrganizationAlias(): string | undefined {
-
-  if (organizationOverride) {
-
-    return organizationOverride;
-
-  }
-
-  const config = loadConfig();
-
-  return config.current;
-
 }

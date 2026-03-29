@@ -165,7 +165,7 @@ export async function authCommand(options: AuthOptions = {}): Promise<void> {
       console.log(chalk.gray(`Auth type: service_account (via api.atlassian.com gateway)`));
     }
 
-    saveCredentials({ host, email, apiToken, authType, cloudId }, options.alias);
+    saveCredentials({ host, email, apiToken, authType, cloudId });
     console.log(chalk.green('\nCredentials saved successfully to ~/.jira-ai/config.json'));
     console.log(chalk.gray('These credentials will be used for future commands on this machine.'));
   } catch (error: any) {

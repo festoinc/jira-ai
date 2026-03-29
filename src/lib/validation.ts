@@ -119,11 +119,10 @@ export const HierarchicalCommandSchema = z.string().regex(
 
 // Default allowed commands using hierarchical structure
 const DEFAULT_ALLOWED_COMMANDS = [
-  'issue',    // All issue commands
-  'project',  // All project commands
-  'user',     // All user commands
-  'org',      // Organization management
-  'confl'     // Confluence commands
+  'issue',
+  'project',
+  'user',
+  'confl'
 ];
 
 export const ProjectConfigSchema = z.object({
@@ -145,8 +144,6 @@ export const OrganizationSettingsSchema = z.object({
 
 export const SettingsSchema = z.object({
   defaults: OrganizationSettingsSchema.optional(),
-  organizations: z.record(z.string(), OrganizationSettingsSchema).optional(),
-  // Keep legacy fields for migration
   projects: z.array(ProjectSettingSchema).optional(),
   commands: z.array(z.string()).optional(),
 });

@@ -1,6 +1,6 @@
 import { Version3Client } from 'jira.js';
 import { calculateStatusStatistics, convertADFToMarkdown } from './utils.js';
-import { loadCredentials, getCurrentOrganizationAlias, setOrganizationOverride as setAuthOrgOverride } from './auth-storage.js';
+import { loadCredentials } from './auth-storage.js';
 import { 
   applyGlobalFilters, 
   isProjectAllowed, 
@@ -171,18 +171,6 @@ export interface IssueType {
 
 let jiraClient: Version3Client | null = null;
 
-/**
- * Set a global organization override for the current execution
- */
-export function setOrganizationOverride(alias: string): void {
-  setAuthOrgOverride(alias);
-  jiraClient = null; // Force client recreation
-}
-
-/**
- * Resolve the effective host URL for a set of credentials.
- * Service accounts must use the Atlassian gateway URL.
- */
 function resolveHost(creds: { host: string; authType?: string; cloudId?: string }): string {
   if (creds.authType === 'service_account' && creds.cloudId) {
     return `https://api.atlassian.com/ex/jira/${creds.cloudId}`;
@@ -190,13 +178,9 @@ function resolveHost(creds: { host: string; authType?: string; cloudId?: string 
   return creds.host;
 }
 
-/**
- * Get or create Jira client instance
- */
 export function getJiraClient(): Version3Client {
   if (!jiraClient) {
-    const alias = getCurrentOrganizationAlias();
-    const storedCreds = loadCredentials(alias);
+    const storedCreds = loadCredentials();
     if (storedCreds) {
       const host = resolveHost(storedCreds);
       jiraClient = new Version3Client({
@@ -209,10 +193,7 @@ export function getJiraClient(): Version3Client {
         },
       });
     } else {
-      const errorMsg = alias 
-        ? `Jira credentials for organization "${alias}" not found.`
-        : 'Jira credentials not found. Please run "jira-ai auth"';
-      throw new Error(errorMsg);
+      throw new Error('Jira credentials not found. Please run "jira-ai auth"');
     }
   }
   return jiraClient;
@@ -819,6 +800,13 @@ const userCache = new Map<string, string | null>();
  */
 export function clearUserCache(): void {
   userCache.clear();
+}
+
+/**
+ * Reset the cached Jira client (primarily for testing)
+ */
+export function __resetJiraClient__(): void {
+  jiraClient = null;
 }
 
 /**

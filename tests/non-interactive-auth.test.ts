@@ -73,7 +73,7 @@ describe('authCommand non-interactive', () => {
       apiToken: 'test-token',
       authType: 'basic',
       cloudId: undefined
-    }, undefined);
+    });
     expect(mockSpinner.succeed).toHaveBeenCalled();
   });
 
@@ -107,7 +107,7 @@ JIRA_API_TOKEN=file-token
       apiToken: 'file-token',
       authType: 'basic',
       cloudId: undefined
-    }, undefined);
+    });
   });
 
   it('should fail when --from-json has invalid JSON', async () => {
