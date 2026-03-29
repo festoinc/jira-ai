@@ -50,7 +50,4 @@ jira-ai settings --help
 - `confl create <space> <title>`: Create a new page.
 - `confl update <url>`: Update page content from Markdown.
 
-### Organization Management
-- `org list/use/add/remove`: Manage multiple Jira organization profiles.
-
 For a full list of commands, refer to the [Available Commands](https://github.com/festoinc/jira-ai/blob/main/all_avaliable_commands.md) documentation.

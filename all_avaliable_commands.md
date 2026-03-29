@@ -39,15 +39,6 @@
 | `user search [project-key]` | Search and list users within the organization or a specific project. |
 | `user worklog <person> <timeframe>` | Retrieve worklogs for a user over a timeframe (e.g., `7d`, `2w`). |
 
-## Organization Commands (`org`)
-
-| Command | Description |
-| :--- | :--- |
-| `org list` | List all saved Jira organization profiles. |
-| `org use <alias>` | Switch the active Jira organization profile. |
-| `org add <alias>` | Add a new Jira organization profile. |
-| `org remove <alias>` | Delete credentials for the specified organization. |
-
 ## Confluence Commands (`confl`)
 
 | Command | Description |
