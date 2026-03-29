@@ -1071,8 +1071,9 @@ export async function updateEpic(
 
   if (opts.name && epicFields) {
     fields[epicFields.epicNameField] = opts.name;
-  } else if (opts.name && !epicFields) {
-    // For next-gen projects, the epic name is the summary
+  } else if (opts.name && !epicFields && !opts.summary) {
+    // For next-gen projects, the epic name is the summary.
+    // Only fall back to name when no explicit summary was provided.
     fields.summary = opts.name;
   }
 
