@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import Table from 'cli-table3';
 import { decode } from 'html-entities';
-import { UserInfo, Project, TaskDetails, Status, JqlIssue, IssueType, IssueStatistics, HistoryEntry, WorklogWithIssue, Epic, EpicDetails, EpicProgress } from './jira-client.js';
+import { UserInfo, Project, TaskDetails, Status, JqlIssue, IssueType, IssueStatistics, HistoryEntry, WorklogWithIssue, Epic, EpicDetails, EpicProgress, IssueLink, IssueLinkType } from './jira-client.js';
 import { ConfluencePage, ConfluenceComment, ConfluenceSpace, ConfluencePageHierarchy } from './confluence-client.js';
 import { formatTimestamp, truncate, formatDuration } from './utils.js';
 import { Settings, ProjectSetting } from './settings.js';
@@ -908,4 +908,66 @@ export function formatEpicIssues(issues: JqlIssue[]): string {
   let output = '\n' + chalk.bold(`Issues (${issues.length} total)`) + '\n\n';
   output += table.toString() + '\n';
   return output;
+}
+
+export function formatIssueLinks(issueKey: string, links: IssueLink[]): string {
+  if (links.length === 0) {
+    return `\nNo links found for ${issueKey}.\n`;
+  }
+
+  const table = new Table({
+    head: [
+      chalk.cyan('Direction'),
+      chalk.cyan('Type'),
+      chalk.cyan('Issue Key'),
+      chalk.cyan('Summary'),
+      chalk.cyan('Status'),
+    ],
+    style: { head: [], border: [] },
+  });
+
+  for (const link of links) {
+    if (link.outwardIssue) {
+      table.push([
+        chalk.green('→ outward'),
+        link.type.outward,
+        chalk.bold(link.outwardIssue.key),
+        link.outwardIssue.summary,
+        link.outwardIssue.status.name,
+      ]);
+    }
+    if (link.inwardIssue) {
+      table.push([
+        chalk.yellow('← inward'),
+        link.type.inward,
+        chalk.bold(link.inwardIssue.key),
+        link.inwardIssue.summary,
+        link.inwardIssue.status.name,
+      ]);
+    }
+  }
+
+  return '\n' + chalk.bold(`Issue Links for ${issueKey} (${links.length} total)`) + '\n\n' + table.toString() + '\n';
+}
+
+export function formatLinkTypes(linkTypes: IssueLinkType[]): string {
+  if (linkTypes.length === 0) {
+    return '\nNo link types found.\n';
+  }
+
+  const table = new Table({
+    head: [
+      chalk.cyan('ID'),
+      chalk.cyan('Name'),
+      chalk.cyan('Inward'),
+      chalk.cyan('Outward'),
+    ],
+    style: { head: [], border: [] },
+  });
+
+  for (const lt of linkTypes) {
+    table.push([lt.id, chalk.bold(lt.name), lt.inward, lt.outward]);
+  }
+
+  return '\n' + chalk.bold(`Available Link Types (${linkTypes.length} total)`) + '\n\n' + table.toString() + '\n';
 }

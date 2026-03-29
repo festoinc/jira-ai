@@ -1,0 +1,34 @@
+import chalk from 'chalk';
+import { getIssueLinks, validateIssuePermissions } from '../lib/jira-client.js';
+import { formatIssueLinks } from '../lib/formatters.js';
+import { CommandError } from '../lib/errors.js';
+import { ui } from '../lib/ui.js';
+import { validateOptions, IssueKeySchema } from '../lib/validation.js';
+
+export async function listIssueLinksCommand(issueKey: string): Promise<void> {
+  validateOptions(IssueKeySchema, issueKey);
+
+  ui.startSpinner(`Validating permissions for ${issueKey}...`);
+  await validateIssuePermissions(issueKey, 'issue.link.list');
+
+  ui.startSpinner(`Fetching issue links for ${issueKey}...`);
+
+  try {
+    const links = await getIssueLinks(issueKey);
+    ui.succeedSpinner(chalk.green(`Issue links retrieved for ${issueKey}`));
+    console.log(formatIssueLinks(issueKey, links));
+  } catch (error: any) {
+    if (error instanceof CommandError) throw error;
+
+    const errorMsg = error.message?.toLowerCase() || '';
+    const hints: string[] = [];
+
+    if (errorMsg.includes('404')) {
+      hints.push('Check that the issue key is correct');
+    } else if (errorMsg.includes('403')) {
+      hints.push('You may not have permission to view links for this issue');
+    }
+
+    throw new CommandError(`Failed to list issue links: ${error.message}`, { hints });
+  }
+}
