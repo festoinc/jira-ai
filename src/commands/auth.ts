@@ -10,7 +10,6 @@ import { ui } from '../lib/ui.js';
 interface AuthOptions {
   fromJson?: string;
   fromFile?: string;
-  alias?: string;
   logout?: boolean;
   serviceAccount?: boolean;
   cloudId?: string;
@@ -39,7 +38,7 @@ async function discoverCloudId(host: string): Promise<string> {
 
 export async function logoutCommand(): Promise<void> {
   clearCredentials();
-  console.log(chalk.green('Successfully logged out from all organizations. Authentication credentials cleared.'));
+  console.log(chalk.green('Successfully logged out. Authentication credentials cleared.'));
 }
 
 export async function authCommand(options: AuthOptions = {}): Promise<void> {

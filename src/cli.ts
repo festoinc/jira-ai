@@ -119,12 +119,12 @@ program
   .description('Set up Jira authentication credentials. Supports interactive input, raw JSON string via --from-json, or .env file via --from-file.')
   .option('--from-json <json_string>', 'Accepts a raw JSON string with credentials')
   .option('--from-file <path>', 'Accepts a path to a file (typically .env) with credentials')
-  .option('--logout', 'Logout from all organizations')
+  .option('--logout', 'Logout from Jira')
   .option('--service-account', 'Use Atlassian service account auth via api.atlassian.com gateway')
   .option('--cloud-id <id>', 'Atlassian Cloud ID (auto-discovered if not provided)')
   .action((options) => authCommand(options))
   .command('logout')
-  .description('Logout from all organizations')
+  .description('Logout from Jira')
   .action(() => authCommand({ logout: true }));
 
 // =============================================================================
