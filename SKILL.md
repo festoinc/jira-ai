@@ -45,6 +45,16 @@ jira-ai settings --help
 - `user search [project-key]`: Find users.
 - `user worklog <user> <timeframe>`: Get worklogs.
 
+### Epics
+- `epic list <project-key>`: List epics in a project (`--done` to include completed, `--max <n>` to limit).
+- `epic get <epic-key>`: Get full epic details.
+- `epic create <project-key>`: Create a new epic (`--name`, `--summary` required; `--description`, `--labels` optional).
+- `epic update <epic-key>`: Update epic name and/or summary.
+- `epic issues <epic-key>`: List issues belonging to an epic (`--max <n>` to limit).
+- `epic link <issue-key>`: Link an issue to an epic (`--epic <epic-key>`).
+- `epic unlink <issue-key>`: Remove an issue from its epic.
+- `epic progress <epic-key>`: Show epic completion progress with visual bar.
+
 ### Confluence
 - `confl get <url>`: Retrieve Confluence page content.
 - `confl create <space> <title>`: Create a new page.

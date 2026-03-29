@@ -477,6 +477,7 @@ Command Groups (use in allowed-commands):
   issue       - get, create, search, transition, update, comment, stats, assign, label
   project     - list, statuses, types
   user        - me, search, worklog
+  epic        - list, get, create, update, issues, link, unlink, progress
   confl       - get, spaces, pages, create, comment, update
 
 Examples:

@@ -39,6 +39,19 @@
 | `user search [project-key]` | Search and list users within the organization or a specific project. |
 | `user worklog <person> <timeframe>` | Retrieve worklogs for a user over a timeframe (e.g., `7d`, `2w`). |
 
+## Epic Commands (`epic`)
+
+| Command | Description |
+| :--- | :--- |
+| `epic list <project-key>` | List epics in a project. Use `--done` to include completed epics, `--max <n>` to limit results (default 50). |
+| `epic get <epic-key>` | Get full details of a single epic including description, assignee, and labels. |
+| `epic create <project-key>` | Create a new epic. Requires `--name <name>` and `--summary <text>`. Optional: `--description <text>`, `--labels <labels>`. |
+| `epic update <epic-key>` | Update an epic's name and/or summary. Use `--name <name>` and/or `--summary <text>`. |
+| `epic issues <epic-key>` | List all issues belonging to an epic. Use `--max <n>` to limit results (default 50). |
+| `epic link <issue-key>` | Link an existing issue to an epic. Requires `--epic <epic-key>`. |
+| `epic unlink <issue-key>` | Remove an issue from its epic. |
+| `epic progress <epic-key>` | Show epic completion progress with issue counts and story points, including a visual progress bar. |
+
 ## Confluence Commands (`confl`)
 
 | Command | Description |
