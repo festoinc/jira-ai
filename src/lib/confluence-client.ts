@@ -1,26 +1,14 @@
 import { ConfluenceClient } from 'confluence.js';
-import { loadCredentials, getCurrentOrganizationAlias, setOrganizationOverride as setAuthOrgOverride } from './auth-storage.js';
+import { loadCredentials } from './auth-storage.js';
 import { convertADFToMarkdown } from './utils.js';
 import { CommandError } from './errors.js';
 import { getAllowedConfluenceSpaces } from './settings.js';
 
 let confluenceClient: ConfluenceClient | null = null;
 
-/**
- * Set a global organization override for the current execution
- */
-export function setOrganizationOverride(alias: string): void {
-  setAuthOrgOverride(alias);
-  confluenceClient = null; // Force client recreation
-}
-
-/**
- * Get or create Confluence client instance
- */
 export function getConfluenceClient(): ConfluenceClient {
   if (!confluenceClient) {
-    const alias = getCurrentOrganizationAlias();
-    const storedCreds = loadCredentials(alias);
+    const storedCreds = loadCredentials();
     if (storedCreds) {
       confluenceClient = new ConfluenceClient({
         host: storedCreds.host.replace(/\/$/, ''),
@@ -32,10 +20,7 @@ export function getConfluenceClient(): ConfluenceClient {
         },
       });
     } else {
-      const errorMsg = alias 
-        ? `Credentials for organization "${alias}" not found.`
-        : 'Credentials not found. Please run "jira-ai auth"';
-      throw new Error(errorMsg);
+      throw new Error('Credentials not found. Please run "jira-ai auth"');
     }
   }
   return confluenceClient;

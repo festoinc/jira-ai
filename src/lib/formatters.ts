@@ -636,13 +636,6 @@ export function formatSettings(settings: Settings): string {
     output += formatOrgSettings(settings.defaults, 'Default Settings');
   }
 
-  if (settings.organizations && Object.keys(settings.organizations).length > 0) {
-    output += chalk.bold.blue('Organization-Specific Settings:') + '\n\n';
-    for (const [alias, orgSettings] of Object.entries(settings.organizations)) {
-      output += formatOrgSettings(orgSettings, `Organization: ${alias}`);
-    }
-  }
-
   return output;
 }
 

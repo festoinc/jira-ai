@@ -104,12 +104,6 @@ async function validateSettingsFile(filePath: string): Promise<Settings> {
       validateOrg(settings.defaults, 'defaults');
     }
 
-    if (settings.organizations) {
-      for (const [alias, orgSettings] of Object.entries(settings.organizations)) {
-        validateOrg(orgSettings, `organizations.${alias}`);
-      }
-    }
-
     ui.succeedSpinner(chalk.green('Settings are valid!'));
     return settings;
   } catch (error) {

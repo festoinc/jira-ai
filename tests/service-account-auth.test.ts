@@ -58,8 +58,7 @@ describe('Service Account Authentication', () => {
       { authType: 'basic', cloudId: undefined }
     );
     expect(authStorage.saveCredentials).toHaveBeenCalledWith(
-      expect.objectContaining({ authType: 'basic', cloudId: undefined }),
-      undefined
+      expect.objectContaining({ authType: 'basic', cloudId: undefined })
     );
   });
 
@@ -88,8 +87,7 @@ describe('Service Account Authentication', () => {
       expect.objectContaining({
         authType: 'service_account',
         cloudId: 'cloud-123'
-      }),
-      undefined
+      })
     );
   });
 
@@ -123,8 +121,7 @@ describe('Service Account Authentication', () => {
       { authType: 'service_account', cloudId: 'discovered-cloud-id' }
     );
     expect(authStorage.saveCredentials).toHaveBeenCalledWith(
-      expect.objectContaining({ cloudId: 'discovered-cloud-id' }),
-      undefined
+      expect.objectContaining({ cloudId: 'discovered-cloud-id' })
     );
 
     vi.unstubAllGlobals();
@@ -196,8 +193,7 @@ describe('Service Account Authentication', () => {
       expect.objectContaining({
         authType: 'service_account',
         cloudId: 'env-cloud-id'
-      }),
-      undefined
+      })
     );
   });
 

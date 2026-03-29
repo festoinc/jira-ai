@@ -18,39 +18,37 @@ describe('logoutCommand', () => {
     consoleLogSpy.mockRestore();
   });
 
-  it('should clear credentials and show success message', async () => {
+  it('should clear credentials and show success message without "all organizations"', async () => {
     await logoutCommand();
 
     expect(authStorage.clearCredentials).toHaveBeenCalled();
     expect(consoleLogSpy).toHaveBeenCalledWith(
-      expect.stringContaining('Successfully logged out from all organizations')
+      expect.stringContaining('Successfully logged out. Authentication credentials cleared.')
+    );
+    expect(consoleLogSpy).not.toHaveBeenCalledWith(
+      expect.stringContaining('from all organizations')
     );
   });
 });
 
 describe('authCommand with --logout flag', () => {
     let consoleLogSpy: any;
-  
+
     beforeEach(() => {
       vi.clearAllMocks();
       consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
     });
-  
+
     afterEach(() => {
       consoleLogSpy.mockRestore();
     });
-  
+
     it('should call logoutCommand when --logout flag is provided', async () => {
-      // We need to implement the logic in authCommand to check for logout flag
-      // or handle it in cli.ts. The requirement says:
-      // "Add auth logout subcommand and auth --logout flag in src/cli.ts."
-      // "Implement the logic in src/commands/auth.ts."
-      
       await authCommand({ logout: true } as any);
-  
+
       expect(authStorage.clearCredentials).toHaveBeenCalled();
       expect(consoleLogSpy).toHaveBeenCalledWith(
-        expect.stringContaining('Successfully logged out from all organizations')
+        expect.stringContaining('Successfully logged out. Authentication credentials cleared.')
       );
     });
 });

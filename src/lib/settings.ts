@@ -5,7 +5,6 @@ import yaml from 'js-yaml';
 import chalk from 'chalk';
 import { CliError } from '../types/errors.js';
 import { SettingsSchema } from './validation.js';
-import { getCurrentOrganizationAlias } from './auth-storage.js';
 
 export interface ProjectFilters {
   participated?: {
@@ -33,7 +32,6 @@ export interface OrganizationSettings {
 
 export interface Settings {
   defaults?: OrganizationSettings;
-  organizations?: Record<string, OrganizationSettings>;
 }
 
 // Mapping from old flat command names to new hierarchical paths
@@ -53,11 +51,8 @@ export const LEGACY_COMMAND_MAP: Record<string, string> = {
   'transition': 'issue.transition',
   'get-issue-statistics': 'issue.stats',
   'get-person-worklog': 'user.worklog',
-  'organization': 'org',
   'confluence': 'confl',
-  // Already hierarchical, keep as-is
   'issue': 'issue',
-  'org': 'org',
   'confl': 'confl'
 };
 
@@ -71,11 +66,10 @@ export function migrateCommandNames(commands: string[]): string[] {
 export const DEFAULT_ORG_SETTINGS: OrganizationSettings = {
   'allowed-jira-projects': ['all'],
   'allowed-commands': [
-    'issue',      // All issue commands (get, create, search, transition, update, comment, stats, assign, label)
-    'project',    // All project commands (list, statuses, types)
-    'user',       // All user commands (me, search, worklog)
-    'org',        // Organization management
-    'confl'       // Confluence commands
+    'issue',
+    'project',
+    'user',
+    'confl'
   ],
   'allowed-confluence-spaces': ['all']
 };
@@ -192,19 +186,13 @@ export function saveSettings(settings: Settings): void {
   }
 }
 
-function getEffectiveSettings(orgAlias?: string): OrganizationSettings | null {
+function getEffectiveSettings(): OrganizationSettings | null {
   const settings = loadSettings();
-  const alias = orgAlias || getCurrentOrganizationAlias();
-
-  if (alias && settings.organizations && settings.organizations[alias]) {
-    return settings.organizations[alias];
-  }
-
   return settings.defaults || null;
 }
 
-export function isProjectAllowed(projectKey: string, orgAlias?: string): boolean {
-  const settings = getEffectiveSettings(orgAlias);
+export function isProjectAllowed(projectKey: string): boolean {
+  const settings = getEffectiveSettings();
   if (!settings) return false;
 
   const isAllowed = settings['allowed-jira-projects'].some(p => {
@@ -236,13 +224,13 @@ function matchesHierarchicalCommand(commandPath: string, allowedCommands: string
   return false;
 }
 
-export function isCommandAllowed(commandName: string, projectKey?: string, orgAlias?: string): boolean {
+export function isCommandAllowed(commandName: string, projectKey?: string): boolean {
   // about, auth, and settings are always allowed
   if (['about', 'auth', 'settings'].includes(commandName)) {
     return true;
   }
 
-  const settings = getEffectiveSettings(orgAlias);
+  const settings = getEffectiveSettings();
   if (!settings) return false;
 
   // Normalize the command name being checked (convert legacy to new format)
@@ -284,30 +272,30 @@ export function isCommandAllowed(commandName: string, projectKey?: string, orgAl
   return matchesHierarchicalCommand(normalizedCommandName, migratedAllowedCommands);
 }
 
-export function isConfluenceSpaceAllowed(spaceKey: string, orgAlias?: string): boolean {
-  const settings = getEffectiveSettings(orgAlias);
+export function isConfluenceSpaceAllowed(spaceKey: string): boolean {
+  const settings = getEffectiveSettings();
   if (!settings) return false;
 
   return settings['allowed-confluence-spaces'].some(s => s === 'all' || s === spaceKey);
 }
 
-export function getAllowedProjects(orgAlias?: string): ProjectSetting[] {
-  const settings = getEffectiveSettings(orgAlias);
+export function getAllowedProjects(): ProjectSetting[] {
+  const settings = getEffectiveSettings();
   return settings ? settings['allowed-jira-projects'] : [];
 }
 
-export function getAllowedCommands(orgAlias?: string): string[] {
-  const settings = getEffectiveSettings(orgAlias);
+export function getAllowedCommands(): string[] {
+  const settings = getEffectiveSettings();
   return settings ? settings['allowed-commands'] : [];
 }
 
-export function getAllowedConfluenceSpaces(orgAlias?: string): string[] {
-  const settings = getEffectiveSettings(orgAlias);
+export function getAllowedConfluenceSpaces(): string[] {
+  const settings = getEffectiveSettings();
   return settings ? settings['allowed-confluence-spaces'] : ['all'];
 }
 
-export function applyGlobalFilters(jql: string, orgAlias?: string): string {
-  const settings = getEffectiveSettings(orgAlias);
+export function applyGlobalFilters(jql: string): string {
+  const settings = getEffectiveSettings();
   if (!settings) return jql;
   
   const allAllowed = settings['allowed-jira-projects'].some(p => p === 'all');
@@ -345,8 +333,8 @@ export function applyGlobalFilters(jql: string, orgAlias?: string): string {
   return `(${combinedProjectFilter})${filterJql}${orderByPart}`;
 }
 
-export function validateIssueAgainstFilters(issue: any, currentUserId: string, orgAlias?: string): boolean {
-  const settings = getEffectiveSettings(orgAlias);
+export function validateIssueAgainstFilters(issue: any, currentUserId: string): boolean {
+  const settings = getEffectiveSettings();
   if (!settings) return false;
 
   const projectKey = issue.key.split('-')[0];

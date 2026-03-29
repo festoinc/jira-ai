@@ -19,69 +19,58 @@ import {
   assignIssue,
   getJiraClient,
   createTemporaryClient,
-  setOrganizationOverride,
   searchUsers,
   resolveUserByName,
-  clearUserCache
+  clearUserCache,
+  __resetJiraClient__
 } from '../src/lib/jira-client.js';
 import * as authStorage from '../src/lib/auth-storage.js';
 import { Version3Client } from 'jira.js';
 import * as settings from '../src/lib/settings.js';
 
-let mockCurrentOrg: string | undefined = undefined;
-vi.mock('../src/lib/auth-storage.js', () => ({
-  loadCredentials: vi.fn(),
-  getCurrentOrganizationAlias: vi.fn(() => mockCurrentOrg),
-  setOrganizationOverride: vi.fn((alias) => { mockCurrentOrg = alias; }),
-  hasCredentials: vi.fn(),
-  loadConfig: vi.fn(),
-  saveConfig: vi.fn(),
-  extractAliasFromHost: vi.fn(),
-}));
-vi.mock('../src/lib/settings.js');
 
-// Mock dependencies
+
+const mockSettings = settings as vi.Mocked<typeof settings>;
+
 const {
   mockGetIssue,
   mockEditIssue,
   mockGetTransitions,
   mockDoTransition,
+  mockAddComment,
+  mockCreateIssue,
+  mockGetChangeLogs,
+  mockAssignIssue,
   mockGetCurrentUser,
   mockSearchProjects,
   mockGetAllStatuses,
-  mockIssueSearch,
-  mockAddComment,
   mockGetProject,
-  mockCreateIssue,
-  mockGetChangeLogs,
+  mockIssueSearch,
+  mockSearchEnhanced,
+  mockGetIssueWorklog,
   mockFindUsers,
   mockFindAssignableUsers,
-  mockGetIssueWorklog,
-  mockSearchEnhanced,
-  mockAssignIssue,
-  mockConfig
+  mockConfig,
 } = vi.hoisted(() => ({
   mockGetIssue: vi.fn(),
   mockEditIssue: vi.fn(),
   mockGetTransitions: vi.fn(),
   mockDoTransition: vi.fn(),
+  mockAddComment: vi.fn(),
+  mockCreateIssue: vi.fn(),
+  mockGetChangeLogs: vi.fn(),
+  mockAssignIssue: vi.fn(),
   mockGetCurrentUser: vi.fn(),
   mockSearchProjects: vi.fn(),
   mockGetAllStatuses: vi.fn(),
-  mockIssueSearch: vi.fn(),
-  mockAddComment: vi.fn(),
   mockGetProject: vi.fn(),
-  mockCreateIssue: vi.fn(),
-  mockGetChangeLogs: vi.fn(),
+  mockIssueSearch: vi.fn(),
+  mockSearchEnhanced: vi.fn(),
+  mockGetIssueWorklog: vi.fn(),
   mockFindUsers: vi.fn(),
   mockFindAssignableUsers: vi.fn(),
-  mockGetIssueWorklog: vi.fn(),
-  mockSearchEnhanced: vi.fn(),
-  mockAssignIssue: vi.fn(),
-  mockConfig: { host: 'https://test.atlassian.net' }
+  mockConfig: { host: 'https://test.atlassian.net' },
 }));
-
-const mockSettings = settings as vi.Mocked<typeof settings>;
 
 vi.mock('jira.js', () => ({
   Version3Client: vi.fn().mockImplementation(function() {
@@ -129,6 +118,9 @@ vi.mock('../src/lib/utils.js', () => ({
   calculateStatusStatistics: vi.fn(() => ({ 'To Do': 3600, 'In Progress': 7200 }))
 }));
 
+vi.mock('../src/lib/settings.js');
+vi.mock('../src/lib/auth-storage.js');
+
 describe('Jira Client', () => {
   beforeAll(() => {
     // Set environment variables required by getJiraClient
@@ -146,7 +138,11 @@ describe('Jira Client', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     clearUserCache();
-    mockCurrentOrg = undefined;
+    __resetJiraClient__();
+    mockSettings.applyGlobalFilters.mockImplementation(jql => jql);
+    mockSettings.isProjectAllowed.mockReturnValue(true);
+    mockSettings.isCommandAllowed.mockReturnValue(true);
+    mockSettings.validateIssueAgainstFilters.mockReturnValue(true);
     vi.mocked(authStorage.loadCredentials).mockReturnValue({
       host: 'https://test.atlassian.net',
       email: 'test@example.com',
@@ -922,52 +918,19 @@ describe('Jira Client', () => {
     });
   });
 
-  describe('getJiraClient and organizationOverride', () => {
-    let originalEnv: NodeJS.ProcessEnv;
-
-    beforeEach(() => {
-      originalEnv = { ...process.env };
-      delete process.env.JIRA_HOST;
-      delete process.env.JIRA_USER_EMAIL;
-      delete process.env.JIRA_API_TOKEN;
-      setOrganizationOverride(undefined as any);
-    });
-
-    afterEach(() => {
-      process.env = originalEnv;
-      // Reset the client and override
-      setOrganizationOverride(undefined as any);
-    });
-
+  describe('getJiraClient', () => {
     it('should throw error when no credentials are found', () => {
       vi.mocked(authStorage.loadCredentials).mockReturnValue(null);
       expect(() => getJiraClient()).toThrow('Jira credentials not found');
     });
 
-    it('should load credentials from storage when env vars are missing', () => {
-      const mockCreds = { host: 'host', email: 'email', apiToken: 'token' };
+    it('should load credentials from storage', () => {
+      const mockCreds = { host: 'https://test.atlassian.net', email: 'email', apiToken: 'token' };
       vi.mocked(authStorage.loadCredentials).mockReturnValue(mockCreds);
-      
+
       const client = getJiraClient();
       expect(Version3Client).toHaveBeenCalled();
       expect(client).toBeDefined();
-    });
-
-    it('should handle organization override', () => {
-      const mockCreds = { host: 'org-host', email: 'org-email', apiToken: 'org-token' };
-      vi.mocked(authStorage.loadCredentials).mockReturnValue(mockCreds);
-      
-      setOrganizationOverride('my-org');
-      getJiraClient();
-      
-      expect(authStorage.loadCredentials).toHaveBeenCalledWith('my-org');
-    });
-
-    it('should throw error when organization override credentials not found', () => {
-      vi.mocked(authStorage.loadCredentials).mockReturnValue(null);
-      setOrganizationOverride('unknown-org');
-      
-      expect(() => getJiraClient()).toThrow('Jira credentials for organization "unknown-org" not found.');
     });
   });
 
@@ -1009,14 +972,6 @@ describe('Jira Client', () => {
   });
 
   describe('getJiraClient with service account credentials', () => {
-    beforeEach(() => {
-      setOrganizationOverride(undefined as any);
-    });
-
-    afterEach(() => {
-      setOrganizationOverride(undefined as any);
-    });
-
     it('should use gateway URL when stored credentials have service_account authType', () => {
       vi.mocked(authStorage.loadCredentials).mockReturnValue({
         host: 'https://mycompany.atlassian.net',

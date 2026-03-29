@@ -11,7 +11,6 @@ vi.mock('../src/lib/auth-storage.js', () => ({
     email: 'test@example.com',
     apiToken: 'test-token'
   })),
-  getCurrentOrganizationAlias: vi.fn(),
 }));
 vi.mock('../src/lib/settings.js');
 
