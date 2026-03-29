@@ -9,7 +9,6 @@ vi.mock('../src/lib/auth-storage.js', async () => {
     ...actual,
     hasCredentials: vi.fn(),
     loadCredentials: vi.fn(),
-    getCurrentOrganizationAlias: vi.fn(),
   };
 });
 

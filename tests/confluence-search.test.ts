@@ -16,7 +16,6 @@ vi.mock('confluence.js', () => ({
 
 vi.mock('../src/lib/auth-storage.js', () => ({
   loadCredentials: vi.fn(() => ({ host: 'https://test.atlassian.net', email: 'test@example.com', apiToken: 'token' })),
-  getCurrentOrganizationAlias: vi.fn(() => 'test-org'),
   setOrganizationOverride: vi.fn(),
 }));
 
