@@ -92,13 +92,13 @@ export interface IssueLinkType {
 export interface IssueLink {
   id: string;
   type: IssueLinkType;
-  inwardIssue: {
+  inwardIssue?: {
     id: string;
     key: string;
     summary: string;
     status: { name: string };
   };
-  outwardIssue: {
+  outwardIssue?: {
     id: string;
     key: string;
     summary: string;
@@ -1270,7 +1270,6 @@ export async function getEpicProgress(epicKey: string): Promise<EpicProgress> {
   };
 }
 
-
 export async function getIssueLinks(issueIdOrKey: string): Promise<IssueLink[]> {
   const client = await getJiraClient();
 
@@ -1305,7 +1304,7 @@ export async function getIssueLinks(issueIdOrKey: string): Promise<IssueLink[]> 
           status: { name: link.outwardIssue.fields?.status?.name ?? '' },
         }
       : undefined,
-  })) as IssueLink[];
+  }));
 }
 
 export async function createIssueLink(

@@ -12,10 +12,6 @@ export async function createIssueLinkCommand(
   validateOptions(IssueKeySchema, inwardKey);
   validateOptions(IssueKeySchema, outwardKey);
 
-  if (!linkType || linkType.trim() === '') {
-    throw new CommandError('Link type is required. Run \'issue link types\' to see available types.');
-  }
-
   ui.startSpinner(`Validating permissions for ${inwardKey}...`);
   await validateIssuePermissions(inwardKey, 'issue.link.create');
 

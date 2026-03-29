@@ -290,7 +290,14 @@ issueLink
   .action(withPermission('issue.link.delete', (sourceKey: string, options: { target: string }) => {
     return deleteIssueLinkCommand(sourceKey, options.target);
   }, {
-    validateArgs: (args) => validateOptions(IssueKeySchema, args[0])
+    validateArgs: (args) => {
+      validateOptions(IssueKeySchema, args[0]);
+      const options = args[args.length - 2];
+      if (typeof options.target !== 'string' || options.target.trim() === '') {
+        throw new CliError('Target issue key is required');
+      }
+      validateOptions(IssueKeySchema, options.target);
+    }
   }));
 
 issueLink

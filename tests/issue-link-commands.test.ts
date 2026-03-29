@@ -138,9 +138,12 @@ describe('createIssueLinkCommand', () => {
     expect(mockJiraClient.createIssueLink).toHaveBeenCalledWith('PROJ-1', 'PROJ-2', 'Blocks');
   });
 
-  it('should throw CommandError when link type is empty', async () => {
-    await expect(createIssueLinkCommand('PROJ-1', '', 'PROJ-2')).rejects.toThrow(CommandError);
-    await expect(createIssueLinkCommand('PROJ-1', '   ', 'PROJ-2')).rejects.toThrow(CommandError);
+  it('should pass empty link type through to Jira (validation is at CLI layer)', async () => {
+    mockJiraClient.createIssueLink.mockResolvedValue(undefined);
+
+    await createIssueLinkCommand('PROJ-1', '', 'PROJ-2');
+
+    expect(mockJiraClient.createIssueLink).toHaveBeenCalledWith('PROJ-1', 'PROJ-2', '');
   });
 
   it('should throw ValidationError for invalid inward issue key', async () => {
