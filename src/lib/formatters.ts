@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import Table from 'cli-table3';
 import { decode } from 'html-entities';
-import { UserInfo, Project, TaskDetails, Status, JqlIssue, IssueType, IssueStatistics, HistoryEntry, WorklogWithIssue } from './jira-client.js';
+import { UserInfo, Project, TaskDetails, Status, JqlIssue, IssueType, IssueStatistics, HistoryEntry, WorklogWithIssue, Epic, EpicDetails, EpicProgress } from './jira-client.js';
 import { ConfluencePage, ConfluenceComment, ConfluenceSpace, ConfluencePageHierarchy } from './confluence-client.js';
 import { formatTimestamp, truncate, formatDuration } from './utils.js';
 import { Settings, ProjectSetting } from './settings.js';
@@ -779,5 +779,133 @@ export function formatConfluenceSearchResults(results: ConfluencePage[]): string
   let output = '\n' + chalk.bold(`Search Results (${results.length} total)`) + '\n\n';
   output += table.toString() + '\n';
 
+  return output;
+}
+
+// =============================================================================
+// EPIC FORMATTERS
+// =============================================================================
+
+/**
+ * Format a list of epics as a table.
+ * Columns: Key | Name | Status | Project
+ */
+export function formatEpicList(epics: Epic[]): string {
+  if (epics.length === 0) {
+    return chalk.yellow('\nNo epics found.\n');
+  }
+
+  const table = createTable(['Key', 'Name', 'Status', 'Project'], [12, 40, 20, 12]);
+
+  epics.forEach((epic) => {
+    const statusColor =
+      epic.statusCategory === 'done'
+        ? chalk.green(epic.status)
+        : epic.statusCategory === 'in_progress'
+        ? chalk.yellow(epic.status)
+        : chalk.gray(epic.status);
+
+    table.push([
+      chalk.cyan(epic.key),
+      truncate(epic.name || epic.summary, 38),
+      statusColor,
+      epic.projectKey,
+    ]);
+  });
+
+  let output = '\n' + chalk.bold(`Epics (${epics.length} total)`) + '\n\n';
+  output += table.toString() + '\n';
+  return output;
+}
+
+/**
+ * Format full details of an epic.
+ */
+export function formatEpicDetails(epic: EpicDetails): string {
+  let output = '\n' + chalk.bold.cyan(`${epic.key} — ${epic.name || epic.summary}`) + '\n\n';
+
+  const infoTable = createTable(['Property', 'Value'], [15, 65]);
+
+  const statusColor =
+    epic.statusCategory === 'done'
+      ? chalk.green(epic.status)
+      : epic.statusCategory === 'in_progress'
+      ? chalk.yellow(epic.status)
+      : chalk.gray(epic.status);
+
+  infoTable.push(
+    ['Status', statusColor],
+    ['Project', epic.projectKey],
+    ['Assignee', epic.assignee?.displayName || chalk.gray('Unassigned')],
+    ['Reporter', epic.reporter?.displayName || chalk.gray('N/A')],
+    ['Created', formatTimestamp(epic.created)],
+    ['Updated', formatTimestamp(epic.updated)],
+    ['Labels', epic.labels.length > 0 ? epic.labels.join(', ') : chalk.gray('None')],
+  );
+
+  output += infoTable.toString() + '\n';
+
+  if (epic.description) {
+    output += '\n' + chalk.bold('Description:') + '\n';
+    output += epic.description + '\n';
+  }
+
+  return output;
+}
+
+/**
+ * Format epic completion progress with a visual progress bar.
+ */
+export function formatEpicProgress(progress: EpicProgress): string {
+  let output = '\n' + chalk.bold.cyan(`${progress.epicKey} — ${progress.epicName}`) + '\n\n';
+
+  // Visual progress bar (40 chars wide)
+  const BAR_WIDTH = 40;
+  const filled = Math.round((progress.percentageDone / 100) * BAR_WIDTH);
+  const empty = BAR_WIDTH - filled;
+  const bar = chalk.bgGreen.black('█'.repeat(filled)) + chalk.gray('░'.repeat(empty));
+  output += `  ${bar} ${chalk.bold(progress.percentageDone + '%')}\n\n`;
+
+  // Stats table
+  const statsTable = createTable(['Total', 'Done', 'In Progress', 'To Do'], [12, 12, 14, 12]);
+  statsTable.push([
+    String(progress.totalIssues),
+    chalk.green(String(progress.doneIssues)),
+    chalk.yellow(String(progress.inProgressIssues)),
+    chalk.gray(String(progress.todoIssues)),
+  ]);
+  output += statsTable.toString() + '\n';
+
+  // Story points (only if available)
+  if (progress.totalStoryPoints > 0) {
+    output += '\n' + chalk.bold('Story Points:') + ' ';
+    output += chalk.green(String(progress.doneStoryPoints)) + ' / ' + String(progress.totalStoryPoints) + '\n';
+  }
+
+  return output;
+}
+
+/**
+ * Format issues belonging to an epic.
+ * Columns: Key | Summary | Status | Assignee
+ */
+export function formatEpicIssues(issues: JqlIssue[]): string {
+  if (issues.length === 0) {
+    return chalk.yellow('\nNo issues found in this epic.\n');
+  }
+
+  const table = createTable(['Key', 'Summary', 'Status', 'Assignee'], [12, 45, 18, 22]);
+
+  issues.forEach((issue) => {
+    table.push([
+      chalk.cyan(issue.key),
+      truncate(issue.summary, 43),
+      issue.status.name,
+      issue.assignee?.displayName || chalk.gray('Unassigned'),
+    ]);
+  });
+
+  let output = '\n' + chalk.bold(`Issues (${issues.length} total)`) + '\n\n';
+  output += table.toString() + '\n';
   return output;
 }

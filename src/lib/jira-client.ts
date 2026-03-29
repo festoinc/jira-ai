@@ -1,15 +1,16 @@
 import { Version3Client } from 'jira.js';
 import { calculateStatusStatistics, convertADFToMarkdown } from './utils.js';
 import { loadCredentials } from './auth-storage.js';
-import { 
-  applyGlobalFilters, 
-  isProjectAllowed, 
-  isCommandAllowed, 
-  validateIssueAgainstFilters, 
+import {
+  applyGlobalFilters,
+  isProjectAllowed,
+  isCommandAllowed,
+  validateIssueAgainstFilters,
   loadSettings,
-  getAllowedProjects 
+  getAllowedProjects
 } from './settings.js';
 import { CommandError } from './errors.js';
+import { getEpicFields, isNextGenProject } from './epic-fields.js';
 
 export interface Transition {
   id: string;
@@ -860,5 +861,387 @@ export async function getIssueWorklogs(issueIdOrKey: string): Promise<Worklog[]>
 
 export interface WorklogWithIssue extends Worklog {
   summary: string;
+}
+
+// =============================================================================
+// EPIC INTERFACES
+// =============================================================================
+
+export interface Epic {
+  id: string;
+  key: string;
+  name: string;          // from epic name custom field
+  summary: string;       // standard summary field
+  status: string;
+  statusCategory: string; // 'done', 'in_progress', 'to_do'
+  done?: boolean;
+  projectId: string;
+  projectKey: string;
+}
+
+export interface EpicDetails extends Epic {
+  description: string;
+  assignee?: { displayName: string; accountId: string };
+  reporter?: { displayName: string; accountId: string };
+  created: string;
+  updated: string;
+  labels: string[];
+}
+
+export interface EpicProgress {
+  epicKey: string;
+  epicName: string;
+  totalIssues: number;
+  doneIssues: number;
+  inProgressIssues: number;
+  todoIssues: number;
+  doneStoryPoints: number;
+  totalStoryPoints: number;
+  percentageDone: number; // 0-100
+}
+
+// =============================================================================
+// EPIC API FUNCTIONS
+// =============================================================================
+
+/**
+ * List epics in a project.
+ * Uses JQL: "project = {key} AND issuetype = Epic".
+ */
+export async function listEpics(
+  projectKey: string,
+  opts?: { includeDone?: boolean; max?: number }
+): Promise<Epic[]> {
+  const client = getJiraClient();
+  const epicFields = await getEpicFields(projectKey);
+
+  let jql = `project = "${projectKey}" AND issuetype = Epic`;
+  if (!opts?.includeDone) {
+    jql += ' AND statusCategory != Done';
+  }
+
+  const fieldsToFetch = [
+    'summary',
+    'status',
+    'project',
+    ...(epicFields ? [epicFields.epicNameField] : []),
+  ];
+
+  const response = await client.issueSearch.searchForIssuesUsingJqlEnhancedSearch({
+    jql,
+    maxResults: opts?.max ?? 50,
+    fields: fieldsToFetch,
+  });
+
+  return (response.issues || []).map((issue: any) => {
+    const epicName = epicFields
+      ? (issue.fields[epicFields.epicNameField] || issue.fields.summary || '')
+      : (issue.fields.summary || '');
+
+    const statusCat = (issue.fields.status?.statusCategory?.key || 'to_do').replace('-', '_');
+
+    return {
+      id: issue.id || '',
+      key: issue.key || '',
+      name: epicName,
+      summary: issue.fields.summary || '',
+      status: issue.fields.status?.name || 'Unknown',
+      statusCategory: statusCat,
+      done: statusCat === 'done',
+      projectId: issue.fields.project?.id || '',
+      projectKey: issue.fields.project?.key || projectKey,
+    };
+  });
+}
+
+/**
+ * Get full details of a single epic.
+ */
+export async function getEpic(epicKey: string): Promise<EpicDetails> {
+  const client = getJiraClient();
+  const projectKey = epicKey.split('-')[0];
+  const epicFields = await getEpicFields(projectKey);
+
+  const fieldsToFetch = [
+    'summary',
+    'description',
+    'status',
+    'assignee',
+    'reporter',
+    'created',
+    'updated',
+    'labels',
+    'project',
+    ...(epicFields ? [epicFields.epicNameField] : []),
+  ];
+
+  const issue = await client.issues.getIssue({
+    issueIdOrKey: epicKey,
+    fields: fieldsToFetch,
+  });
+
+  const epicName = epicFields
+    ? ((issue.fields as any)[epicFields.epicNameField] || issue.fields.summary || '')
+    : (issue.fields.summary || '');
+
+  const statusCat = ((issue.fields as any).status?.statusCategory?.key || 'to_do').replace('-', '_');
+
+  return {
+    id: issue.id || '',
+    key: issue.key || '',
+    name: epicName,
+    summary: issue.fields.summary || '',
+    status: (issue.fields as any).status?.name || 'Unknown',
+    statusCategory: statusCat,
+    done: statusCat === 'done',
+    projectId: (issue.fields as any).project?.id || '',
+    projectKey: (issue.fields as any).project?.key || projectKey,
+    description: convertADFToMarkdown((issue.fields as any).description) || '',
+    assignee: (issue.fields as any).assignee ? {
+      displayName: (issue.fields as any).assignee.displayName || 'Unknown',
+      accountId: (issue.fields as any).assignee.accountId || '',
+    } : undefined,
+    reporter: (issue.fields as any).reporter ? {
+      displayName: (issue.fields as any).reporter.displayName || 'Unknown',
+      accountId: (issue.fields as any).reporter.accountId || '',
+    } : undefined,
+    created: (issue.fields as any).created || '',
+    updated: (issue.fields as any).updated || '',
+    labels: (issue.fields as any).labels || [],
+  };
+}
+
+/**
+ * Create a new epic in a project.
+ */
+export async function createEpic(
+  projectKey: string,
+  name: string,
+  summary: string,
+  opts?: { description?: string; labels?: string[] }
+): Promise<{ key: string; id: string }> {
+  const client = getJiraClient();
+  const epicFields = await getEpicFields(projectKey);
+
+  const fields: any = {
+    project: { key: projectKey },
+    summary,
+    issuetype: { name: 'Epic' },
+  };
+
+  if (epicFields) {
+    fields[epicFields.epicNameField] = name;
+  }
+
+  if (opts?.description) {
+    fields.description = {
+      type: 'doc',
+      version: 1,
+      content: [{
+        type: 'paragraph',
+        content: [{ type: 'text', text: opts.description }],
+      }],
+    };
+  }
+
+  if (opts?.labels && opts.labels.length > 0) {
+    fields.labels = opts.labels;
+  }
+
+  const response = await client.issues.createIssue({ fields });
+  return { key: response.key || '', id: response.id || '' };
+}
+
+/**
+ * Update epic name and/or summary.
+ */
+export async function updateEpic(
+  epicKey: string,
+  opts: { name?: string; summary?: string }
+): Promise<void> {
+  const client = getJiraClient();
+  const projectKey = epicKey.split('-')[0];
+  const epicFields = await getEpicFields(projectKey);
+
+  const fields: any = {};
+
+  if (opts.summary) {
+    fields.summary = opts.summary;
+  }
+
+  if (opts.name && epicFields) {
+    fields[epicFields.epicNameField] = opts.name;
+  } else if (opts.name && !epicFields) {
+    // For next-gen projects, the epic name is the summary
+    fields.summary = opts.name;
+  }
+
+  await client.issues.editIssue({
+    issueIdOrKey: epicKey,
+    fields,
+    notifyUsers: false,
+  });
+}
+
+/**
+ * List issues belonging to an epic.
+ * Handles both classic (Epic Link) and next-gen (parent) projects.
+ * NOTE: Jira caps JQL results at ~1000 issues per query.
+ */
+export async function getEpicIssues(
+  epicKey: string,
+  opts?: { max?: number }
+): Promise<JqlIssue[]> {
+  const client = getJiraClient();
+  const projectKey = epicKey.split('-')[0];
+  const epicFields = await getEpicFields(projectKey);
+
+  let jql: string;
+  if (epicFields) {
+    // Classic project: use Epic Link field
+    jql = `"${epicFields.epicLinkField}" = ${epicKey} OR parent = ${epicKey}`;
+  } else {
+    // Next-gen: use parent only
+    jql = `parent = ${epicKey}`;
+  }
+
+  const response = await client.issueSearch.searchForIssuesUsingJqlEnhancedSearch({
+    jql,
+    maxResults: opts?.max ?? 50,
+    fields: ['summary', 'status', 'assignee', 'priority', 'issuetype'],
+  });
+
+  return (response.issues || []).map((issue: any) => ({
+    key: issue.key || '',
+    summary: issue.fields?.summary || '',
+    status: { name: issue.fields?.status?.name || 'Unknown' },
+    assignee: issue.fields?.assignee ? { displayName: issue.fields.assignee.displayName || 'Unknown' } : null,
+    priority: issue.fields?.priority ? { name: issue.fields.priority.name || 'Unknown' } : null,
+  }));
+}
+
+/**
+ * Link an existing issue to an epic.
+ */
+export async function linkIssueToEpic(issueKey: string, epicKey: string): Promise<void> {
+  const client = getJiraClient();
+  const projectKey = issueKey.split('-')[0];
+  const epicFields = await getEpicFields(projectKey);
+  const nextGen = await isNextGenProject(projectKey);
+
+  const fields: any = {};
+  if (nextGen) {
+    fields.parent = { key: epicKey };
+  } else if (epicFields) {
+    fields[epicFields.epicLinkField] = { key: epicKey };
+  } else {
+    fields.parent = { key: epicKey };
+  }
+
+  await client.issues.editIssue({
+    issueIdOrKey: issueKey,
+    fields,
+    notifyUsers: false,
+  });
+}
+
+/**
+ * Unlink an issue from its epic.
+ */
+export async function unlinkIssueFromEpic(issueKey: string): Promise<void> {
+  const client = getJiraClient();
+  const projectKey = issueKey.split('-')[0];
+  const epicFields = await getEpicFields(projectKey);
+  const nextGen = await isNextGenProject(projectKey);
+
+  const fields: any = {};
+  if (nextGen) {
+    fields.parent = null;
+  } else if (epicFields) {
+    fields[epicFields.epicLinkField] = null;
+  } else {
+    fields.parent = null;
+  }
+
+  await client.issues.editIssue({
+    issueIdOrKey: issueKey,
+    fields,
+    notifyUsers: false,
+  });
+}
+
+/**
+ * Get epic completion progress.
+ * NOTE: Jira caps JQL results at ~1000 issues. For large epics this may be incomplete.
+ */
+export async function getEpicProgress(epicKey: string): Promise<EpicProgress> {
+  const client = getJiraClient();
+  const projectKey = epicKey.split('-')[0];
+  const epicFields = await getEpicFields(projectKey);
+
+  // Get the epic itself for name
+  const epicIssue = await getEpic(epicKey);
+
+  // Fetch all issues in the epic
+  const issues = await getEpicIssues(epicKey, { max: 1000 });
+
+  let doneIssues = 0;
+  let inProgressIssues = 0;
+  let todoIssues = 0;
+
+  for (const issue of issues) {
+    const statusName = issue.status.name.toLowerCase();
+    if (statusName.includes('done') || statusName.includes('closed') || statusName.includes('resolved')) {
+      doneIssues++;
+    } else if (statusName.includes('progress') || statusName.includes('review') || statusName.includes('testing')) {
+      inProgressIssues++;
+    } else {
+      todoIssues++;
+    }
+  }
+
+  const totalIssues = issues.length;
+  const percentageDone = totalIssues > 0 ? Math.round((doneIssues / totalIssues) * 100) : 0;
+
+  // Story points: attempt to fetch with story point field
+  let doneStoryPoints = 0;
+  let totalStoryPoints = 0;
+
+  if (epicFields?.storyPointField) {
+    try {
+      const spField = epicFields.storyPointField;
+      const spJql = epicFields
+        ? `"${epicFields.epicLinkField}" = ${epicKey} OR parent = ${epicKey}`
+        : `parent = ${epicKey}`;
+      const spResponse = await client.issueSearch.searchForIssuesUsingJqlEnhancedSearch({
+        jql: spJql,
+        maxResults: 1000,
+        fields: ['status', spField],
+      });
+
+      for (const issue of (spResponse.issues || [])) {
+        const sp = (issue.fields as any)[spField] || 0;
+        totalStoryPoints += sp;
+        const statusName = ((issue.fields as any).status?.name || '').toLowerCase();
+        if (statusName.includes('done') || statusName.includes('closed') || statusName.includes('resolved')) {
+          doneStoryPoints += sp;
+        }
+      }
+    } catch {
+      // Story points not available — fall through with zeros
+    }
+  }
+
+  return {
+    epicKey,
+    epicName: epicIssue.name,
+    totalIssues,
+    doneIssues,
+    inProgressIssues,
+    todoIssues,
+    doneStoryPoints,
+    totalStoryPoints,
+    percentageDone,
+  };
 }
 

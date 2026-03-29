@@ -122,7 +122,8 @@ const DEFAULT_ALLOWED_COMMANDS = [
   'issue',
   'project',
   'user',
-  'confl'
+  'confl',
+  'epic',
 ];
 
 export const ProjectConfigSchema = z.object({
@@ -146,5 +147,36 @@ export const SettingsSchema = z.object({
   defaults: OrganizationSettingsSchema.optional(),
   projects: z.array(ProjectSettingSchema).optional(),
   commands: z.array(z.string()).optional(),
+});
+
+// =============================================================================
+// EPIC VALIDATION SCHEMAS
+// =============================================================================
+
+export const EpicListSchema = z.object({
+  done: z.boolean().optional(),
+  max: NumericStringSchema.optional(),
+});
+
+export const EpicCreateSchema = z.object({
+  name: z.string().trim().min(1, 'Epic name is required'),
+  summary: z.string().trim().min(1, 'Summary is required'),
+  description: z.string().trim().optional(),
+  labels: z.string().optional(),
+});
+
+export const EpicUpdateSchema = z.object({
+  name: z.string().trim().min(1).optional(),
+  summary: z.string().trim().min(1).optional(),
+}).refine(data => data.name || data.summary, {
+  message: 'At least one of --name or --summary is required',
+});
+
+export const EpicLinkSchema = z.object({
+  epic: z.string().trim().min(1, 'Epic key is required').pipe(IssueKeySchema),
+});
+
+export const EpicMaxSchema = z.object({
+  max: NumericStringSchema.optional(),
 });
 

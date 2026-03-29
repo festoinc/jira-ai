@@ -29,6 +29,16 @@ import {
   confluenceUpdateDescriptionCommand,
   confluenceSearchCommand
 } from './commands/confluence.js';
+import {
+  epicListCommand,
+  epicGetCommand,
+  epicCreateCommand,
+  epicUpdateCommand,
+  epicIssuesCommand,
+  epicLinkCommand,
+  epicUnlinkCommand,
+  epicProgressCommand,
+} from './commands/epic.js';
 import { aboutCommand } from './commands/about.js';
 import { authCommand } from './commands/auth.js';
 import { settingsCommand } from './commands/settings.js';
@@ -45,6 +55,11 @@ import {
   RunJqlSchema,
   GetPersonWorklogSchema,
   GetIssueStatisticsSchema,
+  EpicListSchema,
+  EpicCreateSchema,
+  EpicUpdateSchema,
+  EpicLinkSchema,
+  EpicMaxSchema,
   validateOptions,
   IssueKeySchema,
   ProjectKeySchema,
@@ -351,6 +366,83 @@ confl
     }
   }));
 
+
+// =============================================================================
+// EPIC COMMANDS
+// =============================================================================
+const epic = program
+  .command('epic')
+  .description('Manage Jira epics');
+
+epic
+  .command('list <project-key>')
+  .description('List epics in a project. Use --done to include completed epics.')
+  .option('--done', 'Include completed epics')
+  .option('--max <n>', 'Maximum results (default: 50)', '50')
+  .action(withPermission('epic.list', epicListCommand, { schema: EpicListSchema }));
+
+epic
+  .command('get <epic-key>')
+  .description('Get full details of a single epic including description, assignee, and labels.')
+  .action(withPermission('epic.get', epicGetCommand, {
+    validateArgs: (args) => validateOptions(IssueKeySchema, args[0])
+  }));
+
+epic
+  .command('create <project-key>')
+  .description('Create a new epic in a project.')
+  .requiredOption('--name <name>', 'Epic name')
+  .requiredOption('--summary <text>', 'Epic summary')
+  .option('--description <text>', 'Epic description')
+  .option('--labels <labels>', 'Comma-separated labels')
+  .action(withPermission('epic.create', epicCreateCommand, {
+    schema: EpicCreateSchema,
+    validateArgs: (args) => validateOptions(ProjectKeySchema, args[0])
+  }));
+
+epic
+  .command('update <epic-key>')
+  .description('Update an epic\'s name and/or summary.')
+  .option('--name <name>', 'New epic name')
+  .option('--summary <text>', 'New summary')
+  .action(withPermission('epic.update', epicUpdateCommand, {
+    schema: EpicUpdateSchema,
+    validateArgs: (args) => validateOptions(IssueKeySchema, args[0])
+  }));
+
+epic
+  .command('issues <epic-key>')
+  .description('List all issues belonging to an epic.')
+  .option('--max <n>', 'Maximum results (default: 50)', '50')
+  .action(withPermission('epic.issues', epicIssuesCommand, {
+    schema: EpicMaxSchema,
+    validateArgs: (args) => validateOptions(IssueKeySchema, args[0])
+  }));
+
+epic
+  .command('link <issue-key>')
+  .description('Link an existing issue to an epic.')
+  .requiredOption('--epic <epic-key>', 'Epic issue key')
+  .action(withPermission('epic.link', (issueKey: string, options: { epic: string }) => {
+    return epicLinkCommand(issueKey, options.epic);
+  }, {
+    schema: EpicLinkSchema,
+    validateArgs: (args) => validateOptions(IssueKeySchema, args[0])
+  }));
+
+epic
+  .command('unlink <issue-key>')
+  .description('Remove an issue from its epic.')
+  .action(withPermission('epic.unlink', epicUnlinkCommand, {
+    validateArgs: (args) => validateOptions(IssueKeySchema, args[0])
+  }));
+
+epic
+  .command('progress <epic-key>')
+  .description('Show epic completion progress with issue counts and story points.')
+  .action(withPermission('epic.progress', epicProgressCommand, {
+    validateArgs: (args) => validateOptions(IssueKeySchema, args[0])
+  }));
 
 // About command (always allowed)
 program
