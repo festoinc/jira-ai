@@ -2,6 +2,7 @@ import chalk from 'chalk';
 import { searchIssuesByJql } from '../lib/jira-client.js';
 import { formatJqlResults } from '../lib/formatters.js';
 import { ui } from '../lib/ui.js';
+import { outputResult } from '../lib/json-mode.js';
 
 export async function runJqlCommand(jqlQuery: string, options: { limit?: number }): Promise<void> {
   // Parse and validate limit parameter
@@ -15,5 +16,5 @@ export async function runJqlCommand(jqlQuery: string, options: { limit?: number 
 
   const issues = await searchIssuesByJql(jqlQuery, maxResults);
   ui.succeedSpinner(chalk.green('Query executed successfully'));
-  console.log(formatJqlResults(issues));
+  outputResult(issues, formatJqlResults);
 }

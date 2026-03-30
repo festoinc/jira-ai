@@ -1,9 +1,13 @@
 import ora, { Ora } from 'ora';
+import { isJsonMode } from './json-mode.js';
 
 class UI {
   private spinnerInstance: Ora | null = null;
 
-  startSpinner(message: string): Ora {
+  startSpinner(message: string): Ora | null {
+    if (isJsonMode()) {
+      return null;
+    }
     if (this.spinnerInstance) {
       this.spinnerInstance.stop();
     }
@@ -12,6 +16,9 @@ class UI {
   }
 
   stopSpinner(): void {
+    if (isJsonMode()) {
+      return;
+    }
     if (this.spinnerInstance) {
       this.spinnerInstance.stop();
       this.spinnerInstance = null;
@@ -19,6 +26,9 @@ class UI {
   }
 
   succeedSpinner(message?: string): void {
+    if (isJsonMode()) {
+      return;
+    }
     if (this.spinnerInstance) {
       this.spinnerInstance.succeed(message);
       this.spinnerInstance = null;
@@ -26,6 +36,9 @@ class UI {
   }
 
   failSpinner(message?: string): void {
+    if (isJsonMode()) {
+      return;
+    }
     if (this.spinnerInstance) {
       this.spinnerInstance.fail(message);
       this.spinnerInstance = null;
@@ -33,6 +46,9 @@ class UI {
   }
 
   updateSpinner(message: string): void {
+    if (isJsonMode()) {
+      return;
+    }
     if (this.spinnerInstance) {
       this.spinnerInstance.text = message;
     }

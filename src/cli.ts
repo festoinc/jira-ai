@@ -53,6 +53,7 @@ import { checkForUpdate, formatUpdateMessage, checkForUpdateSync } from './lib/u
 import { CliError } from './types/errors.js';
 import { CommandError } from './lib/errors.js';
 import { ui } from './lib/ui.js';
+import { initJsonMode, outputError } from './lib/json-mode.js';
 import {
   CreateTaskSchema,
   AddCommentSchema,
@@ -82,6 +83,8 @@ program
   .name('jira-ai')
   .description('CLI tool for interacting with Atlassian Jira')
   .version(getVersion())
+  .option('--json', 'Output as JSON')
+  .option('--json-compact', 'Output as compact JSON')
   .addHelpText('after', () => {
     const latestVersion = checkForUpdateSync();
     if (latestVersion) {
@@ -609,6 +612,8 @@ export function configureCommandVisibility(program: Command) {
 // Parse command line arguments
 export async function main() {
   try {
+    initJsonMode();
+
     // Background update check (non-blocking for the user)
     checkForUpdate().catch(() => {});
 
@@ -618,14 +623,7 @@ export async function main() {
     ui.failSpinner();
     
     if (error instanceof CommandError) {
-      console.error(chalk.red(`\n❌ Error: ${error.message}`));
-      if (error.hints.length > 0) {
-        error.hints.forEach(hint => {
-          console.error(chalk.yellow(`   Hint: ${hint}`));
-        });
-      }
-      console.log(); // Add a newline
-      process.exit(error.exitCode);
+      outputError(error.message, error.hints, error.exitCode);
     } else if (error instanceof CliError) {
       console.error(chalk.red(`\n❌ ${error.message}\n`));
       process.exit(1);

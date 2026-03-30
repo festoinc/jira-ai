@@ -73,37 +73,37 @@ beforeEach(() => {
 
 describe('epicListCommand', () => {
   it('should list epics for a project', async () => {
-    mockJiraClient.listEpics = vi.fn().mockResolvedValue([mockEpic]);
+    mockJiraClient.getEpics = vi.fn().mockResolvedValue([mockEpic]);
 
     await epicListCommand('PROJ', {});
 
-    expect(mockJiraClient.listEpics).toHaveBeenCalledWith('PROJ', expect.objectContaining({ includeDone: false }));
+    expect(mockJiraClient.getEpics).toHaveBeenCalledWith('PROJ', expect.objectContaining({ includeDone: false }));
   });
 
   it('should pass includeDone option when --done flag set', async () => {
-    mockJiraClient.listEpics = vi.fn().mockResolvedValue([]);
+    mockJiraClient.getEpics = vi.fn().mockResolvedValue([]);
 
     await epicListCommand('PROJ', { done: true });
 
-    expect(mockJiraClient.listEpics).toHaveBeenCalledWith('PROJ', expect.objectContaining({ includeDone: true }));
+    expect(mockJiraClient.getEpics).toHaveBeenCalledWith('PROJ', expect.objectContaining({ includeDone: true }));
   });
 
   it('should respect --max option', async () => {
-    mockJiraClient.listEpics = vi.fn().mockResolvedValue([]);
+    mockJiraClient.getEpics = vi.fn().mockResolvedValue([]);
 
     await epicListCommand('PROJ', { max: 25 });
 
-    expect(mockJiraClient.listEpics).toHaveBeenCalledWith('PROJ', expect.objectContaining({ max: 25 }));
+    expect(mockJiraClient.getEpics).toHaveBeenCalledWith('PROJ', expect.objectContaining({ max: 25 }));
   });
 
   it('should throw CommandError on API failure', async () => {
-    mockJiraClient.listEpics = vi.fn().mockRejectedValue(new Error('Network error'));
+    mockJiraClient.getEpics = vi.fn().mockRejectedValue(new Error('Network error'));
 
     await expect(epicListCommand('PROJ', {})).rejects.toThrow(CommandError);
   });
 
   it('should throw CommandError on 404', async () => {
-    mockJiraClient.listEpics = vi.fn().mockRejectedValue(new Error('404 Project not found'));
+    mockJiraClient.getEpics = vi.fn().mockRejectedValue(new Error('404 Project not found'));
 
     const err = await epicListCommand('PROJ', {}).catch(e => e);
     expect(err).toBeInstanceOf(CommandError);

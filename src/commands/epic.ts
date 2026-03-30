@@ -1,6 +1,6 @@
 import chalk from 'chalk';
 import {
-  listEpics,
+  getEpics,
   getEpic,
   createEpic,
   updateEpic,
@@ -17,22 +17,23 @@ import {
 } from '../lib/formatters.js';
 import { CommandError } from '../lib/errors.js';
 import { ui } from '../lib/ui.js';
+import { outputResult } from '../lib/json-mode.js';
 
 // =============================================================================
 // epic list <project-key> [--done] [--max <n>]
 // =============================================================================
 export async function epicListCommand(
   projectKey: string,
-  options: { done?: boolean; max?: number }
+  options: { done?: boolean; max?: number } = {}
 ): Promise<void> {
   ui.startSpinner(`Fetching epics for project ${projectKey}...`);
   try {
-    const epics = await listEpics(projectKey, {
+    const epics = await getEpics(projectKey, {
       includeDone: !!options.done,
       max: options.max,
     });
     ui.stopSpinner();
-    console.log(formatEpicList(epics));
+    outputResult(epics, formatEpicList);
   } catch (error: any) {
     ui.failSpinner();
     const hints: string[] = [];
