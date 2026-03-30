@@ -12,12 +12,27 @@ import {
 import { CommandError } from './errors.js';
 import { getEpicFields, isNextGenProject } from './epic-fields.js';
 
+export interface TransitionField {
+  required: boolean;
+  name: string;
+  schema: { type: string };
+}
+
 export interface Transition {
   id: string;
   name: string;
   to: {
     id: string;
     name: string;
+  };
+  fields?: Record<string, TransitionField>;
+}
+
+export interface TransitionPayload {
+  fields?: Record<string, any>;
+  update?: {
+    comment?: Array<{ add: { body: any } }>;
+    [key: string]: any;
   };
 }
 
@@ -767,6 +782,7 @@ export async function getIssueTransitions(issueIdOrKey: string): Promise<Transit
   const client = getJiraClient();
   const response = await client.issues.getTransitions({
     issueIdOrKey,
+    expand: "transitions.fields",
   });
 
   return (response.transitions || []).map((t: any) => ({
@@ -776,19 +792,26 @@ export async function getIssueTransitions(issueIdOrKey: string): Promise<Transit
       id: t.to?.id || '',
       name: t.to?.name || '',
     },
+    fields: t.fields,
   }));
 }
 
 /**
  * Perform a transition on an issue
  */
-export async function transitionIssue(issueIdOrKey: string, transitionId: string): Promise<void> {
+export async function transitionIssue(
+  issueIdOrKey: string,
+  transitionId: string,
+  payload?: TransitionPayload
+): Promise<void> {
   const client = getJiraClient();
   await client.issues.doTransition({
     issueIdOrKey,
     transition: {
       id: transitionId,
     },
+    ...(payload?.fields && { fields: payload.fields }),
+    ...(payload?.update && { update: payload.update }),
   });
 }
 
