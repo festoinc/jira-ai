@@ -6,6 +6,7 @@ import { ui } from '../lib/ui.js';
 import { outputResult } from '../lib/json-mode.js';
 import { markdownToAdf } from 'marklassian';
 import { FieldResolver } from '../lib/field-resolver.js';
+import { processMentionsInADF } from '../lib/adf-mentions.js';
 
 export interface TransitionOptions {
   resolution?: string;
@@ -83,11 +84,13 @@ export async function transitionCommand(
       }
 
       if (options.comment) {
-        const adf = markdownToAdf(options.comment);
+        let adf = markdownToAdf(options.comment);
+        adf = await processMentionsInADF(adf, resolveUserByName);
         update['comment'] = [{ add: { body: adf } }];
       } else if (options.commentFile) {
         const content = fs.readFileSync(options.commentFile, 'utf-8');
-        const adf = markdownToAdf(content);
+        let adf = markdownToAdf(content);
+        adf = await processMentionsInADF(adf, resolveUserByName);
         update['comment'] = [{ add: { body: adf } }];
       }
 
@@ -104,7 +107,7 @@ export async function transitionCommand(
       }
 
       if (options.fixVersion) {
-        fields['fixVersions'] = [{ name: options.fixVersion }];
+        fields['fixVersions'] = options.fixVersion.split(',').map((v: string) => ({ name: v.trim() }));
       }
 
       if (options.customFields && options.customFields.length > 0) {
@@ -167,6 +170,7 @@ export async function listTransitionsCommand(
   issueKey: string,
   options?: ListTransitionsOptions
 ): Promise<void> {
+  await validateIssuePermissions(issueKey, 'transition');
   const transitions = await getIssueTransitions(issueKey);
 
   let rows = transitions.map((t) => {

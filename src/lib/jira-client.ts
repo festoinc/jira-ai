@@ -782,6 +782,7 @@ export async function getIssueTransitions(issueIdOrKey: string): Promise<Transit
   const client = getJiraClient();
   const response = await client.issues.getTransitions({
     issueIdOrKey,
+    expand: "transitions.fields",
   });
 
   return (response.transitions || []).map((t: any) => ({

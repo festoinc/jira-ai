@@ -434,7 +434,7 @@ describe('Jira Client', () => {
 
       const result = await getIssueTransitions('PROJ-123');
 
-      expect(mockGetTransitions).toHaveBeenCalledWith({ issueIdOrKey: 'PROJ-123' });
+      expect(mockGetTransitions).toHaveBeenCalledWith({ issueIdOrKey: 'PROJ-123', expand: 'transitions.fields' });
       expect(result).toHaveLength(2);
       expect(result[0]).toEqual({
         id: '1',
