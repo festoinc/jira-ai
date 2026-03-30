@@ -61,12 +61,66 @@ export function validateOptions<T>(schema: z.ZodSchema<T>, data: unknown): T {
   return result.data;
 }
 
+const DateStringSchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, 'Date must be in YYYY-MM-DD format');
+
+const CustomFieldSchema = z
+  .string()
+  .refine(v => v.includes('='), { message: 'Custom field must be in format fieldId=value' });
+
 // Command-specific schemas
 export const CreateTaskSchema = z.object({
   title: z.string().trim().min(1, 'Title is required'),
   project: z.string().trim().min(1, 'Project is required').pipe(ProjectKeySchema),
   issueType: z.string().trim().min(1, 'Issue type is required'),
   parent: IssueKeySchema.optional(),
+  priority: z.string().trim().min(1).optional(),
+  description: z.string().optional(),
+  descriptionFile: z.string().optional(),
+  labels: z.string().optional(),
+  component: z.string().optional(),
+  fixVersion: z.string().optional(),
+  dueDate: DateStringSchema.optional(),
+  assignee: z.string().optional(),
+  customField: z.array(CustomFieldSchema).optional(),
+}).refine(
+  data => !(data.description && data.descriptionFile),
+  { message: 'Cannot use both --description and --description-file at the same time' }
+);
+
+export const UpdateIssueSchema = z.object({
+  priority: z.string().trim().min(1).optional(),
+  summary: z.string().optional(),
+  description: z.string().optional(),
+  fromFile: z.string().optional(),
+  labels: z.string().optional(),
+  clearLabels: z.boolean().optional(),
+  component: z.string().optional(),
+  fixVersion: z.string().optional(),
+  dueDate: DateStringSchema.optional(),
+  assignee: z.string().optional(),
+  customField: z.array(CustomFieldSchema).optional(),
+}).refine(
+  data =>
+    data.priority !== undefined ||
+    data.summary !== undefined ||
+    data.description !== undefined ||
+    data.fromFile !== undefined ||
+    data.labels !== undefined ||
+    data.clearLabels === true ||
+    data.component !== undefined ||
+    data.fixVersion !== undefined ||
+    data.dueDate !== undefined ||
+    data.assignee !== undefined ||
+    (data.customField && data.customField.length > 0),
+  { message: 'At least one field to update must be provided' }
+);
+
+export const ProjectFieldsSchema = z.object({
+  type: z.string().optional(),
+  custom: z.boolean().optional(),
+  search: z.string().optional(),
 });
 
 export const AddCommentSchema = z.object({

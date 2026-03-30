@@ -47,10 +47,11 @@ describe('Create Task Command', () => {
     await createTaskCommand(mockOptions);
 
     expect(mockJiraClient.createIssue).toHaveBeenCalledWith(
-      'TEST',
-      'Test Task Title',
-      'Task',
-      undefined
+      expect.objectContaining({
+        project: 'TEST',
+        summary: 'Test Task Title',
+        issueType: 'Task',
+      })
     );
     expect(console.log).toHaveBeenCalledWith(expect.stringContaining('TEST-123'));
   });
@@ -64,10 +65,12 @@ describe('Create Task Command', () => {
     await createTaskCommand(optionsWithParent);
 
     expect(mockJiraClient.createIssue).toHaveBeenCalledWith(
-      'TEST',
-      'Test Task Title',
-      'Task',
-      'TEST-100'
+      expect.objectContaining({
+        project: 'TEST',
+        summary: 'Test Task Title',
+        issueType: 'Task',
+        parent: 'TEST-100',
+      })
     );
     expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Parent: TEST-100'));
   });

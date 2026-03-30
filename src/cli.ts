@@ -11,6 +11,8 @@ import { listIssueTypesCommand } from './commands/list-issue-types.js';
 import { listColleaguesCommand } from './commands/list-colleagues.js';
 import { runJqlCommand } from './commands/run-jql.js';
 import { updateDescriptionCommand } from './commands/update-description.js';
+import { updateIssueCommand } from './commands/update-issue.js';
+import { projectFieldsCommand } from './commands/project-fields.js';
 import { addCommentCommand } from './commands/add-comment.js';
 import { addLabelCommand } from './commands/add-label.js';
 import { deleteLabelCommand } from './commands/delete-label.js';
@@ -55,6 +57,8 @@ import {
   CreateTaskSchema,
   AddCommentSchema,
   UpdateDescriptionSchema,
+  UpdateIssueSchema,
+  ProjectFieldsSchema,
   ConfluenceAddCommentSchema,
   RunJqlSchema,
   GetPersonWorklogSchema,
@@ -170,6 +174,15 @@ issue
   .requiredOption('--project <project>', 'Project key (e.g., PROJ)')
   .requiredOption('--issue-type <type>', 'Issue type (e.g., Task, Epic, Subtask)')
   .option('--parent <key>', 'Parent issue key (required for subtasks)')
+  .option('--priority <priority>', 'Issue priority (e.g., High, Medium, Low)')
+  .option('--description <text>', 'Issue description as Markdown')
+  .option('--description-file <path>', 'Path to a Markdown file for the description')
+  .option('--labels <labels>', 'Comma-separated labels')
+  .option('--component <component>', 'Comma-separated component names')
+  .option('--fix-version <version>', 'Comma-separated fix version names')
+  .option('--due-date <date>', 'Due date in YYYY-MM-DD format')
+  .option('--assignee <assignee>', 'Assignee (accountid:<id> or display name)')
+  .option('--custom-field <field=value>', 'Custom field in fieldId=value format (repeatable)', (val: string, prev: string[]) => [...(prev || []), val], [] as string[])
   .action(withPermission('issue.create', createTaskCommand, { schema: CreateTaskSchema }));
 
 issue
@@ -194,10 +207,21 @@ issue
 
 issue
   .command('update <issue-id>')
-  .description('Update a Jira issue\'s description using content from a local Markdown file.')
-  .requiredOption('--from-file <path>', 'Path to Markdown file')
-  .action(withPermission('issue.update', updateDescriptionCommand, {
-    schema: UpdateDescriptionSchema,
+  .description('Update one or more fields of a Jira issue. Supports priority, summary, description, labels, components, fix versions, due date, assignee, and custom fields.')
+  .option('--from-file <path>', 'Update description from a Markdown file (legacy alias for --description-file)')
+  .option('--priority <priority>', 'New priority (e.g., High, Medium, Low)')
+  .option('--summary <text>', 'New summary/title')
+  .option('--description <text>', 'New description as Markdown')
+  .option('--labels <labels>', 'Comma-separated labels (replaces existing)')
+  .option('--clear-labels', 'Remove all labels from the issue')
+  .option('--component <component>', 'Comma-separated component names')
+  .option('--fix-version <version>', 'Comma-separated fix version names')
+  .option('--due-date <date>', 'Due date in YYYY-MM-DD format')
+  .option('--assignee <assignee>', 'Assignee (accountid:<id> or display name)')
+  .option('--custom-field <field=value>', 'Custom field in fieldId=value format (repeatable)', (val: string, prev: string[]) => [...(prev || []), val], [] as string[])
+  .action(withPermission('issue.update', (issueId: string, options: any) => {
+    return updateIssueCommand(issueId, options);
+  }, {
     validateArgs: (args) => validateOptions(IssueKeySchema, args[0])
   }));
 
@@ -328,6 +352,19 @@ project
   .command('types <project-key>')
   .description('List all issue types (Standard and Subtask) available for a project.')
   .action(withPermission('project.types', listIssueTypesCommand, {
+    validateArgs: (args) => validateOptions(ProjectKeySchema, args[0])
+  }));
+
+project
+  .command('fields <project-key>')
+  .description('List all available fields for a project, including custom fields.')
+  .option('--type <issue-type>', 'Filter fields by issue type')
+  .option('--custom', 'Show only custom fields')
+  .option('--search <term>', 'Filter fields by name or ID')
+  .action(withPermission('project.fields', (projectKey: string, options: any) => {
+    return projectFieldsCommand(projectKey, options);
+  }, {
+    schema: ProjectFieldsSchema,
     validateArgs: (args) => validateOptions(ProjectKeySchema, args[0])
   }));
 
