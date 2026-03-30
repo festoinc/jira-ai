@@ -172,7 +172,7 @@ export interface IssueType {
 
 let jiraClient: Version3Client | null = null;
 
-function resolveHost(creds: { host: string; authType?: string; cloudId?: string }): string {
+export function resolveHost(creds: { host: string; authType?: string; cloudId?: string }): string {
   if (creds.authType === 'service_account' && creds.cloudId) {
     return `https://api.atlassian.com/ex/jira/${creds.cloudId}`;
   }

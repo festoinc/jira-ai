@@ -189,20 +189,20 @@ describe('Sprint Commands', () => {
 
   describe('sprintStartCommand', () => {
     it('should start a future sprint', async () => {
+      mockAgileClient.getSprint.mockResolvedValue(mockSprintFuture);
       mockAgileClient.startSprint.mockResolvedValue(undefined);
 
       await sprintStartCommand(43);
 
+      expect(mockAgileClient.getSprint).toHaveBeenCalledWith(43);
       expect(mockAgileClient.startSprint).toHaveBeenCalledWith(43);
       expect(console.log).toHaveBeenCalled();
     });
 
-    it('should throw when trying to start a closed sprint', async () => {
-      mockAgileClient.startSprint.mockRejectedValue(
-        new CommandError('Cannot start a closed sprint')
-      );
+    it('should throw when trying to start a non-future sprint', async () => {
+      mockAgileClient.getSprint.mockResolvedValue(mockSprintActive);
 
-      await expect(sprintStartCommand(42)).rejects.toThrow('Cannot start a closed sprint');
+      await expect(sprintStartCommand(42)).rejects.toThrow("Cannot start sprint in state 'active'");
     });
 
     it('should deny execution when sprint.start permission is not granted', async () => {
@@ -214,20 +214,20 @@ describe('Sprint Commands', () => {
 
   describe('sprintCompleteCommand', () => {
     it('should complete an active sprint', async () => {
+      mockAgileClient.getSprint.mockResolvedValue(mockSprintActive);
       mockAgileClient.completeSprint.mockResolvedValue(undefined);
 
       await sprintCompleteCommand(42);
 
+      expect(mockAgileClient.getSprint).toHaveBeenCalledWith(42);
       expect(mockAgileClient.completeSprint).toHaveBeenCalledWith(42);
       expect(console.log).toHaveBeenCalled();
     });
 
-    it('should throw when trying to complete a future sprint without dates', async () => {
-      mockAgileClient.completeSprint.mockRejectedValue(
-        new CommandError('Cannot complete a sprint without dates')
-      );
+    it('should throw when trying to complete a non-active sprint', async () => {
+      mockAgileClient.getSprint.mockResolvedValue(mockSprintFuture);
 
-      await expect(sprintCompleteCommand(43)).rejects.toThrow('Cannot complete a sprint without dates');
+      await expect(sprintCompleteCommand(43)).rejects.toThrow("Cannot complete sprint in state 'future'");
     });
 
     it('should deny execution when sprint.complete permission is not granted', async () => {

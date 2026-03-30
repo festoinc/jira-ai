@@ -10,17 +10,9 @@ import {
   getSprintIssues,
   moveIssuesToSprint,
 } from '../lib/agile-client.js';
-import { isCommandAllowed, getAllowedCommands } from '../lib/settings.js';
+import { requirePermission } from '../lib/permissions.js';
 import { CommandError } from '../lib/errors.js';
 import { ui } from '../lib/ui.js';
-
-function requirePermission(command: string): void {
-  if (!isCommandAllowed(command)) {
-    throw new CommandError(`Command '${command}' is not allowed.`, {
-      hints: [`Allowed commands: ${getAllowedCommands().join(', ')}`, 'Update settings.yaml to enable this command.'],
-    });
-  }
-}
 
 // sprint list <board-id> [--state <state>]
 export async function sprintListCommand(boardId: number, options?: { state?: string }): Promise<void> {
@@ -49,7 +41,7 @@ export async function sprintListCommand(boardId: number, options?: { state?: str
 // sprint get <sprint-id>
 export async function sprintGetCommand(sprintId: number): Promise<void> {
   requirePermission('sprint.get');
-  if (!sprintId) {
+  if (sprintId == null) {
     throw new CommandError('Sprint ID is required.', { hints: ['Provide a numeric sprint ID'] });
   }
   ui.startSpinner(`Fetching sprint ${sprintId}...`);
@@ -74,7 +66,7 @@ export async function sprintCreateCommand(
   options?: { goal?: string; start?: string; end?: string }
 ): Promise<void> {
   requirePermission('sprint.create');
-  if (!boardId) {
+  if (boardId == null) {
     throw new CommandError('Board ID is required.', { hints: ['Provide a numeric board ID'] });
   }
   if (!name) {
@@ -95,6 +87,18 @@ export async function sprintCreateCommand(
 // sprint start <sprint-id>
 export async function sprintStartCommand(sprintId: number): Promise<void> {
   requirePermission('sprint.start');
+  if (sprintId == null) {
+    throw new CommandError('Sprint ID is required.', { hints: ['Provide a numeric sprint ID'] });
+  }
+  ui.startSpinner(`Validating sprint ${sprintId}...`);
+  const sprintToStart = await getSprint(sprintId);
+  if (sprintToStart.state !== 'future') {
+    ui.failSpinner();
+    throw new CommandError(
+      `Cannot start sprint in state '${sprintToStart.state}'. Only 'future' sprints can be started.`,
+      { hints: ['Use sprint list to see available sprints and their states'] }
+    );
+  }
   ui.startSpinner(`Starting sprint ${sprintId}...`);
   await startSprint(sprintId);
   ui.succeedSpinner(chalk.green(`Sprint ${sprintId} started successfully.`));
@@ -104,6 +108,18 @@ export async function sprintStartCommand(sprintId: number): Promise<void> {
 // sprint complete <sprint-id>
 export async function sprintCompleteCommand(sprintId: number): Promise<void> {
   requirePermission('sprint.complete');
+  if (sprintId == null) {
+    throw new CommandError('Sprint ID is required.', { hints: ['Provide a numeric sprint ID'] });
+  }
+  ui.startSpinner(`Validating sprint ${sprintId}...`);
+  const sprintToComplete = await getSprint(sprintId);
+  if (sprintToComplete.state !== 'active') {
+    ui.failSpinner();
+    throw new CommandError(
+      `Cannot complete sprint in state '${sprintToComplete.state}'. Only 'active' sprints can be completed.`,
+      { hints: ['Use sprint list to see available sprints and their states'] }
+    );
+  }
   ui.startSpinner(`Completing sprint ${sprintId}...`);
   await completeSprint(sprintId);
   ui.succeedSpinner(chalk.green(`Sprint ${sprintId} completed successfully.`));
@@ -116,8 +132,13 @@ export async function sprintUpdateCommand(
   options: { name?: string; goal?: string; start?: string; end?: string }
 ): Promise<void> {
   requirePermission('sprint.update');
-  if (!sprintId) {
+  if (sprintId == null) {
     throw new CommandError('Sprint ID is required.', { hints: ['Provide a numeric sprint ID'] });
+  }
+  if (!options?.name && !options?.goal && !options?.start && !options?.end) {
+    throw new CommandError('At least one field is required.', {
+      hints: ['Provide one or more of: --name, --goal, --start, --end'],
+    });
   }
 
   ui.startSpinner(`Updating sprint ${sprintId}...`);
@@ -135,7 +156,7 @@ export async function sprintUpdateCommand(
 // sprint delete <sprint-id>
 export async function sprintDeleteCommand(sprintId: number): Promise<void> {
   requirePermission('sprint.delete');
-  if (!sprintId) {
+  if (sprintId == null) {
     throw new CommandError('Sprint ID is required.', { hints: ['Provide a numeric sprint ID'] });
   }
 

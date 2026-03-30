@@ -53,6 +53,8 @@ describe('Single-org cleanup (JIR-9)', () => {
         'project',
         'user',
         'confl',
+        'board',
+        'sprint',
       ]);
     });
   });

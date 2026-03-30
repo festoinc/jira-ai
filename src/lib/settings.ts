@@ -69,7 +69,9 @@ export const DEFAULT_ORG_SETTINGS: OrganizationSettings = {
     'issue',
     'project',
     'user',
-    'confl'
+    'confl',
+    'board',
+    'sprint'
   ],
   'allowed-confluence-spaces': ['all']
 };

@@ -1,6 +1,7 @@
 import { AgileClient } from 'jira.js';
 import { loadCredentials } from './auth-storage.js';
 import { CommandError } from './errors.js';
+import { resolveHost } from './jira-client.js';
 
 // TypeScript interfaces for Agile entities
 export interface Board {
@@ -83,9 +84,7 @@ export async function getAgileClient(): Promise<AgileClient> {
     if (!creds) {
       throw new CommandError('Jira credentials not found. Please run "jira-ai auth"');
     }
-    const host = creds.authType === 'service_account' && creds.cloudId
-      ? `https://api.atlassian.com/ex/jira/${creds.cloudId}`
-      : creds.host;
+    const host = resolveHost(creds);
 
     agileClientInstance = new AgileClient({
       host,
@@ -127,6 +126,7 @@ export async function getBoardIssues(boardId: number, options?: { jql?: string; 
 export async function getSprints(boardId: number, options?: { state?: string; maxResults?: number }): Promise<SprintList> {
   const client = await getAgileClient();
   try {
+    // jira.js AgileClient types don't expose getAllSprints; cast required until upstream fixes typing
     return await (client as any).sprint.getAllSprints({ boardId, ...options }) as SprintList;
   } catch (error: any) {
     const msg = error?.message || '';

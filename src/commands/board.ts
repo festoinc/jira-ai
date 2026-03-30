@@ -1,16 +1,8 @@
 import chalk from 'chalk';
 import { getBoards, getBoard, getBoardConfig, getBoardIssues, rankIssues } from '../lib/agile-client.js';
-import { isCommandAllowed, getAllowedCommands } from '../lib/settings.js';
+import { requirePermission } from '../lib/permissions.js';
 import { CommandError } from '../lib/errors.js';
 import { ui } from '../lib/ui.js';
-
-function requirePermission(command: string): void {
-  if (!isCommandAllowed(command)) {
-    throw new CommandError(`Command '${command}' is not allowed.`, {
-      hints: [`Allowed commands: ${getAllowedCommands().join(', ')}`, 'Update settings.yaml to enable this command.'],
-    });
-  }
-}
 
 // board list [--project <key>] [--type <type>]
 export async function boardListCommand(options?: { projectKey?: string; type?: string }): Promise<void> {
@@ -33,13 +25,16 @@ export async function boardListCommand(options?: { projectKey?: string; type?: s
     const location = board.location?.displayName ? chalk.gray(` — ${board.location.displayName}`) : '';
     console.log(`  ${chalk.cyan(String(board.id))}  ${board.name}${location}  ${chalk.gray(`[${board.type}]`)}`);
   });
+  if (!result.isLast) {
+    console.log(chalk.gray('\n  (More results available — use --max to fetch more)'));
+  }
   console.log();
 }
 
 // board get <board-id>
 export async function boardGetCommand(boardId: number): Promise<void> {
   requirePermission('board.get');
-  if (!boardId) {
+  if (boardId == null) {
     throw new CommandError('Board ID is required.', { hints: ['Provide a numeric board ID'] });
   }
   ui.startSpinner(`Fetching board ${boardId}...`);
@@ -58,7 +53,7 @@ export async function boardGetCommand(boardId: number): Promise<void> {
 // board config <board-id>
 export async function boardConfigCommand(boardId: number): Promise<void> {
   requirePermission('board.config');
-  if (!boardId) {
+  if (boardId == null) {
     throw new CommandError('Board ID is required.', { hints: ['Provide a numeric board ID'] });
   }
   ui.startSpinner(`Fetching board config for ${boardId}...`);
@@ -100,7 +95,8 @@ export async function boardIssuesCommand(boardId: number, options?: { jql?: stri
   console.log(chalk.bold(`\nBoard Issues (${result.total} total)\n`));
   result.issues.forEach(issue => {
     const status = chalk.gray(`[${issue.fields.status.name}]`);
-    console.log(`  ${chalk.cyan(issue.key)}  ${issue.fields.summary}  ${status}`);
+    const assignee = issue.fields.assignee ? chalk.gray(` @${issue.fields.assignee.displayName}`) : '';
+    console.log(`  ${chalk.cyan(issue.key)}  ${issue.fields.summary}  ${status}${assignee}`);
   });
   console.log();
 }

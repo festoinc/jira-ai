@@ -1,16 +1,8 @@
 import chalk from 'chalk';
 import { moveIssuesToBacklog } from '../lib/agile-client.js';
-import { isCommandAllowed, getAllowedCommands } from '../lib/settings.js';
+import { requirePermission } from '../lib/permissions.js';
 import { CommandError } from '../lib/errors.js';
 import { ui } from '../lib/ui.js';
-
-function requirePermission(command: string): void {
-  if (!isCommandAllowed(command)) {
-    throw new CommandError(`Command '${command}' is not allowed.`, {
-      hints: [`Allowed commands: ${getAllowedCommands().join(', ')}`, 'Update settings.yaml to enable this command.'],
-    });
-  }
-}
 
 // backlog move --issues <keys>
 export async function backlogMoveCommand(options: { issues: string[] }): Promise<void> {
@@ -27,5 +19,5 @@ export async function backlogMoveCommand(options: { issues: string[] }): Promise
   ui.startSpinner(`Moving ${options.issues.length} issue(s) to backlog...`);
   await moveIssuesToBacklog(options.issues);
   ui.succeedSpinner(chalk.green(`Moved ${options.issues.length} issue(s) to backlog.`));
-  console.log(`${options.issues.length} issue(s) moved to backlog.`);
+  console.log();
 }
