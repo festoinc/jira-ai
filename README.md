@@ -63,6 +63,26 @@ See all available commands:
 jira-ai --help
 ```
 
+### Rich Issue Management
+
+Create issues with detailed field support:
+```bash
+jira-ai issue create --title "New feature" --project PROJ --issue-type Task \
+  --priority High --description "Feature details" --labels "feature,backend" \
+  --component "api" --fix-version "v2.0" --due-date 2026-04-15 --assignee "John Doe"
+```
+
+Update issues with any combination of fields:
+```bash
+jira-ai issue update PROJ-123 --priority Critical --summary "Updated title" \
+  --labels "urgent" --due-date 2026-05-01
+```
+
+Discover available fields for a project (including custom fields):
+```bash
+jira-ai project fields PROJ --type Task
+```
+
 ## Service Account Authentication
 
 Atlassian service accounts use scoped API tokens that must authenticate through the `api.atlassian.com` gateway rather than direct site URLs.
