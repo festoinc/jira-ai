@@ -63,6 +63,35 @@ See all available commands:
 jira-ai --help
 ```
 
+## JSON Output Mode
+
+All commands support structured JSON output via global flags. This is designed for AI agents and scripting integrations where parsed data is more useful than formatted tables.
+
+### `--json`
+
+Outputs pretty-printed JSON (2-space indentation):
+```bash
+jira-ai --json issue get PROJ-123
+jira-ai --json project list
+jira-ai --json issue search "project = PROJ AND status = Open"
+```
+
+### `--json-compact`
+
+Outputs single-line JSON for maximum token efficiency — ideal for AI agent workflows:
+```bash
+jira-ai --json-compact issue get PROJ-123
+```
+
+### Error handling in JSON mode
+
+Errors are returned as structured JSON to stdout:
+```json
+{ "error": true, "message": "Issue not found", "hints": ["Check the issue key"], "exitCode": 1 }
+```
+
+Default table output is unchanged when neither flag is used.
+
 ### Rich Issue Management
 
 Create issues with detailed field support:

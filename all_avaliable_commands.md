@@ -1,5 +1,12 @@
 # Available Commands
 
+## Global Options
+
+| Flag | Description |
+| :--- | :--- |
+| `--json` | Output results as pretty-printed JSON instead of formatted tables. Works with all commands. |
+| `--json-compact` | Output results as single-line JSON for maximum token efficiency. Ideal for AI agent workflows. |
+
 ## Top-Level Commands
 
 | Command | Description |
