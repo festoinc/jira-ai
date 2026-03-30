@@ -16,6 +16,10 @@ vi.mock('ora', () => ({
     stop: vi.fn().mockReturnThis()
   }))
 }));
+vi.mock('fs', () => ({
+  readFileSync: vi.fn().mockReturnValue('# File Description'),
+  existsSync: vi.fn().mockReturnValue(true),
+}));
 
 const mockJiraClient = jiraClient as vi.Mocked<typeof jiraClient>;
 const mockSettings = settings as vi.Mocked<typeof settings>;

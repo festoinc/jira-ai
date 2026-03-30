@@ -17,6 +17,13 @@ vi.mock('ora', () => ({
     stop: vi.fn().mockReturnThis(),
   })),
 }));
+vi.mock('fs', () => ({
+  readFileSync: vi.fn().mockReturnValue('# Description'),
+  existsSync: vi.fn().mockReturnValue(true),
+}));
+vi.mock('marklassian', () => ({
+  markdownToAdf: vi.fn().mockReturnValue({ version: 1, type: 'doc', content: [] }),
+}));
 
 const mockJiraClient = jiraClient as vi.Mocked<typeof jiraClient>;
 const mockSettings = settings as vi.Mocked<typeof settings>;
@@ -172,14 +179,8 @@ describe('Update Issue Command', () => {
 
     it('should merge --from-file description with other field updates', async () => {
       const mockAdf = { version: 1, type: 'doc', content: [] };
-      mockJiraClient.updateIssue = vi.fn().mockResolvedValue(undefined);
-      vi.mock('fs', () => ({
-        readFileSync: vi.fn().mockReturnValue('# Description'),
-        existsSync: vi.fn().mockReturnValue(true),
-      }));
-      vi.mock('marklassian', () => ({
-        markdownToAdf: vi.fn().mockReturnValue(mockAdf),
-      }));
+      const { markdownToAdf } = await import('marklassian');
+      vi.mocked(markdownToAdf).mockReturnValue(mockAdf as any);
 
       await updateIssueCommand(issueKey, {
         priority: 'Low',

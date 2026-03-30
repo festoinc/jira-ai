@@ -91,7 +91,7 @@ export const CreateTaskSchema = z.object({
 
 export const UpdateIssueSchema = z.object({
   priority: z.string().trim().min(1).optional(),
-  summary: z.string().optional(),
+  summary: z.string().trim().min(1).optional(),
   description: z.string().optional(),
   fromFile: z.string().optional(),
   labels: z.string().optional(),
@@ -118,6 +118,7 @@ export const UpdateIssueSchema = z.object({
 );
 
 export const ProjectFieldsSchema = z.object({
+  project: z.string().pipe(ProjectKeySchema),
   type: z.string().optional(),
   custom: z.boolean().optional(),
   search: z.string().optional(),

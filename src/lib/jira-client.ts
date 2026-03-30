@@ -567,20 +567,28 @@ export interface CreateIssueOptions {
  * Create a new issue
  */
 export async function createIssue(
-  options: CreateIssueOptions
+  projectOrOptions: string | CreateIssueOptions,
+  summary?: string,
+  issueType?: string,
+  parent?: string
 ): Promise<{ key: string; id: string }> {
   const client = getJiraClient();
 
-  const { project, summary, issueType, parent, ...rest } = options;
+  const opts: CreateIssueOptions =
+    typeof projectOrOptions === 'string'
+      ? { project: projectOrOptions, summary: summary!, issueType: issueType!, parent }
+      : projectOrOptions;
+
+  const { project, summary: _summary, issueType: _issueType, parent: _parent, ...rest } = opts;
 
   const fields: any = {
     project: { key: project },
-    summary,
-    issuetype: { name: issueType },
+    summary: _summary,
+    issuetype: { name: _issueType },
   };
 
-  if (parent) {
-    fields.parent = { key: parent };
+  if (_parent) {
+    fields.parent = { key: _parent };
   }
 
   // Spread all optional rich fields (priority, description, labels, etc.)
