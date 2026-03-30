@@ -21,7 +21,7 @@ import { createIssueLinkCommand } from './commands/create-issue-link.js';
 import { deleteIssueLinkCommand } from './commands/delete-issue-link.js';
 import { listLinkTypesCommand } from './commands/list-link-types.js';
 import { createTaskCommand } from './commands/create-task.js';
-import { transitionCommand } from './commands/transition.js';
+import { transitionCommand, listTransitionsCommand } from './commands/transition.js';
 import { issueAssignCommand } from './commands/issue.js';
 import { getIssueStatisticsCommand } from './commands/get-issue-statistics.js';
 import { getPersonWorklogCommand } from './commands/get-person-worklog.js';
@@ -204,7 +204,30 @@ issue
 issue
   .command('transition <issue-id> <to-status>')
   .description('Change the status of a Jira issue. The <to-status> can be either the status name or ID.')
-  .action(withPermission('issue.transition', transitionCommand, {
+  .option('--resolution <name>', 'Resolution name (e.g., "Done", "Won\'t Do")')
+  .option('--comment <text>', 'Add a comment (markdown) during transition')
+  .option('--comment-file <path>', 'Read comment from a markdown file (mutually exclusive with --comment)')
+  .option('--assignee <email-or-name>', 'Assignee (accountid:<id> or display name)')
+  .option('--fix-version <name>', 'Fix version name')
+  .option('--custom-field <entry>', 'Custom field as "Field Name=value" (repeatable)', (v: string, acc: string[]) => { acc.push(v); return acc; }, [] as string[])
+  .action(withPermission('issue.transition', (taskId: string, toStatus: string, opts: any) => transitionCommand(taskId, toStatus, {
+    resolution: opts.resolution,
+    comment: opts.comment,
+    commentFile: opts.commentFile,
+    assignee: opts.assignee,
+    fixVersion: opts.fixVersion,
+    customFields: opts.customField,
+  }), {
+    validateArgs: (args) => validateOptions(IssueKeySchema, args[0])
+  }));
+
+issue
+  .command('transitions <issue-id>')
+  .description('List available transitions for a Jira issue, including required fields.')
+  .option('--required-only', 'Only show transitions that have required fields')
+  .action(withPermission('issue.transition', (issueId: string, opts: any) => listTransitionsCommand(issueId, {
+    requiredOnly: opts.requiredOnly,
+  }), {
     validateArgs: (args) => validateOptions(IssueKeySchema, args[0])
   }));
 

@@ -50,7 +50,7 @@ describe('Transition Command', () => {
     await transitionCommand(taskId, 'in progress');
 
     expect(mockJiraClient.getIssueTransitions).toHaveBeenCalledWith(taskId);
-    expect(mockJiraClient.transitionIssue).toHaveBeenCalledWith(taskId, '1');
+    expect(mockJiraClient.transitionIssue).toHaveBeenCalledWith(taskId, '1', undefined);
   });
 
   it('should throw error when no matching transition is found', async () => {

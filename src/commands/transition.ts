@@ -1,13 +1,35 @@
 import chalk from 'chalk';
-import { getIssueTransitions, transitionIssue, validateIssuePermissions } from '../lib/jira-client.js';
+import * as fs from 'fs';
+import { getIssueTransitions, transitionIssue, validateIssuePermissions, resolveUserByName, TransitionPayload } from '../lib/jira-client.js';
 import { CommandError } from '../lib/errors.js';
 import { ui } from '../lib/ui.js';
 import { outputResult } from '../lib/json-mode.js';
+import { markdownToAdf } from 'marklassian';
+import { FieldResolver } from '../lib/field-resolver.js';
+
+export interface TransitionOptions {
+  resolution?: string;
+  comment?: string;
+  commentFile?: string;
+  assignee?: string;
+  fixVersion?: string;
+  customFields?: string[];
+}
+
+export interface ListTransitionsOptions {
+  requiredOnly?: boolean;
+}
 
 export async function transitionCommand(
   taskId: string,
-  toStatus: string
+  toStatus: string,
+  options?: TransitionOptions
 ): Promise<void> {
+  // Validate mutual exclusivity of --comment and --comment-file
+  if (options?.comment && options?.commentFile) {
+    throw new CommandError('Cannot use both --comment and --comment-file flags simultaneously.');
+  }
+
   // Check permissions and filters
   ui.startSpinner(`Validating permissions for ${taskId}...`);
   await validateIssuePermissions(taskId, 'transition');
@@ -49,9 +71,68 @@ export async function transitionCommand(
     }
 
     const transition = matchingTransitions[0];
+
+    // Build optional payload if any options were provided
+    let payload: TransitionPayload | undefined;
+    if (options && Object.keys(options).some(k => (options as any)[k] !== undefined)) {
+      const fields: Record<string, any> = {};
+      const update: Record<string, any> = {};
+
+      if (options.resolution) {
+        fields['resolution'] = { name: options.resolution };
+      }
+
+      if (options.comment) {
+        const adf = markdownToAdf(options.comment);
+        update['comment'] = [{ add: { body: adf } }];
+      } else if (options.commentFile) {
+        const content = fs.readFileSync(options.commentFile, 'utf-8');
+        const adf = markdownToAdf(content);
+        update['comment'] = [{ add: { body: adf } }];
+      }
+
+      if (options.assignee) {
+        if (options.assignee.startsWith('accountid:')) {
+          fields['assignee'] = { accountId: options.assignee.slice('accountid:'.length) };
+        } else {
+          const accountId = await resolveUserByName(options.assignee);
+          if (!accountId) {
+            throw new CommandError(`Could not resolve user: "${options.assignee}". Check the display name and try again.`);
+          }
+          fields['assignee'] = { accountId };
+        }
+      }
+
+      if (options.fixVersion) {
+        fields['fixVersions'] = [{ name: options.fixVersion }];
+      }
+
+      if (options.customFields && options.customFields.length > 0) {
+        const resolver = new FieldResolver();
+        for (const entry of options.customFields) {
+          const eqIdx = entry.indexOf('=');
+          if (eqIdx === -1) continue;
+          const fieldId = entry.slice(0, eqIdx).trim();
+          const value = entry.slice(eqIdx + 1).trim();
+          try {
+            fields[fieldId] = await resolver.coerceValue(fieldId, value);
+          } catch {
+            // Fall back to raw string if field schema is not accessible
+            fields[fieldId] = value;
+          }
+        }
+      }
+
+      payload = {
+        ...(Object.keys(fields).length > 0 && { fields }),
+        ...(Object.keys(update).length > 0 && { update }),
+      };
+      if (Object.keys(payload).length === 0) payload = undefined;
+    }
+
     ui.startSpinner(`Transitioning ${taskId} to ${transition.to.name}...`);
-    
-    await transitionIssue(taskId, transition.id);
+
+    await transitionIssue(taskId, transition.id, payload);
 
     ui.succeedSpinner(
       chalk.green(`Issue ${taskId} successfully transitioned to ${transition.to.name}.`)
@@ -80,4 +161,37 @@ export async function transitionCommand(
 
     throw new CommandError(`Failed to transition issue: ${error.message}`, { hints });
   }
+}
+
+export async function listTransitionsCommand(
+  issueKey: string,
+  options?: ListTransitionsOptions
+): Promise<void> {
+  const transitions = await getIssueTransitions(issueKey);
+
+  let rows = transitions.map((t) => {
+    const requiredFieldNames = t.fields
+      ? Object.entries(t.fields)
+          .filter(([, f]) => f.required)
+          .map(([key]) => key)
+      : [];
+
+    return {
+      id: t.id,
+      name: t.name,
+      to: t.to.name,
+      requiredFields: requiredFieldNames.length > 0 ? requiredFieldNames.join(', ') : '(none)',
+    };
+  });
+
+  if (options?.requiredOnly) {
+    rows = rows.filter((r) => r.requiredFields !== '(none)');
+  }
+
+  outputResult(rows, (data: typeof rows) => {
+    const lines = data.map(
+      (r) => `  ${r.id.padEnd(6)} ${r.name.padEnd(30)} → ${r.to.padEnd(20)} [required: ${r.requiredFields}]`
+    );
+    return lines.join('\n');
+  });
 }
