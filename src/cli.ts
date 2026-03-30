@@ -621,22 +621,15 @@ export async function main() {
     await program.parseAsync(process.argv);
   } catch (error) {
     ui.failSpinner();
-    
+
     if (error instanceof CommandError) {
       outputError(error.message, error.hints, error.exitCode);
     } else if (error instanceof CliError) {
-      console.error(chalk.red(`\n❌ ${error.message}\n`));
-      process.exit(1);
+      outputError(error.message, [], 1);
     } else if (error instanceof Error) {
-      console.error(chalk.red(`\n💥 Unexpected Error: ${error.message}`));
-      if (process.env.DEBUG) {
-        console.error(chalk.gray(error.stack));
-      }
-      console.error(chalk.gray('\nPlease report this issue if it persists.\n'));
-      process.exit(1);
+      outputError(`Unexpected Error: ${error.message}`, ['Please report this issue if it persists.'], 1);
     } else {
-      console.error(chalk.red(`\n💥 An unknown error occurred: ${String(error)}\n`));
-      process.exit(1);
+      outputError(`An unknown error occurred: ${String(error)}`, [], 1);
     }
   }
 }

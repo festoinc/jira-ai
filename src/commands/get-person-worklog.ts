@@ -4,6 +4,7 @@ import { searchIssuesByJql, getIssueWorklogs, WorklogWithIssue, getJiraClient } 
 import { parseTimeframe, formatDateForJql } from '../lib/utils.js';
 import { formatWorklogs } from '../lib/formatters.js';
 import { CommandError } from '../lib/errors.js';
+import { outputResult, isJsonMode } from '../lib/json-mode.js';
 
 export interface GetPersonWorklogOptions {
   groupByIssue?: boolean;
@@ -29,9 +30,11 @@ export async function getPersonWorklogCommand(
     
     if (issues.length === 0) {
       ui.stopSpinner();
-      console.log(chalk.yellow(`
-No worklogs found for ${person} between ${startJql} and ${endJql}.
-`));
+      if (!isJsonMode()) {
+        console.log(chalk.yellow(`\nNo worklogs found for ${person} between ${startJql} and ${endJql}.\n`));
+      } else {
+        outputResult([]);
+      }
       return;
     }
 
@@ -59,13 +62,15 @@ No worklogs found for ${person} between ${startJql} and ${endJql}.
     ui.stopSpinner();
 
     if (allWorklogs.length === 0) {
-      console.log(chalk.yellow(`
-No worklogs found for ${person} after detailed filtering.
-`));
+      if (!isJsonMode()) {
+        console.log(chalk.yellow(`\nNo worklogs found for ${person} after detailed filtering.\n`));
+      } else {
+        outputResult([]);
+      }
       return;
     }
 
-    console.log(formatWorklogs(allWorklogs, options.groupByIssue));
+    outputResult(allWorklogs, (data) => formatWorklogs(data, options.groupByIssue));
 
   } catch (error: any) {
     ui.failSpinner(`Failed to fetch worklogs: ${error.message}`);

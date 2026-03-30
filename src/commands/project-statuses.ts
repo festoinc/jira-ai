@@ -4,6 +4,7 @@ import { formatProjectStatuses } from '../lib/formatters.js';
 import { ui } from '../lib/ui.js';
 import { isCommandAllowed, isProjectAllowed } from '../lib/settings.js';
 import { CommandError } from '../lib/errors.js';
+import { outputResult } from '../lib/json-mode.js';
 
 export async function projectStatusesCommand(projectIdOrKey: string): Promise<void> {
   // Check if project is allowed
@@ -21,7 +22,7 @@ export async function projectStatusesCommand(projectIdOrKey: string): Promise<vo
   try {
     const statuses = await getProjectStatuses(projectIdOrKey);
     ui.succeedSpinner(chalk.green('Project statuses retrieved'));
-    console.log(formatProjectStatuses(projectIdOrKey, statuses));
+    outputResult(statuses, (data) => formatProjectStatuses(projectIdOrKey, data));
   } catch (error: any) {
     ui.failSpinner(chalk.red('Failed to fetch project statuses'));
     throw error;

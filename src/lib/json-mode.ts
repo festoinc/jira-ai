@@ -25,6 +25,8 @@ export function outputResult<T>(data: T, formatter?: (data: T) => string): void 
   } else {
     if (formatter) {
       console.log(formatter(data));
+    } else if (typeof data === 'object' && data !== null) {
+      console.log(JSON.stringify(data, null, 2));
     } else {
       console.log(data);
     }

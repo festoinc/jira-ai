@@ -1,12 +1,12 @@
 import chalk from 'chalk';
 import fs from 'fs';
 import yaml from 'js-yaml';
-import { 
-  loadSettings, 
-  saveSettings, 
-  Settings, 
-  DEFAULT_SETTINGS, 
-  migrateSettings 
+import {
+  loadSettings,
+  saveSettings,
+  Settings,
+  DEFAULT_SETTINGS,
+  migrateSettings
 } from '../lib/settings.js';
 import { formatSettings } from '../lib/formatters.js';
 import { ui } from '../lib/ui.js';
@@ -14,6 +14,7 @@ import { SettingsSchema } from '../lib/validation.js';
 import { getProjects, getProjectIssueTypes } from '../lib/jira-client.js';
 import { CommandError } from '../lib/errors.js';
 import { validateEnvVars } from '../lib/utils.js';
+import { outputResult } from '../lib/json-mode.js';
 
 export interface SettingsOptions {
   apply?: string;
@@ -46,7 +47,7 @@ export async function settingsCommand(options: SettingsOptions): Promise<void> {
 
   // Default: Show current settings
   const settings = loadSettings();
-  console.log(formatSettings(settings));
+  outputResult(settings, formatSettings);
 }
 
 async function validateSettingsFile(filePath: string): Promise<Settings> {

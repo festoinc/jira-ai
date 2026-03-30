@@ -3,6 +3,7 @@ import { getProjectFields } from '../lib/field-resolver.js';
 import { CommandError } from '../lib/errors.js';
 import { validateOptions, ProjectKeySchema } from '../lib/validation.js';
 import { isCommandAllowed, isProjectAllowed } from '../lib/settings.js';
+import { outputResult, isJsonMode } from '../lib/json-mode.js';
 
 export async function projectFieldsCommand(
   projectKey: string,
@@ -38,23 +39,28 @@ export async function projectFieldsCommand(
     }
 
     if (fields.length === 0) {
-      console.log(chalk.yellow(`No fields found for project ${projectKey}`));
+      if (!isJsonMode()) {
+        console.log(chalk.yellow(`No fields found for project ${projectKey}`));
+      } else {
+        outputResult(fields);
+      }
       return;
     }
 
-    console.log(chalk.bold(`\nFields for project ${projectKey}:`));
-    console.log(chalk.gray(`${'ID'.padEnd(30)} ${'Name'.padEnd(30)} ${'Type'.padEnd(20)} Required`));
-    console.log(chalk.gray('-'.repeat(90)));
-
-    for (const field of fields) {
-      const required = field.required ? chalk.red('yes') : chalk.gray('no');
-      const idLabel = field.custom ? chalk.cyan(field.id.padEnd(30)) : field.id.padEnd(30);
-      const nameLabel = field.custom ? chalk.cyan(field.name.padEnd(30)) : field.name.padEnd(30);
-      const type = (field.schema?.type || 'unknown').padEnd(20);
-      console.log(`${idLabel} ${nameLabel} ${type} ${required}`);
-    }
-
-    console.log(chalk.gray(`\nTotal: ${fields.length} field(s)`));
+    outputResult(fields, (data) => {
+      let out = chalk.bold(`\nFields for project ${projectKey}:`);
+      out += `\n${chalk.gray(`${'ID'.padEnd(30)} ${'Name'.padEnd(30)} ${'Type'.padEnd(20)} Required`)}`;
+      out += `\n${chalk.gray('-'.repeat(90))}`;
+      for (const field of data) {
+        const required = field.required ? chalk.red('yes') : chalk.gray('no');
+        const idLabel = field.custom ? chalk.cyan(field.id.padEnd(30)) : field.id.padEnd(30);
+        const nameLabel = field.custom ? chalk.cyan(field.name.padEnd(30)) : field.name.padEnd(30);
+        const type = (field.schema?.type || 'unknown').padEnd(20);
+        out += `\n${idLabel} ${nameLabel} ${type} ${required}`;
+      }
+      out += `\n${chalk.gray(`\nTotal: ${data.length} field(s)`)}`;
+      return out;
+    });
   } catch (error: any) {
     if (error instanceof CommandError) throw error;
 

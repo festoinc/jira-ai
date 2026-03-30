@@ -7,6 +7,7 @@ import { processMentionsInADF } from '../lib/adf-mentions.js';
 import { CommandError } from '../lib/errors.js';
 import { ui } from '../lib/ui.js';
 import { validateOptions, UpdateDescriptionSchema, IssueKeySchema } from '../lib/validation.js';
+import { outputResult } from '../lib/json-mode.js';
 
 export async function updateDescriptionCommand(
   taskId: string,
@@ -61,8 +62,10 @@ export async function updateDescriptionCommand(
   try {
     await updateIssueDescription(taskId, adfContent);
     ui.succeedSpinner(chalk.green(`Description updated successfully for ${taskId}`));
-    console.log(chalk.gray(`
-File: ${absolutePath}`));
+    outputResult(
+      { success: true, issueKey: taskId, file: absolutePath },
+      (data) => chalk.gray(`\nFile: ${data.file}`)
+    );
   } catch (error: any) {
     if (error instanceof CommandError) throw error;
 

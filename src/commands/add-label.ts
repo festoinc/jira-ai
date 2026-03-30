@@ -3,6 +3,7 @@ import { addIssueLabels, validateIssuePermissions } from '../lib/jira-client.js'
 import { CommandError } from '../lib/errors.js';
 import { ui } from '../lib/ui.js';
 import { validateOptions, IssueKeySchema } from '../lib/validation.js';
+import { outputResult } from '../lib/json-mode.js';
 
 export async function addLabelCommand(
   taskId: string,
@@ -30,8 +31,10 @@ export async function addLabelCommand(
   try {
     await addIssueLabels(taskId, labels);
     ui.succeedSpinner(chalk.green(`Labels added successfully to ${taskId}`));
-    console.log(chalk.gray(`
-Labels: ${labels.join(', ')}`));
+    outputResult(
+      { success: true, issueKey: taskId, labels },
+      (data) => chalk.gray(`\nLabels: ${data.labels.join(', ')}`)
+    );
   } catch (error: any) {
     if (error instanceof CommandError) throw error;
 

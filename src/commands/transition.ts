@@ -2,6 +2,7 @@ import chalk from 'chalk';
 import { getIssueTransitions, transitionIssue, validateIssuePermissions } from '../lib/jira-client.js';
 import { CommandError } from '../lib/errors.js';
 import { ui } from '../lib/ui.js';
+import { outputResult } from '../lib/json-mode.js';
 
 export async function transitionCommand(
   taskId: string,
@@ -54,6 +55,10 @@ export async function transitionCommand(
 
     ui.succeedSpinner(
       chalk.green(`Issue ${taskId} successfully transitioned to ${transition.to.name}.`)
+    );
+    outputResult(
+      { success: true, issueKey: taskId, status: transition.to.name },
+      (data) => chalk.green(`Issue ${data.issueKey} successfully transitioned to ${data.status}.`)
     );
   } catch (error: any) {
     if (error instanceof CommandError) {

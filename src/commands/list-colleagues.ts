@@ -4,6 +4,7 @@ import { formatUsers } from '../lib/formatters.js';
 import { ui } from '../lib/ui.js';
 import { isCommandAllowed, isProjectAllowed } from '../lib/settings.js';
 import { CommandError } from '../lib/errors.js';
+import { outputResult, isJsonMode } from '../lib/json-mode.js';
 
 export async function listColleaguesCommand(projectKey?: string): Promise<void> {
   if (projectKey) {
@@ -24,11 +25,15 @@ export async function listColleaguesCommand(projectKey?: string): Promise<void> 
   try {
     const users = await getUsers(projectKey);
     ui.succeedSpinner(chalk.green('Colleagues retrieved'));
-    
+
     if (users.length === 0) {
-      console.log(chalk.yellow('\nNo active colleagues found.'));
+      if (!isJsonMode()) {
+        console.log(chalk.yellow('\nNo active colleagues found.'));
+      } else {
+        outputResult(users);
+      }
     } else {
-      console.log(formatUsers(users));
+      outputResult(users, formatUsers);
     }
   } catch (error: any) {
     ui.failSpinner(chalk.red('Failed to fetch colleagues'));

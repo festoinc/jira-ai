@@ -4,6 +4,7 @@ import { formatIssueLinks } from '../lib/formatters.js';
 import { CommandError } from '../lib/errors.js';
 import { ui } from '../lib/ui.js';
 import { validateOptions, IssueKeySchema } from '../lib/validation.js';
+import { outputResult } from '../lib/json-mode.js';
 
 export async function listIssueLinksCommand(issueKey: string): Promise<void> {
   validateOptions(IssueKeySchema, issueKey);
@@ -16,7 +17,7 @@ export async function listIssueLinksCommand(issueKey: string): Promise<void> {
   try {
     const links = await getIssueLinks(issueKey);
     ui.succeedSpinner(chalk.green(`Issue links retrieved for ${issueKey}`));
-    console.log(formatIssueLinks(issueKey, links));
+    outputResult(links, (data) => formatIssueLinks(issueKey, data));
   } catch (error: any) {
     if (error instanceof CommandError) throw error;
 

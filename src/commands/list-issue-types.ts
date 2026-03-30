@@ -4,6 +4,7 @@ import { formatProjectIssueTypes } from '../lib/formatters.js';
 import { ui } from '../lib/ui.js';
 import { isCommandAllowed, isProjectAllowed } from '../lib/settings.js';
 import { CommandError } from '../lib/errors.js';
+import { outputResult } from '../lib/json-mode.js';
 
 export async function listIssueTypesCommand(projectKey: string): Promise<void> {
   // Check if project is allowed
@@ -20,5 +21,5 @@ export async function listIssueTypesCommand(projectKey: string): Promise<void> {
 
   const issueTypes = await getProjectIssueTypes(projectKey);
   ui.succeedSpinner(chalk.green('Issue types retrieved'));
-  console.log(formatProjectIssueTypes(projectKey, issueTypes));
+  outputResult(issueTypes, (data) => formatProjectIssueTypes(projectKey, data));
 }

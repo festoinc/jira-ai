@@ -7,6 +7,7 @@ import { processMentionsInADF } from '../lib/adf-mentions.js';
 import { CommandError } from '../lib/errors.js';
 import { ui } from '../lib/ui.js';
 import { validateOptions, AddCommentSchema } from '../lib/validation.js';
+import { outputResult } from '../lib/json-mode.js';
 
 export async function addCommentCommand(
   options: { filePath: string; issueKey: string }
@@ -57,7 +58,10 @@ export async function addCommentCommand(
   try {
     await addIssueComment(issueKey, adfContent);
     ui.succeedSpinner(chalk.green(`Comment added successfully to ${issueKey}`));
-    console.log(chalk.gray(`\nFile: ${absolutePath}`));
+    outputResult(
+      { success: true, issueKey, file: absolutePath },
+      (data) => chalk.gray(`\nFile: ${data.file}`)
+    );
   } catch (error: any) {
     if (error instanceof CommandError) throw error;
 
