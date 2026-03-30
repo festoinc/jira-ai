@@ -60,7 +60,10 @@ commands:
         'issue',
         'project',
         'user',
-        'confl'
+        'confl',
+        'board',
+        'sprint',
+        'backlog',
       ]);
       // Should create default settings file
       expect(mockFs.writeFileSync).toHaveBeenCalledWith(
@@ -89,7 +92,10 @@ commands:
         'issue',
         'project',
         'user',
-        'confl'
+        'confl',
+        'board',
+        'sprint',
+        'backlog',
       ]);
     });
 

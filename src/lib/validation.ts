@@ -234,3 +234,68 @@ export const EpicMaxSchema = z.object({
   max: NumericStringSchema.optional(),
 });
 
+// =============================================================================
+// BOARD VALIDATION SCHEMAS
+// =============================================================================
+
+export const BoardListSchema = z.object({
+  projectKey: z.string().trim().optional(),
+  type: z.string().trim().optional(),
+});
+
+export const BoardIssuesSchema = z.object({
+  jql: z.string().trim().optional(),
+  max: NumericStringSchema.optional(),
+});
+
+export const BoardRankSchema = z.object({
+  issues: z.array(z.string().trim().min(1)).min(1, 'At least one issue key is required'),
+  before: z.string().trim().optional(),
+  after: z.string().trim().optional(),
+}).refine(data => data.before || data.after, {
+  message: 'Either --before or --after must be specified',
+});
+
+// =============================================================================
+// SPRINT VALIDATION SCHEMAS
+// =============================================================================
+
+export const SprintListSchema = z.object({
+  state: z.enum(['future', 'active', 'closed']).optional(),
+});
+
+export const SprintCreateSchema = z.object({
+  name: z.string().trim().min(1, 'Sprint name is required'),
+  goal: z.string().trim().optional(),
+  start: z.string().trim().optional(),
+  end: z.string().trim().optional(),
+});
+
+export const SprintUpdateSchema = z.object({
+  name: z.string().trim().min(1).optional(),
+  goal: z.string().trim().optional(),
+  start: z.string().trim().optional(),
+  end: z.string().trim().optional(),
+}).refine(data => data.name || data.goal || data.start || data.end, {
+  message: 'At least one of --name, --goal, --start, or --end is required',
+});
+
+export const SprintIssuesSchema = z.object({
+  jql: z.string().trim().optional(),
+  max: NumericStringSchema.optional(),
+});
+
+export const SprintMoveSchema = z.object({
+  issues: z.array(z.string().trim().min(1)).min(1, 'At least one issue key is required'),
+  before: z.string().trim().optional(),
+  after: z.string().trim().optional(),
+});
+
+// =============================================================================
+// BACKLOG VALIDATION SCHEMAS
+// =============================================================================
+
+export const BacklogMoveSchema = z.object({
+  issues: z.array(z.string().trim().min(1)).min(1, 'At least one issue key is required'),
+});
+

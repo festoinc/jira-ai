@@ -70,6 +70,23 @@ Errors in JSON mode return `{ "error": true, "message": "...", "hints": [...], "
 - `epic unlink <issue-key>`: Remove an issue from its epic.
 - `epic progress <epic-key>`: Show epic completion progress with visual bar.
 
+### Boards, Sprints & Backlog
+- `board list [--project <key>] [--type <type>]`: List accessible boards.
+- `board get <board-id>`: Get board details.
+- `board config <board-id>`: Get board configuration (columns, filter, rank field).
+- `board issues <board-id>`: List issues on a board (`--jql`, `--max`).
+- `board rank --issues <keys> --before <key>|--after <key>`: Rank issues on a board.
+- `sprint list <board-id> [--state <state>]`: List sprints for a board.
+- `sprint get <sprint-id>`: Get sprint details.
+- `sprint create <board-id> --name <name>`: Create a sprint (`--goal`, `--start`, `--end` optional).
+- `sprint start <sprint-id>`: Start a future sprint.
+- `sprint complete <sprint-id>`: Complete an active sprint.
+- `sprint update <sprint-id>`: Update sprint (`--name`, `--goal`, `--start`, `--end`).
+- `sprint delete <sprint-id>`: Delete a sprint.
+- `sprint issues <sprint-id>`: List issues in a sprint (`--jql`, `--max`).
+- `sprint move <sprint-id> --issues <keys>`: Move issues to a sprint.
+- `backlog move --issues <keys>`: Move issues to the backlog.
+
 ### Confluence
 - `confl get <url>`: Retrieve Confluence page content.
 - `confl create <space> <title>`: Create a new page.

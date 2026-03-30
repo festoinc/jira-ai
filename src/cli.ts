@@ -45,6 +45,25 @@ import {
   epicUnlinkCommand,
   epicProgressCommand,
 } from './commands/epic.js';
+import {
+  boardListCommand,
+  boardGetCommand,
+  boardConfigCommand,
+  boardIssuesCommand,
+  boardRankCommand,
+} from './commands/board.js';
+import {
+  sprintListCommand,
+  sprintGetCommand,
+  sprintCreateCommand,
+  sprintStartCommand,
+  sprintCompleteCommand,
+  sprintUpdateCommand,
+  sprintDeleteCommand,
+  sprintIssuesCommand,
+  sprintMoveCommand,
+} from './commands/sprint.js';
+import { backlogMoveCommand } from './commands/backlog.js';
 import { aboutCommand } from './commands/about.js';
 import { authCommand } from './commands/auth.js';
 import { settingsCommand } from './commands/settings.js';
@@ -72,7 +91,16 @@ import {
   validateOptions,
   IssueKeySchema,
   ProjectKeySchema,
-  TimeframeSchema
+  TimeframeSchema,
+  BoardListSchema,
+  BoardIssuesSchema,
+  BoardRankSchema,
+  SprintListSchema,
+  SprintCreateSchema,
+  SprintUpdateSchema,
+  SprintIssuesSchema,
+  SprintMoveSchema,
+  BacklogMoveSchema,
 } from './lib/validation.js';
 import { realpathSync } from 'fs';
 
@@ -560,6 +588,142 @@ epic
     validateArgs: (args) => validateOptions(IssueKeySchema, args[0])
   }));
 
+// =============================================================================
+// BOARD COMMANDS
+// =============================================================================
+const board = program
+  .command('board')
+  .description('Manage Jira agile boards');
+
+board
+  .command('list')
+  .description('List all boards, optionally filtered by project or type.')
+  .option('--project <key>', 'Filter by project key')
+  .option('--type <type>', 'Filter by board type (scrum, kanban)')
+  .action(withPermission('board.list', boardListCommand, { schema: BoardListSchema }));
+
+board
+  .command('get <board-id>')
+  .description('Get details of a specific board.')
+  .action(withPermission('board.get', (boardId: string) => boardGetCommand(Number(boardId))));
+
+board
+  .command('config <board-id>')
+  .description('Get configuration for a board including columns and filter.')
+  .action(withPermission('board.config', (boardId: string) => boardConfigCommand(Number(boardId))));
+
+board
+  .command('issues <board-id>')
+  .description('List issues on a board.')
+  .option('--jql <jql>', 'Additional JQL filter')
+  .option('--max <n>', 'Maximum results')
+  .action(withPermission('board.issues', (boardId: string, options: { jql?: string; max?: string }) =>
+    boardIssuesCommand(Number(boardId), { jql: options.jql, max: options.max ? Number(options.max) : undefined }),
+    { schema: BoardIssuesSchema }
+  ));
+
+board
+  .command('rank')
+  .description('Rank issues on a board before or after another issue.')
+  .requiredOption('--issues <keys...>', 'Issue keys to rank')
+  .option('--before <key>', 'Rank before this issue')
+  .option('--after <key>', 'Rank after this issue')
+  .action(withPermission('board.rank', boardRankCommand, { schema: BoardRankSchema }));
+
+// =============================================================================
+// SPRINT COMMANDS
+// =============================================================================
+const sprint = program
+  .command('sprint')
+  .description('Manage Jira sprints');
+
+sprint
+  .command('list <board-id>')
+  .description('List sprints for a board.')
+  .option('--state <state>', 'Filter by state (future, active, closed)')
+  .action(withPermission('sprint.list', (boardId: string, options: { state?: string }) =>
+    sprintListCommand(Number(boardId), options),
+    { schema: SprintListSchema }
+  ));
+
+sprint
+  .command('get <sprint-id>')
+  .description('Get details of a specific sprint.')
+  .action(withPermission('sprint.get', (sprintId: string) => sprintGetCommand(Number(sprintId))));
+
+sprint
+  .command('create <board-id>')
+  .description('Create a new sprint on a board.')
+  .requiredOption('--name <name>', 'Sprint name')
+  .option('--goal <goal>', 'Sprint goal')
+  .option('--start <date>', 'Start date (ISO format)')
+  .option('--end <date>', 'End date (ISO format)')
+  .action(withPermission('sprint.create', (boardId: string, options: { name: string; goal?: string; start?: string; end?: string }) =>
+    sprintCreateCommand(Number(boardId), options.name, options),
+    { schema: SprintCreateSchema }
+  ));
+
+sprint
+  .command('start <sprint-id>')
+  .description('Start a sprint (must be in future state).')
+  .action(withPermission('sprint.start', (sprintId: string) => sprintStartCommand(Number(sprintId))));
+
+sprint
+  .command('complete <sprint-id>')
+  .description('Complete a sprint (must be in active state).')
+  .action(withPermission('sprint.complete', (sprintId: string) => sprintCompleteCommand(Number(sprintId))));
+
+sprint
+  .command('update <sprint-id>')
+  .description('Update sprint name, goal, or dates.')
+  .option('--name <name>', 'New sprint name')
+  .option('--goal <goal>', 'New sprint goal')
+  .option('--start <date>', 'New start date (ISO format)')
+  .option('--end <date>', 'New end date (ISO format)')
+  .action(withPermission('sprint.update', (sprintId: string, options: { name?: string; goal?: string; start?: string; end?: string }) =>
+    sprintUpdateCommand(Number(sprintId), options),
+    { schema: SprintUpdateSchema }
+  ));
+
+sprint
+  .command('delete <sprint-id>')
+  .description('Delete a sprint.')
+  .action(withPermission('sprint.delete', (sprintId: string) => sprintDeleteCommand(Number(sprintId))));
+
+sprint
+  .command('issues <sprint-id>')
+  .description('List issues in a sprint.')
+  .option('--jql <jql>', 'Additional JQL filter')
+  .option('--max <n>', 'Maximum results')
+  .action(withPermission('sprint.issues', (sprintId: string, options: { jql?: string; max?: string }) =>
+    sprintIssuesCommand(Number(sprintId), { jql: options.jql, max: options.max ? Number(options.max) : undefined }),
+    { schema: SprintIssuesSchema }
+  ));
+
+sprint
+  .command('move <sprint-id>')
+  .description('Move issues into a sprint.')
+  .requiredOption('--issues <keys...>', 'Issue keys to move')
+  .option('--before <key>', 'Rank before this issue')
+  .option('--after <key>', 'Rank after this issue')
+  .action(withPermission('sprint.move', (sprintId: string, options: { issues: string[]; before?: string; after?: string }) =>
+    sprintMoveCommand(Number(sprintId), options),
+    { schema: SprintMoveSchema }
+  ));
+
+// =============================================================================
+// BACKLOG COMMANDS
+// =============================================================================
+const backlog = program
+  .command('backlog')
+  .description('Manage Jira backlog');
+
+backlog
+  .command('move')
+  .description('Move issues to the backlog.')
+  .requiredOption('--issues <keys...>', 'Issue keys to move to backlog')
+  .action(withPermission('board.backlog', backlogMoveCommand, { schema: BacklogMoveSchema }));
+
 // About command (always allowed)
 program
   .command('about')
@@ -595,6 +759,9 @@ Command Groups (use in allowed-commands):
   user        - me, search, worklog
   epic        - list, get, create, update, issues, link, unlink, progress
   confl       - get, spaces, pages, create, comment, update
+  board       - list, get, config, issues, rank
+  sprint      - list, get, create, start, complete, update, delete, issues, move
+  backlog     - move
 
 Examples:
   - "issue"           → allows all issue subcommands

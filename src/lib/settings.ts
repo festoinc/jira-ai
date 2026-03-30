@@ -70,7 +70,10 @@ export const DEFAULT_ORG_SETTINGS: OrganizationSettings = {
     'issue',
     'project',
     'user',
-    'confl'
+    'confl',
+    'board',
+    'sprint',
+    'backlog',
   ],
   'allowed-confluence-spaces': ['all']
 };
@@ -108,6 +111,7 @@ export function migrateSettings(settings: any): Settings {
     delete newSettings.commands;
     return newSettings;
   }
+
   return settings;
 }
 
