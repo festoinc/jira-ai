@@ -118,7 +118,6 @@ export const UpdateIssueSchema = z.object({
 );
 
 export const ProjectFieldsSchema = z.object({
-  project: z.string().pipe(ProjectKeySchema),
   type: z.string().optional(),
   custom: z.boolean().optional(),
   search: z.string().optional(),

@@ -284,13 +284,8 @@ describe('ProjectFieldsSchema (JIR-42)', () => {
     expect(result.success).toBe(true);
   });
 
-  it('should reject invalid project key', () => {
-    const result = ProjectFieldsSchema.safeParse({ project: 'invalid-key' });
-    expect(result.success).toBe(false);
-  });
-
-  it('should reject missing project key', () => {
+  it('should accept empty options (project key validated separately as positional arg)', () => {
     const result = ProjectFieldsSchema.safeParse({});
-    expect(result.success).toBe(false);
+    expect(result.success).toBe(true);
   });
 });
