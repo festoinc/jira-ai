@@ -3,6 +3,7 @@ import { getAvailableLinkTypes } from '../lib/jira-client.js';
 import { formatLinkTypes } from '../lib/formatters.js';
 import { CommandError } from '../lib/errors.js';
 import { ui } from '../lib/ui.js';
+import { outputResult } from '../lib/json-mode.js';
 
 export async function listLinkTypesCommand(): Promise<void> {
   ui.startSpinner('Fetching available link types...');
@@ -10,7 +11,7 @@ export async function listLinkTypesCommand(): Promise<void> {
   try {
     const linkTypes = await getAvailableLinkTypes();
     ui.succeedSpinner(chalk.green('Link types retrieved'));
-    console.log(formatLinkTypes(linkTypes));
+    outputResult(linkTypes, formatLinkTypes);
   } catch (error: any) {
     if (error instanceof CommandError) throw error;
 

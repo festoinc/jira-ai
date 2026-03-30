@@ -7,6 +7,7 @@ import { CommandError } from '../lib/errors.js';
 import { ui } from '../lib/ui.js';
 import { validateOptions, CreateTaskSchema } from '../lib/validation.js';
 import { isCommandAllowed, isProjectAllowed } from '../lib/settings.js';
+import { outputResult, isJsonMode } from '../lib/json-mode.js';
 
 export async function createTaskCommand(
   options: {
@@ -115,13 +116,19 @@ export async function createTaskCommand(
     });
 
     ui.succeedSpinner(chalk.green(`Issue created successfully: ${result.key}`));
-    console.log(chalk.gray(`\nTitle: ${title}`));
-    console.log(chalk.gray(`Project: ${project}`));
-    console.log(chalk.gray(`Issue Type: ${issueType}`));
-    if (parent) {
-      console.log(chalk.gray(`Parent: ${parent}`));
-    }
-    console.log(chalk.cyan(`\nIssue Key: ${result.key}`));
+    outputResult(
+      { key: result.key, title, project, issueType, parent },
+      (data) => {
+        let out = chalk.gray(`\nTitle: ${data.title}`);
+        out += `\n${chalk.gray(`Project: ${data.project}`)}`;
+        out += `\n${chalk.gray(`Issue Type: ${data.issueType}`)}`;
+        if (data.parent) {
+          out += `\n${chalk.gray(`Parent: ${data.parent}`)}`;
+        }
+        out += `\n${chalk.cyan(`\nIssue Key: ${data.key}`)}`;
+        return out;
+      }
+    );
   } catch (error: any) {
     const errorMsg = error.message?.toLowerCase() || '';
     const hints: string[] = [];

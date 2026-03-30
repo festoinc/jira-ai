@@ -1367,3 +1367,5 @@ export async function getAvailableLinkTypes(): Promise<IssueLinkType[]> {
     outward: t.outward,
   }));
 }
+
+export const getEpics = listEpics;

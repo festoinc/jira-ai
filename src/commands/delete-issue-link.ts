@@ -3,6 +3,7 @@ import { getIssueLinks, deleteIssueLink, validateIssuePermissions } from '../lib
 import { CommandError } from '../lib/errors.js';
 import { ui } from '../lib/ui.js';
 import { validateOptions, IssueKeySchema } from '../lib/validation.js';
+import { outputResult } from '../lib/json-mode.js';
 
 export async function deleteIssueLinkCommand(
   sourceKey: string,
@@ -46,7 +47,10 @@ export async function deleteIssueLinkCommand(
     ui.startSpinner(`Deleting link ${linkId}...`);
     await deleteIssueLink(linkId);
     ui.succeedSpinner(chalk.green(`Link deleted successfully`));
-    console.log(chalk.gray(`\nRemoved: ${sourceKey} <--> ${targetKey} (${matchingLinks[0].type.name})`));
+    outputResult(
+      { success: true, sourceKey, targetKey, linkType: matchingLinks[0].type.name },
+      (data) => chalk.gray(`\nRemoved: ${data.sourceKey} <--> ${data.targetKey} (${data.linkType})`)
+    );
   } catch (error: any) {
     if (error instanceof CommandError) throw error;
 

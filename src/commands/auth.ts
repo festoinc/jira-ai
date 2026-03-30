@@ -6,6 +6,7 @@ import { createTemporaryClient } from '../lib/jira-client.js';
 import { saveCredentials, clearCredentials } from '../lib/auth-storage.js';
 import { CommandError } from '../lib/errors.js';
 import { ui } from '../lib/ui.js';
+import { outputResult, isJsonMode } from '../lib/json-mode.js';
 
 interface AuthOptions {
   fromJson?: string;
@@ -38,7 +39,10 @@ async function discoverCloudId(host: string): Promise<string> {
 
 export async function logoutCommand(): Promise<void> {
   clearCredentials();
-  console.log(chalk.green('Successfully logged out. Authentication credentials cleared.'));
+  outputResult(
+    { success: true, message: 'Successfully logged out. Authentication credentials cleared.' },
+    (data) => chalk.green(data.message)
+  );
 }
 
 export async function authCommand(options: AuthOptions = {}): Promise<void> {
@@ -114,7 +118,9 @@ export async function authCommand(options: AuthOptions = {}): Promise<void> {
   }
 
   if (!host || !email || !apiToken) {
-    console.log(chalk.cyan('\n--- Jira Authentication Setup ---\n'));
+    if (!isJsonMode()) {
+      console.log(chalk.cyan('\n--- Jira Authentication Setup ---\n'));
+    }
 
     try {
       host = await ask('Jira URL (e.g., https://your-domain.atlassian.net): ');
@@ -159,14 +165,19 @@ export async function authCommand(options: AuthOptions = {}): Promise<void> {
     const user = await tempClient.myself.getCurrentUser();
 
     ui.succeedSpinner(chalk.green('Authentication successful!'));
-    console.log(chalk.blue(`\nWelcome, ${user.displayName} (${user.emailAddress})`));
-    if (authType === 'service_account') {
-      console.log(chalk.gray(`Auth type: service_account (via api.atlassian.com gateway)`));
-    }
-
     saveCredentials({ host, email, apiToken, authType, cloudId });
-    console.log(chalk.green('\nCredentials saved successfully to ~/.jira-ai/config.json'));
-    console.log(chalk.gray('These credentials will be used for future commands on this machine.'));
+    outputResult(
+      { success: true, displayName: user.displayName, email: user.emailAddress, authType },
+      (data) => {
+        let out = chalk.blue(`\nWelcome, ${data.displayName} (${data.email})`);
+        if (data.authType === 'service_account') {
+          out += `\n${chalk.gray('Auth type: service_account (via api.atlassian.com gateway)')}`;
+        }
+        out += `\n${chalk.green('\nCredentials saved successfully to ~/.jira-ai/config.json')}`;
+        out += `\n${chalk.gray('These credentials will be used for future commands on this machine.')}`;
+        return out;
+      }
+    );
   } catch (error: any) {
     const hints: string[] = [];
     if (error.response && error.response.status === 401) {

@@ -22,6 +22,7 @@ import {
 import { ui } from '../lib/ui.js';
 import { CommandError } from '../lib/errors.js';
 import { isConfluenceSpaceAllowed } from '../lib/settings.js';
+import { outputResult, isJsonMode } from '../lib/json-mode.js';
 
 export async function confluenceCreatePageCommand(
   space: string, 
@@ -39,13 +40,15 @@ export async function confluenceCreatePageCommand(
   try {
     const result = await createPage(space, title, parentPage, { returnBoth: options.returnBothUrls });
     ui.succeedSpinner(chalk.green('Confluence page created successfully'));
-    
-    if (typeof result === 'object') {
-      console.log(chalk.cyan(`\nFull URL:  ${result.url}`));
-      console.log(chalk.cyan(`Short URL: ${result.shortUrl}`));
-    } else {
-      console.log(chalk.cyan(`\nURL: ${result}`));
-    }
+    outputResult(
+      typeof result === 'object' ? result : { url: result },
+      (data) => {
+        if ('shortUrl' in data) {
+          return chalk.cyan(`\nFull URL:  ${data.url}\nShort URL: ${(data as any).shortUrl}`);
+        }
+        return chalk.cyan(`\nURL: ${data.url}`);
+      }
+    );
   } catch (error: any) {
     ui.failSpinner();
 
@@ -108,8 +111,10 @@ export async function confluenceAddCommentCommand(url: string, options: { fromFi
   try {
     await addPageComment(url, adfContent);
     ui.succeedSpinner(chalk.green('Comment added successfully to Confluence page'));
-    console.log(chalk.gray(`\nPage: ${url}`));
-    console.log(chalk.gray(`File: ${absolutePath}`));
+    outputResult(
+      { success: true, page: url, file: absolutePath },
+      (data) => chalk.gray(`\nPage: ${data.page}\nFile: ${data.file}`)
+    );
   } catch (error: any) {
     ui.failSpinner();
     
@@ -154,7 +159,7 @@ export async function confluenceGetPageCommand(url: string, options: { returnBot
     }
 
     ui.succeedSpinner(chalk.green('Confluence page details retrieved'));
-    console.log(formatConfluencePage(page, comments));
+    outputResult({ page, comments }, (data) => formatConfluencePage(data.page, data.comments));
   } catch (error: any) {
     ui.failSpinner();
     
@@ -187,16 +192,20 @@ export async function confluenceListSpacesCommand(): Promise<void> {
 
     if (allowedSpaces.length === 0) {
       ui.failSpinner('No allowed Confluence spaces found.');
-      console.log(chalk.yellow('\nHint: Add allowed spaces to your settings.yaml under "allowed-confluence-spaces".'));
-      console.log(chalk.gray('Example:'));
-      console.log(chalk.gray('  allowed-confluence-spaces:'));
-      console.log(chalk.gray('    - SPACE1'));
-      console.log(chalk.gray('    - SPACE2'));
+      if (!isJsonMode()) {
+        console.log(chalk.yellow('\nHint: Add allowed spaces to your settings.yaml under "allowed-confluence-spaces".'));
+        console.log(chalk.gray('Example:'));
+        console.log(chalk.gray('  allowed-confluence-spaces:'));
+        console.log(chalk.gray('    - SPACE1'));
+        console.log(chalk.gray('    - SPACE2'));
+      } else {
+        outputResult([]);
+      }
       return;
     }
 
     ui.succeedSpinner(chalk.green('Confluence spaces retrieved'));
-    console.log(formatConfluenceSpaces(allowedSpaces));
+    outputResult(allowedSpaces, formatConfluenceSpaces);
   } catch (error: any) {
     ui.failSpinner();
     throw new CommandError(`Failed to fetch Confluence spaces: ${error.message}`);
@@ -214,7 +223,7 @@ export async function confluenceGetSpacePagesHierarchyCommand(spaceKey: string):
   try {
     const hierarchy = await getSpacePagesHierarchy(spaceKey);
     ui.succeedSpinner(chalk.green('Confluence page hierarchy retrieved'));
-    console.log(formatConfluencePageHierarchy(hierarchy));
+    outputResult(hierarchy, formatConfluencePageHierarchy);
   } catch (error: any) {
     ui.failSpinner();
     throw new CommandError(`Failed to fetch page hierarchy: ${error.message}`);
@@ -264,8 +273,10 @@ export async function confluenceUpdateDescriptionCommand(url: string, options: {
   try {
     await updatePageContent(url, adfContent);
     ui.succeedSpinner(chalk.green('Confluence page content updated successfully'));
-    console.log(chalk.gray(`\nPage: ${url}`));
-    console.log(chalk.gray(`File: ${absolutePath}`));
+    outputResult(
+      { success: true, page: url, file: absolutePath },
+      (data) => chalk.gray(`\nPage: ${data.page}\nFile: ${data.file}`)
+    );
   } catch (error: any) {
     ui.failSpinner();
 
@@ -302,7 +313,7 @@ export async function confluenceSearchCommand(query: string, options: { limit?: 
     });
 
     ui.succeedSpinner(chalk.green('Confluence search completed'));
-    console.log(formatConfluenceSearchResults(filteredResults));
+    outputResult(filteredResults, formatConfluenceSearchResults);
   } catch (error: any) {
     ui.failSpinner();
     

@@ -7,6 +7,7 @@ import { CommandError } from '../lib/errors.js';
 import { ui } from '../lib/ui.js';
 import { validateOptions, UpdateIssueSchema, IssueKeySchema } from '../lib/validation.js';
 import { isCommandAllowed, isProjectAllowed } from '../lib/settings.js';
+import { outputResult } from '../lib/json-mode.js';
 
 export async function updateIssueCommand(
   issueKey: string,
@@ -113,6 +114,10 @@ export async function updateIssueCommand(
   try {
     await updateIssue(issueKey, fields);
     ui.succeedSpinner(chalk.green(`Issue ${issueKey} updated successfully`));
+    outputResult(
+      { success: true, issueKey },
+      (data) => chalk.green(`Issue ${data.issueKey} updated successfully`)
+    );
   } catch (error: any) {
     if (error instanceof CommandError) throw error;
 

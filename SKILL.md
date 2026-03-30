@@ -28,6 +28,15 @@ jira-ai auth --from-file path/to/.env
 jira-ai settings --help
 ```
 
+## JSON Output
+
+All commands support `--json` and `--json-compact` global flags for structured output:
+
+- `jira-ai --json <command>` — pretty-printed JSON
+- `jira-ai --json-compact <command>` — single-line JSON (best for token efficiency)
+
+Errors in JSON mode return `{ "error": true, "message": "...", "hints": [...], "exitCode": 1 }` to stdout.
+
 ## Command Overview
 
 ### Issues

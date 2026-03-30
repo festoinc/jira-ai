@@ -1,6 +1,6 @@
 import chalk from 'chalk';
 import {
-  listEpics,
+  getEpics,
   getEpic,
   createEpic,
   updateEpic,
@@ -17,22 +17,23 @@ import {
 } from '../lib/formatters.js';
 import { CommandError } from '../lib/errors.js';
 import { ui } from '../lib/ui.js';
+import { outputResult, isJsonMode } from '../lib/json-mode.js';
 
 // =============================================================================
 // epic list <project-key> [--done] [--max <n>]
 // =============================================================================
 export async function epicListCommand(
   projectKey: string,
-  options: { done?: boolean; max?: number }
+  options: { done?: boolean; max?: number } = {}
 ): Promise<void> {
   ui.startSpinner(`Fetching epics for project ${projectKey}...`);
   try {
-    const epics = await listEpics(projectKey, {
+    const epics = await getEpics(projectKey, {
       includeDone: !!options.done,
       max: options.max,
     });
     ui.stopSpinner();
-    console.log(formatEpicList(epics));
+    outputResult(epics, formatEpicList);
   } catch (error: any) {
     ui.failSpinner();
     const hints: string[] = [];
@@ -55,7 +56,7 @@ export async function epicGetCommand(epicKey: string): Promise<void> {
   try {
     const epic = await getEpic(epicKey);
     ui.stopSpinner();
-    console.log(formatEpicDetails(epic));
+    outputResult(epic, formatEpicDetails);
   } catch (error: any) {
     ui.failSpinner();
     const hints: string[] = [];
@@ -89,10 +90,16 @@ export async function epicCreateCommand(
     });
 
     ui.succeedSpinner(chalk.green(`Epic created successfully: ${result.key}`));
-    console.log(chalk.gray(`\nName: ${options.name}`));
-    console.log(chalk.gray(`Summary: ${options.summary}`));
-    console.log(chalk.gray(`Project: ${projectKey}`));
-    console.log(chalk.cyan(`\nEpic Key: ${result.key}`));
+    outputResult(
+      { key: result.key, name: options.name, summary: options.summary, project: projectKey },
+      (data) => {
+        let out = chalk.gray(`\nName: ${data.name}`);
+        out += `\n${chalk.gray(`Summary: ${data.summary}`)}`;
+        out += `\n${chalk.gray(`Project: ${data.project}`)}`;
+        out += `\n${chalk.cyan(`\nEpic Key: ${data.key}`)}`;
+        return out;
+      }
+    );
   } catch (error: any) {
     ui.failSpinner();
     const hints: string[] = [];
@@ -121,8 +128,15 @@ export async function epicUpdateCommand(
   try {
     await updateEpic(epicKey, { name: options.name, summary: options.summary });
     ui.succeedSpinner(chalk.green(`Epic ${epicKey} updated successfully.`));
-    if (options.name) console.log(chalk.gray(`Name: ${options.name}`));
-    if (options.summary) console.log(chalk.gray(`Summary: ${options.summary}`));
+    outputResult(
+      { success: true, epicKey, name: options.name, summary: options.summary },
+      (data) => {
+        const lines: string[] = [];
+        if (data.name) lines.push(chalk.gray(`Name: ${data.name}`));
+        if (data.summary) lines.push(chalk.gray(`Summary: ${data.summary}`));
+        return lines.join('\n');
+      }
+    );
   } catch (error: any) {
     ui.failSpinner();
     const hints: string[] = [];
@@ -147,7 +161,7 @@ export async function epicIssuesCommand(
   try {
     const issues = await getEpicIssues(epicKey, { max: options.max });
     ui.stopSpinner();
-    console.log(formatEpicIssues(issues));
+    outputResult(issues, formatEpicIssues);
   } catch (error: any) {
     ui.failSpinner();
     const hints: string[] = [];
@@ -214,7 +228,7 @@ export async function epicProgressCommand(epicKey: string): Promise<void> {
   try {
     const progress = await getEpicProgress(epicKey);
     ui.stopSpinner();
-    console.log(formatEpicProgress(progress));
+    outputResult(progress, formatEpicProgress);
   } catch (error: any) {
     ui.failSpinner();
     const hints: string[] = [];

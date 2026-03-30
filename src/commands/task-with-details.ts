@@ -3,6 +3,7 @@ import { validateIssuePermissions } from '../lib/jira-client.js';
 import { formatTaskDetails } from '../lib/formatters.js';
 import { CommandError } from '../lib/errors.js';
 import { ui } from '../lib/ui.js';
+import { outputResult } from '../lib/json-mode.js';
 
 export async function taskWithDetailsCommand(taskId: string, options: any = {}): Promise<void> {
   ui.startSpinner(`Fetching details for ${taskId}...`);
@@ -15,7 +16,7 @@ export async function taskWithDetailsCommand(taskId: string, options: any = {}):
     });
 
     ui.succeedSpinner(chalk.green('Task details retrieved'));
-    console.log(formatTaskDetails(task));
+    outputResult(task, formatTaskDetails);
   } catch (error: any) {
     if (error instanceof CommandError) throw error;
     

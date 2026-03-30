@@ -3,6 +3,7 @@ import { getProjects } from '../lib/jira-client.js';
 import { formatProjects } from '../lib/formatters.js';
 import { getAllowedProjects, isProjectAllowed } from '../lib/settings.js';
 import { ui } from '../lib/ui.js';
+import { outputResult, isJsonMode } from '../lib/json-mode.js';
 
 export async function projectsCommand(): Promise<void> {
   ui.startSpinner('Fetching projects...');
@@ -18,11 +19,11 @@ export async function projectsCommand(): Promise<void> {
 
   ui.succeedSpinner(chalk.green('Projects retrieved'));
 
-  if (filteredProjects.length === 0) {
+  if (!isJsonMode() && filteredProjects.length === 0) {
     console.log(chalk.yellow('\nNo projects match your settings configuration.'));
     const displayKeys = allowedProjects.map(p => typeof p === 'string' ? p : p.key);
     console.log(chalk.gray('Allowed projects: ' + displayKeys.join(', ')));
   } else {
-    console.log(formatProjects(filteredProjects));
+    outputResult(filteredProjects, formatProjects);
   }
 }

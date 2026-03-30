@@ -3,6 +3,7 @@ import { removeIssueLabels, validateIssuePermissions } from '../lib/jira-client.
 import { CommandError } from '../lib/errors.js';
 import { ui } from '../lib/ui.js';
 import { validateOptions, IssueKeySchema } from '../lib/validation.js';
+import { outputResult } from '../lib/json-mode.js';
 
 export async function deleteLabelCommand(
   taskId: string,
@@ -30,8 +31,10 @@ export async function deleteLabelCommand(
   try {
     await removeIssueLabels(taskId, labels);
     ui.succeedSpinner(chalk.green(`Labels removed successfully from ${taskId}`));
-    console.log(chalk.gray(`
-Labels: ${labels.join(', ')}`));
+    outputResult(
+      { success: true, issueKey: taskId, labels },
+      (data) => chalk.gray(`\nLabels: ${data.labels.join(', ')}`)
+    );
   } catch (error: any) {
     if (error instanceof CommandError) throw error;
 
