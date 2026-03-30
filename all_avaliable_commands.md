@@ -52,6 +52,36 @@
 | `epic unlink <issue-key>` | Remove an issue from its epic. |
 | `epic progress <epic-key>` | Show epic completion progress with issue counts and story points, including a visual progress bar. |
 
+## Board Commands (`board`)
+
+| Command | Description |
+| :--- | :--- |
+| `board list` | List all accessible boards. Optional `--project <key>` to filter by project, `--type <type>` to filter by board type. |
+| `board get <board-id>` | Get details of a specific board including ID, type, project, and location. |
+| `board config <board-id>` | Get board configuration including column setup, filter, and rank field. |
+| `board issues <board-id>` | List issues on a board. Optional `--jql <query>` and `--max <n>` (default 50). |
+| `board rank` | Rank issues on a board. Requires `--issues <keys>` and either `--before <key>` or `--after <key>`. |
+
+## Sprint Commands (`sprint`)
+
+| Command | Description |
+| :--- | :--- |
+| `sprint list <board-id>` | List sprints for a board. Optional `--state <state>` to filter (active, future, closed). |
+| `sprint get <sprint-id>` | Get full sprint details including state, dates, goal, and origin board. |
+| `sprint create <board-id>` | Create a new sprint. Requires `--name <name>`. Optional: `--goal <text>`, `--start <date>`, `--end <date>`. |
+| `sprint start <sprint-id>` | Start a future sprint. Sprint must have start and end dates set. |
+| `sprint complete <sprint-id>` | Complete an active sprint. |
+| `sprint update <sprint-id>` | Update sprint fields. One or more of: `--name <name>`, `--goal <text>`, `--start <date>`, `--end <date>`. |
+| `sprint delete <sprint-id>` | Delete a sprint. |
+| `sprint issues <sprint-id>` | List issues in a sprint. Optional `--jql <query>` and `--max <n>` (default 50). |
+| `sprint move <sprint-id>` | Move issues to a sprint. Requires `--issues <keys>` (max 50). Optional: `--before <key>`, `--after <key>` for ranking. |
+
+## Backlog Commands (`backlog`)
+
+| Command | Description |
+| :--- | :--- |
+| `backlog move` | Move issues to the backlog. Requires `--issues <keys>` (max 50). |
+
 ## Confluence Commands (`confl`)
 
 | Command | Description |
