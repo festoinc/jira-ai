@@ -32,10 +32,10 @@ jira-ai settings --help
 
 ### Issues
 - `issue get <issue-id>`: Retrieve issue details.
-- `issue create`: Create a new issue.
+- `issue create`: Create a new issue. Supports `--title`, `--project`, `--issue-type`, `--parent` (for subtasks), `--priority`, `--description`, `--description-file`, `--labels`, `--component`, `--fix-version`, `--due-date`, `--assignee`, `--custom-field`.
 - `issue search <jql>`: Execute JQL search.
 - `issue transition <issue-id> <status>`: Change issue status.
-- `issue update <issue-id>`: Update description from Markdown file.
+- `issue update <issue-id>`: Update one or more fields of an issue. Supports `--priority`, `--summary`, `--description`, `--from-file`, `--labels`, `--clear-labels`, `--component`, `--fix-version`, `--due-date`, `--assignee`, `--custom-field`.
 - `issue comment <issue-id>`: Add comment from Markdown file.
 - `issue assign <issue-id> <account-id>`: Assign issue.
 - `issue label <add|remove> <issue-id> <labels>`: Manage labels.
@@ -46,6 +46,7 @@ jira-ai settings --help
 
 ### Projects & Users
 - `project list`: List accessible projects.
+- `project fields <project-key>`: Discover available fields including custom fields. Use `--type <issue-type>` to filter by issue type, `--custom` for custom fields only, `--search <term>` to search by name.
 - `user search [project-key]`: Find users.
 - `user worklog <user> <timeframe>`: Get worklogs.
 

@@ -13,10 +13,10 @@
 | Command | Description |
 | :--- | :--- |
 | `issue get <issue-id>` | Retrieve comprehensive issue data including key, summary, status, assignee, reporter, dates, labels, description, and comments. Use `--include-detailed-history` for change logs. |
-| `issue create` | Create a new Jira issue with specified title, project key, and issue type. |
+| `issue create` | Create a new Jira issue with specified title, project key, and issue type. Supports `--priority`, `--description`, `--description-file`, `--labels`, `--component`, `--fix-version`, `--due-date`, `--assignee`, and `--custom-field` flags. |
 | `issue search <jql-query>` | Execute a JQL search query. Supports limiting results via `--limit` (default 50). |
 | `issue transition <issue-id> <to-status>` | Change the status of a Jira issue using status name or ID. |
-| `issue update <issue-id>` | Update a Jira issue's description using content from a local Markdown file. |
+| `issue update <issue-id>` | Update one or more fields of a Jira issue. Supports `--priority`, `--summary`, `--description`, `--from-file`, `--labels`, `--clear-labels`, `--component`, `--fix-version`, `--due-date`, `--assignee`, and `--custom-field` flags. |
 | `issue comment <issue-id>` | Add a new comment to a Jira issue using content from a local Markdown file. |
 | `issue stats <issue-ids>` | Calculate time-based metrics (time logged, estimate, status duration) for one or more issues. |
 | `issue assign <issue-id> <account-id>` | Assign or reassign a Jira issue to a user. Use "null" to unassign. |
@@ -63,6 +63,98 @@ jira-ai issue link delete PROJ-123 --target PROJ-456
 
 Issue link commands use hierarchical permission keys. If `issue` is in your `allowed-commands` list, all `issue.link.*` commands are implicitly allowed. You can also use `issue.link` to allow only link commands, or specify individual keys: `issue.link.types`, `issue.link.list`, `issue.link.create`, `issue.link.delete`.
 
+## Issue Create Examples
+
+Create a basic issue:
+```bash
+jira-ai issue create --title "Login bug" --project PROJ --issue-type Bug
+```
+
+Create an issue with priority, description, labels, and assignee:
+```bash
+jira-ai issue create \
+  --title "Implement search" \
+  --project PROJ \
+  --issue-type Task \
+  --priority High \
+  --description "Add full-text search to the application" \
+  --labels "search,frontend" \
+  --component "ui" \
+  --fix-version "v2.0" \
+  --due-date 2026-04-15 \
+  --assignee "John Doe"
+```
+
+Create an issue with description from a file and custom fields:
+```bash
+jira-ai issue create \
+  --title "API integration" \
+  --project PROJ \
+  --issue-type Task \
+  --description-file ./description.md \
+  --custom-field "customfield_10001=value1" \
+  --custom-field "customfield_10002=value2"
+```
+
+## Issue Update Examples
+
+Update an issue's priority and summary:
+```bash
+jira-ai issue update PROJ-123 --priority Critical --summary "Updated title"
+```
+
+Update labels (replaces all existing labels):
+```bash
+jira-ai issue update PROJ-123 --labels "urgent,backend"
+```
+
+Clear all labels from an issue:
+```bash
+jira-ai issue update PROJ-123 --clear-labels
+```
+
+Update multiple fields at once:
+```bash
+jira-ai issue update PROJ-123 \
+  --priority High \
+  --due-date 2026-05-01 \
+  --component "api,backend" \
+  --fix-version "v2.1" \
+  --assignee "Jane Smith"
+```
+
+Update description from a file:
+```bash
+jira-ai issue update PROJ-123 --description-file ./updated-desc.md
+```
+
+Update a custom field:
+```bash
+jira-ai issue update PROJ-123 --custom-field "customfield_10001=new-value"
+```
+
+## Project Fields Examples
+
+List all fields for a project:
+```bash
+jira-ai project fields PROJ
+```
+
+Filter fields by issue type:
+```bash
+jira-ai project fields PROJ --type Bug
+```
+
+Show only custom fields:
+```bash
+jira-ai project fields PROJ --custom
+```
+
+Search fields by name:
+```bash
+jira-ai project fields PROJ --search "priority"
+```
+
 ## Project Commands (`project`)
 
 | Command | Description |
@@ -70,6 +162,7 @@ Issue link commands use hierarchical permission keys. If `issue` is in your `all
 | `project list` | List all accessible Jira projects showing their key, name, ID, type, and project lead. |
 | `project statuses <project-key>` | Fetch all available workflow statuses for a project (To Do, In Progress, Done). |
 | `project types <project-key>` | List all issue types (Standard and Subtask) available for a project. |
+| `project fields <project-key>` | List all available fields for a project, including custom fields. Use `--type <issue-type>` to filter by issue type, `--custom` to show only custom fields, `--search <term>` to filter by name or ID. |
 
 ## User Commands (`user`)
 

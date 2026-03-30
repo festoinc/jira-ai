@@ -548,43 +548,73 @@ export async function getProjectIssueTypes(projectIdOrKey: string): Promise<Issu
   })) || [];
 }
 
+export interface CreateIssueOptions {
+  project: string;
+  summary: string;
+  issueType: string;
+  parent?: string;
+  priority?: { name: string };
+  description?: any;
+  labels?: string[];
+  components?: { name: string }[];
+  fixVersions?: { name: string }[];
+  duedate?: string;
+  assignee?: { accountId: string };
+  [key: string]: any;
+}
+
 /**
  * Create a new issue
- * @param projectKey - The project key (e.g., "PROJ")
- * @param summary - The issue title/summary
- * @param issueTypeName - The issue type name (e.g., "Task", "Epic", "Subtask")
- * @param parentKey - Optional parent issue key for subtasks
  */
 export async function createIssue(
-  projectKey: string,
-  summary: string,
-  issueTypeName: string,
-  parentKey?: string
+  projectOrOptions: string | CreateIssueOptions,
+  summary?: string,
+  issueType?: string,
+  parent?: string
 ): Promise<{ key: string; id: string }> {
   const client = getJiraClient();
 
+  const opts: CreateIssueOptions =
+    typeof projectOrOptions === 'string'
+      ? { project: projectOrOptions, summary: summary!, issueType: issueType!, parent }
+      : projectOrOptions;
+
+  const { project, summary: _summary, issueType: _issueType, parent: _parent, ...rest } = opts;
+
   const fields: any = {
-    project: {
-      key: projectKey,
-    },
-    summary,
-    issuetype: {
-      name: issueTypeName,
-    },
+    project: { key: project },
+    summary: _summary,
+    issuetype: { name: _issueType },
   };
 
-  // Add parent field if this is a subtask
-  if (parentKey) {
-    fields.parent = {
-      key: parentKey,
-    };
+  if (_parent) {
+    fields.parent = { key: _parent };
   }
 
-  const response = await client.issues.createIssue({
-    fields,
-  });
+  // Spread all optional rich fields (priority, description, labels, etc.)
+  const { ...richFields } = rest;
+  Object.assign(fields, richFields);
+
+  const response = await client.issues.createIssue({ fields });
 
   return { key: response.key || '', id: response.id || '' };
+}
+
+/**
+ * Update fields on an existing issue.
+ * @param issueKey - The issue key (e.g., "PROJ-123")
+ * @param fields - Map of Jira field keys to their new values
+ */
+export async function updateIssue(
+  issueKey: string,
+  fields: Record<string, any>
+): Promise<void> {
+  const client = getJiraClient();
+  await client.issues.editIssue({
+    issueIdOrKey: issueKey,
+    fields,
+    notifyUsers: false,
+  });
 }
 
 /**

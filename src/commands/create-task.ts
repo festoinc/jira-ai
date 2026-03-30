@@ -1,5 +1,8 @@
 import chalk from 'chalk';
-import { createIssue } from '../lib/jira-client.js';
+import * as fs from 'fs';
+import * as path from 'path';
+import { markdownToAdf } from 'marklassian';
+import { createIssue, resolveUserByName } from '../lib/jira-client.js';
 import { CommandError } from '../lib/errors.js';
 import { ui } from '../lib/ui.js';
 import { validateOptions, CreateTaskSchema } from '../lib/validation.js';
@@ -11,28 +14,105 @@ export async function createTaskCommand(
     project: string;
     issueType: string;
     parent?: string;
+    priority?: string;
+    description?: string;
+    descriptionFile?: string;
+    labels?: string;
+    component?: string;
+    fixVersion?: string;
+    dueDate?: string;
+    assignee?: string;
+    customField?: string[];
   }
 ): Promise<void> {
-  // Validate options
   validateOptions(CreateTaskSchema, options);
 
-  const { title, project, issueType, parent } = options;
+  const { title, project, issueType, parent, priority, description, descriptionFile, labels, component, fixVersion, dueDate, assignee, customField } = options;
 
-  // Check if project is allowed
   if (!isProjectAllowed(project)) {
     throw new CommandError(`Project '${project}' is not allowed by your settings.`);
   }
 
-  // Check if command is allowed for this project
   if (!isCommandAllowed('create-task', project)) {
     throw new CommandError(`Command 'create-task' is not allowed for project ${project}.`);
   }
 
-  // Create issue with spinner
+  // Build issue fields
+  const issueFields: Record<string, any> = {};
+
+  if (priority) {
+    issueFields.priority = { name: priority };
+  }
+
+  if (description && descriptionFile) {
+    throw new CommandError('Cannot use both --description and --description-file at the same time');
+  }
+
+  if (description) {
+    issueFields.description = markdownToAdf(description);
+  } else if (descriptionFile) {
+    const absPath = path.resolve(descriptionFile);
+    try {
+      const content = fs.readFileSync(absPath, 'utf-8');
+      issueFields.description = markdownToAdf(content);
+    } catch (err: any) {
+      throw new CommandError(`Error reading description file: ${err.message}`);
+    }
+  }
+
+  if (labels) {
+    issueFields.labels = labels.split(',').map(l => l.trim()).filter(Boolean);
+  }
+
+  if (component) {
+    issueFields.components = component.split(',').map(n => ({ name: n.trim() })).filter(c => c.name);
+  }
+
+  if (fixVersion) {
+    issueFields.fixVersions = fixVersion.split(',').map(n => ({ name: n.trim() })).filter(v => v.name);
+  }
+
+  if (dueDate) {
+    issueFields.duedate = dueDate;
+  }
+
+  if (assignee) {
+    if (assignee.startsWith('accountid:')) {
+      issueFields.assignee = { accountId: assignee.slice('accountid:'.length) };
+    } else {
+      const accountId = await resolveUserByName(assignee);
+      if (!accountId) {
+        throw new CommandError(`Could not resolve user: ${assignee}`, {
+          hints: ['Use "accountid:<id>" format or check the display name.'],
+        });
+      }
+      issueFields.assignee = { accountId };
+    }
+  }
+
+  if (customField) {
+    for (const cf of customField) {
+      const eqIdx = cf.indexOf('=');
+      if (eqIdx === -1) {
+        throw new CommandError(`Invalid custom field format: "${cf}". Use fieldId=value.`);
+      }
+      const fieldId = cf.slice(0, eqIdx);
+      const rawValue = cf.slice(eqIdx + 1);
+      const numValue = Number(rawValue);
+      issueFields[fieldId] = isNaN(numValue) ? rawValue : numValue;
+    }
+  }
+
   ui.startSpinner(`Creating ${issueType} in project ${project}...`);
 
   try {
-    const result = await createIssue(project, title, issueType, parent);
+    const result = await createIssue({
+      project,
+      summary: title,
+      issueType,
+      parent,
+      ...issueFields,
+    });
 
     ui.succeedSpinner(chalk.green(`Issue created successfully: ${result.key}`));
     console.log(chalk.gray(`\nTitle: ${title}`));

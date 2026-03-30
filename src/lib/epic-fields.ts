@@ -1,4 +1,5 @@
 import { getJiraClient } from './jira-client.js';
+import { getProjectFields, clearFieldCache as clearResolverCache } from './field-resolver.js';
 
 export interface EpicFields {
   epicNameField: string;   // e.g. "customfield_10014" — stores the epic name
@@ -9,24 +10,12 @@ export interface EpicFields {
 // Module-level cache: null means "no epic fields found"; undefined means "not yet fetched"
 const epicFieldsCache = new Map<string, EpicFields | null>();
 
-// Shared field list cache (field list is global, not per-project)
-let allFieldsCache: Array<{ id: string; name: string; custom: boolean }> | null = null;
-
 /**
- * Fetch all Jira fields and cache them.
+ * Fetch all Jira fields via the shared field-resolver (cached with TTL).
  */
 async function getAllFields(): Promise<Array<{ id: string; name: string; custom: boolean }>> {
-  if (allFieldsCache !== null) {
-    return allFieldsCache;
-  }
-  const client = getJiraClient();
-  const fields = await client.issueFields.getFields() as any[];
-  allFieldsCache = fields.map((f: any) => ({
-    id: f.id || '',
-    name: f.name || '',
-    custom: f.custom || false,
-  }));
-  return allFieldsCache;
+  // Delegate to field-resolver which handles caching with TTL
+  return getProjectFields('__global__');
 }
 
 /**
@@ -83,5 +72,5 @@ export async function isNextGenProject(projectKey: string): Promise<boolean> {
  */
 export function clearEpicFieldsCache(): void {
   epicFieldsCache.clear();
-  allFieldsCache = null;
+  clearResolverCache();
 }

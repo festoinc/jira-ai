@@ -44,6 +44,7 @@ export const LEGACY_COMMAND_MAP: Record<string, string> = {
   'list-colleagues': 'user.search',
   'run-jql': 'issue.search',
   'update-description': 'issue.update',
+  'update-issue': 'issue.update',
   'add-comment': 'issue.comment',
   'add-label-to-issue': 'issue.label.add',
   'delete-label-from-issue': 'issue.label.remove',

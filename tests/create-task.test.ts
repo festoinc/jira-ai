@@ -16,6 +16,10 @@ vi.mock('ora', () => ({
     stop: vi.fn().mockReturnThis()
   }))
 }));
+vi.mock('fs', () => ({
+  readFileSync: vi.fn().mockReturnValue('# File Description'),
+  existsSync: vi.fn().mockReturnValue(true),
+}));
 
 const mockJiraClient = jiraClient as vi.Mocked<typeof jiraClient>;
 const mockSettings = settings as vi.Mocked<typeof settings>;
@@ -47,10 +51,11 @@ describe('Create Task Command', () => {
     await createTaskCommand(mockOptions);
 
     expect(mockJiraClient.createIssue).toHaveBeenCalledWith(
-      'TEST',
-      'Test Task Title',
-      'Task',
-      undefined
+      expect.objectContaining({
+        project: 'TEST',
+        summary: 'Test Task Title',
+        issueType: 'Task',
+      })
     );
     expect(console.log).toHaveBeenCalledWith(expect.stringContaining('TEST-123'));
   });
@@ -64,10 +69,12 @@ describe('Create Task Command', () => {
     await createTaskCommand(optionsWithParent);
 
     expect(mockJiraClient.createIssue).toHaveBeenCalledWith(
-      'TEST',
-      'Test Task Title',
-      'Task',
-      'TEST-100'
+      expect.objectContaining({
+        project: 'TEST',
+        summary: 'Test Task Title',
+        issueType: 'Task',
+        parent: 'TEST-100',
+      })
     );
     expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Parent: TEST-100'));
   });
@@ -167,7 +174,7 @@ describe('Create Task Command', () => {
 
       mockJiraClient.createIssue = vi.fn().mockRejectedValue(apiError);
 
-  
+
 
       const promise = createTaskCommand(mockOptions);
 
@@ -179,6 +186,145 @@ describe('Create Task Command', () => {
 
     });
 
-  });
+  // =========================================================================
+  // JIR-42: New optional fields — intentionally RED (feature not yet built)
+  // =========================================================================
 
-  
+  describe('New optional fields (JIR-42)', () => {
+    it('should create a task with priority', async () => {
+      await createTaskCommand({ ...mockOptions, priority: 'High' });
+
+      expect(mockJiraClient.createIssue).toHaveBeenCalledWith(
+        expect.objectContaining({ priority: { name: 'High' } })
+      );
+    });
+
+    it('should create a task with description from string', async () => {
+      await createTaskCommand({ ...mockOptions, description: '# My description' });
+
+      expect(mockJiraClient.createIssue).toHaveBeenCalledWith(
+        expect.objectContaining({ description: expect.objectContaining({ type: 'doc' }) })
+      );
+    });
+
+    it('should create a task with description from file (--description-file)', async () => {
+      await createTaskCommand({ ...mockOptions, descriptionFile: '/path/to/desc.md' });
+
+      expect(mockJiraClient.createIssue).toHaveBeenCalledWith(
+        expect.objectContaining({ description: expect.objectContaining({ type: 'doc' }) })
+      );
+    });
+
+    it('should create a task with labels', async () => {
+      await createTaskCommand({ ...mockOptions, labels: 'bug,frontend' });
+
+      expect(mockJiraClient.createIssue).toHaveBeenCalledWith(
+        expect.objectContaining({ labels: ['bug', 'frontend'] })
+      );
+    });
+
+    it('should create a task with a single label', async () => {
+      await createTaskCommand({ ...mockOptions, labels: 'backend' });
+
+      expect(mockJiraClient.createIssue).toHaveBeenCalledWith(
+        expect.objectContaining({ labels: ['backend'] })
+      );
+    });
+
+    it('should create a task with component', async () => {
+      await createTaskCommand({ ...mockOptions, component: 'Backend' });
+
+      expect(mockJiraClient.createIssue).toHaveBeenCalledWith(
+        expect.objectContaining({ components: [{ name: 'Backend' }] })
+      );
+    });
+
+    it('should create a task with multiple components', async () => {
+      await createTaskCommand({ ...mockOptions, component: 'Backend,API' });
+
+      expect(mockJiraClient.createIssue).toHaveBeenCalledWith(
+        expect.objectContaining({ components: [{ name: 'Backend' }, { name: 'API' }] })
+      );
+    });
+
+    it('should create a task with fix version', async () => {
+      await createTaskCommand({ ...mockOptions, fixVersion: 'v1.0' });
+
+      expect(mockJiraClient.createIssue).toHaveBeenCalledWith(
+        expect.objectContaining({ fixVersions: [{ name: 'v1.0' }] })
+      );
+    });
+
+    it('should create a task with due date', async () => {
+      await createTaskCommand({ ...mockOptions, dueDate: '2025-12-31' });
+
+      expect(mockJiraClient.createIssue).toHaveBeenCalledWith(
+        expect.objectContaining({ duedate: '2025-12-31' })
+      );
+    });
+
+    it('should create a task with assignee by account id', async () => {
+      await createTaskCommand({ ...mockOptions, assignee: 'accountid:abc123' });
+
+      expect(mockJiraClient.createIssue).toHaveBeenCalledWith(
+        expect.objectContaining({ assignee: { accountId: 'abc123' } })
+      );
+    });
+
+    it('should resolve assignee by display name during create', async () => {
+      mockJiraClient.resolveUserByName = vi.fn().mockResolvedValue('resolved-id');
+      await createTaskCommand({ ...mockOptions, assignee: 'Jane Doe' });
+
+      expect(mockJiraClient.resolveUserByName).toHaveBeenCalledWith('Jane Doe');
+      expect(mockJiraClient.createIssue).toHaveBeenCalledWith(
+        expect.objectContaining({ assignee: { accountId: 'resolved-id' } })
+      );
+    });
+
+    it('should create a task with a custom field', async () => {
+      await createTaskCommand({ ...mockOptions, customField: ['customfield_10100=5'] });
+
+      expect(mockJiraClient.createIssue).toHaveBeenCalledWith(
+        expect.objectContaining({ customfield_10100: 5 })
+      );
+    });
+
+    it('should create a task with all optional fields combined', async () => {
+      await createTaskCommand({
+        ...mockOptions,
+        priority: 'Medium',
+        description: '# Desc',
+        labels: 'bug',
+        component: 'Core',
+        fixVersion: 'v2.0',
+        dueDate: '2026-06-01',
+        assignee: 'accountid:xyz',
+        customField: ['customfield_10100=3'],
+      });
+
+      expect(mockJiraClient.createIssue).toHaveBeenCalledWith(
+        expect.objectContaining({
+          priority: { name: 'Medium' },
+          labels: ['bug'],
+          components: [{ name: 'Core' }],
+          fixVersions: [{ name: 'v2.0' }],
+          duedate: '2026-06-01',
+          assignee: { accountId: 'xyz' },
+          customfield_10100: 3,
+        })
+      );
+    });
+
+    it('should throw when due date format is invalid', async () => {
+      await expect(
+        createTaskCommand({ ...mockOptions, dueDate: 'tomorrow' })
+      ).rejects.toThrow(CommandError);
+    });
+
+    it('should throw when both --description and --description-file are provided', async () => {
+      await expect(
+        createTaskCommand({ ...mockOptions, description: '# Desc', descriptionFile: '/path/to/file.md' })
+      ).rejects.toThrow(CommandError);
+    });
+  });
+});
