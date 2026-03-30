@@ -82,6 +82,30 @@ export interface LinkedIssue {
   };
 }
 
+export interface IssueLinkType {
+  id: string;
+  name: string;
+  inward: string;
+  outward: string;
+}
+
+export interface IssueLink {
+  id: string;
+  type: IssueLinkType;
+  inwardIssue?: {
+    id: string;
+    key: string;
+    summary: string;
+    status: { name: string };
+  };
+  outwardIssue?: {
+    id: string;
+    key: string;
+    summary: string;
+    status: { name: string };
+  };
+}
+
 export interface HistoryItem {
   field: string;
   from: string | null;
@@ -1246,3 +1270,70 @@ export async function getEpicProgress(epicKey: string): Promise<EpicProgress> {
   };
 }
 
+export async function getIssueLinks(issueIdOrKey: string): Promise<IssueLink[]> {
+  const client = await getJiraClient();
+
+  const issue = await client.issues.getIssue({
+    issueIdOrKey,
+    fields: ['issuelinks'],
+  });
+
+  const raw: any[] = issue.fields?.issuelinks ?? [];
+
+  return raw.map((link: any) => ({
+    id: link.id,
+    type: {
+      id: link.type.id,
+      name: link.type.name,
+      inward: link.type.inward,
+      outward: link.type.outward,
+    },
+    inwardIssue: link.inwardIssue
+      ? {
+          id: link.inwardIssue.id,
+          key: link.inwardIssue.key,
+          summary: link.inwardIssue.fields?.summary ?? '',
+          status: { name: link.inwardIssue.fields?.status?.name ?? '' },
+        }
+      : undefined,
+    outwardIssue: link.outwardIssue
+      ? {
+          id: link.outwardIssue.id,
+          key: link.outwardIssue.key,
+          summary: link.outwardIssue.fields?.summary ?? '',
+          status: { name: link.outwardIssue.fields?.status?.name ?? '' },
+        }
+      : undefined,
+  }));
+}
+
+export async function createIssueLink(
+  inwardIssueKey: string,
+  outwardIssueKey: string,
+  linkTypeName: string
+): Promise<void> {
+  const client = await getJiraClient();
+
+  await client.issueLinks.linkIssues({
+    type: { name: linkTypeName },
+    inwardIssue: { key: inwardIssueKey },
+    outwardIssue: { key: outwardIssueKey },
+  });
+}
+
+export async function deleteIssueLink(linkId: string): Promise<void> {
+  const client = await getJiraClient();
+  await client.issueLinks.deleteIssueLink({ linkId });
+}
+
+export async function getAvailableLinkTypes(): Promise<IssueLinkType[]> {
+  const client = await getJiraClient();
+  const response = await client.issueLinkTypes.getIssueLinkTypes();
+  const types: any[] = (response as any).issueLinkTypes ?? [];
+  return types.map((t: any) => ({
+    id: t.id,
+    name: t.name,
+    inward: t.inward,
+    outward: t.outward,
+  }));
+}

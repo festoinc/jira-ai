@@ -39,6 +39,10 @@ jira-ai settings --help
 - `issue comment <issue-id>`: Add comment from Markdown file.
 - `issue assign <issue-id> <account-id>`: Assign issue.
 - `issue label <add|remove> <issue-id> <labels>`: Manage labels.
+- `issue link types`: List all available issue link types.
+- `issue link list <issue-key>`: List all links (inward + outward) for an issue.
+- `issue link create <source-key> <link-type> <target-key>`: Create a link between two issues (e.g., `"Blocks"`, `"Relates"`).
+- `issue link delete <source-key> --target <target-key>`: Delete a link between two issues.
 
 ### Projects & Users
 - `project list`: List accessible projects.

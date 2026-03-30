@@ -23,6 +23,46 @@
 | `issue label add <issue-id> <labels>` | Add one or more labels (comma-separated) to a Jira issue. |
 | `issue label remove <issue-id> <labels>` | Remove one or more labels (comma-separated) from a Jira issue. |
 
+## Issue Link Commands (`issue link`)
+
+| Command | Description | Permission |
+| :--- | :--- | :--- |
+| `issue link types` | List all available issue link types for the Jira instance. | `issue.link.types` |
+| `issue link list <issue-key>` | List all issue links (inward + outward) for an issue. | `issue.link.list` |
+| `issue link create <source-key> <link-type> <target-key>` | Create a link between two issues. Link type can be a name (e.g., `"Blocks"`, `"Relates"`). | `issue.link.create` |
+| `issue link delete <source-key> --target <target-key>` | Delete a link between two issues. | `issue.link.delete` |
+
+### Examples
+
+List all link types available in your Jira instance:
+```bash
+jira-ai issue link types
+```
+
+List all links for an issue:
+```bash
+jira-ai issue link list PROJ-123
+```
+
+Create a "blocks" link from PROJ-123 to PROJ-456:
+```bash
+jira-ai issue link create PROJ-123 "Blocks" PROJ-456
+```
+
+Create a "relates to" link:
+```bash
+jira-ai issue link create PROJ-100 "Relates" PROJ-200
+```
+
+Delete a link between two issues:
+```bash
+jira-ai issue link delete PROJ-123 --target PROJ-456
+```
+
+### Permissions
+
+Issue link commands use hierarchical permission keys. If `issue` is in your `allowed-commands` list, all `issue.link.*` commands are implicitly allowed. You can also use `issue.link` to allow only link commands, or specify individual keys: `issue.link.types`, `issue.link.list`, `issue.link.create`, `issue.link.delete`.
+
 ## Project Commands (`project`)
 
 | Command | Description |

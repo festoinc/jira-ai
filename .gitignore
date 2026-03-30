@@ -7,4 +7,4 @@ coverage/
 tmp
 __pycache__/
 .pytest_cache/
-tests_e2e/
+tests_e2e/*.env

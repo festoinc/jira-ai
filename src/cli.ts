@@ -14,6 +14,10 @@ import { updateDescriptionCommand } from './commands/update-description.js';
 import { addCommentCommand } from './commands/add-comment.js';
 import { addLabelCommand } from './commands/add-label.js';
 import { deleteLabelCommand } from './commands/delete-label.js';
+import { listIssueLinksCommand } from './commands/list-issue-links.js';
+import { createIssueLinkCommand } from './commands/create-issue-link.js';
+import { deleteIssueLinkCommand } from './commands/delete-issue-link.js';
+import { listLinkTypesCommand } from './commands/list-link-types.js';
 import { createTaskCommand } from './commands/create-task.js';
 import { transitionCommand } from './commands/transition.js';
 import { issueAssignCommand } from './commands/issue.js';
@@ -251,6 +255,55 @@ issueLabel
       }
     }
   }));
+
+// Issue link subcommands
+const issueLink = issue
+  .command('link')
+  .description('Manage issue-to-issue links');
+
+issueLink
+  .command('list <issue-key>')
+  .description('List all issue links (inward + outward) for an issue.')
+  .action(withPermission('issue.link.list', listIssueLinksCommand, {
+    validateArgs: (args) => validateOptions(IssueKeySchema, args[0])
+  }));
+
+issueLink
+  .command('create <source-key> <link-type> <target-key>')
+  .description('Create a link between two issues. Link type can be name (e.g., "Blocks", "Relates").')
+  .action(withPermission('issue.link.create', (sourceKey: string, linkType: string, targetKey: string) => {
+    return createIssueLinkCommand(sourceKey, linkType, targetKey);
+  }, {
+    validateArgs: (args) => {
+      validateOptions(IssueKeySchema, args[0]);
+      validateOptions(IssueKeySchema, args[2]);
+      if (typeof args[1] !== 'string' || args[1].trim() === '') {
+        throw new CliError('Link type is required');
+      }
+    }
+  }));
+
+issueLink
+  .command('delete <source-key>')
+  .requiredOption('--target <target-key>', 'Target issue key')
+  .description('Delete a link between two issues.')
+  .action(withPermission('issue.link.delete', (sourceKey: string, options: { target: string }) => {
+    return deleteIssueLinkCommand(sourceKey, options.target);
+  }, {
+    validateArgs: (args) => {
+      validateOptions(IssueKeySchema, args[0]);
+      const options = args[args.length - 2];
+      if (typeof options.target !== 'string' || options.target.trim() === '') {
+        throw new CliError('Target issue key is required');
+      }
+      validateOptions(IssueKeySchema, options.target);
+    }
+  }));
+
+issueLink
+  .command('types')
+  .description('List all available issue link types for the Jira instance.')
+  .action(withPermission('issue.link.types', listLinkTypesCommand));
 
 // =============================================================================
 // PROJECT COMMANDS
