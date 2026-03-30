@@ -55,6 +55,7 @@ describe('Single-org cleanup (JIR-9)', () => {
         'confl',
         'board',
         'sprint',
+        'backlog',
       ]);
     });
   });

@@ -59,9 +59,9 @@ vi.mock('jira.js', () => ({
         getBoard: mockGetBoard,
         getConfiguration: mockGetConfiguration,
         getIssuesForBoard: mockGetIssuesForBoard,
+        getAllSprints: mockGetAllSprints,
       },
       sprint: {
-        getAllSprints: mockGetAllSprints,
         getSprint: mockGetSprint,
         createSprint: mockCreateSprint,
         partiallyUpdateSprint: mockPartiallyUpdateSprint,

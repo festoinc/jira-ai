@@ -26,7 +26,8 @@ describe('Issue 47: Initial Settings Defaults', () => {
       'user',
       'confl',
       'board',
-      'sprint'
+      'sprint',
+      'backlog',
     ]);
   });
 
@@ -52,7 +53,8 @@ commands:
       'user',
       'confl',
       'board',
-      'sprint'
+      'sprint',
+      'backlog',
     ]);
   });
 });

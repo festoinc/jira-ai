@@ -99,6 +99,13 @@ export async function sprintStartCommand(sprintId: number): Promise<void> {
       { hints: ['Use sprint list to see available sprints and their states'] }
     );
   }
+  if (!sprintToStart.startDate || !sprintToStart.endDate) {
+    ui.failSpinner();
+    throw new CommandError(
+      'Cannot start sprint: start and end dates are required. Use sprint update <id> --start <date> --end <date> first.',
+      { hints: ['Example: jira-ai sprint update <id> --start 2024-01-01 --end 2024-01-14'] }
+    );
+  }
   ui.startSpinner(`Starting sprint ${sprintId}...`);
   await startSprint(sprintId);
   ui.succeedSpinner(chalk.green(`Sprint ${sprintId} started successfully.`));

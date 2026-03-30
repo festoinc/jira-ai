@@ -42,6 +42,8 @@ const mockSprintFuture = {
   id: 43,
   name: 'Sprint 2',
   state: 'future',
+  startDate: '2026-04-07',
+  endDate: '2026-04-21',
   originBoardId: 36,
 };
 

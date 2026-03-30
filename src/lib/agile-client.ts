@@ -3,6 +3,32 @@ import { loadCredentials } from './auth-storage.js';
 import { CommandError } from './errors.js';
 import { resolveHost } from './jira-client.js';
 
+/**
+ * Map HTTP status codes from Jira Agile API to user-friendly CommandErrors.
+ */
+function mapAgileError(error: any, context: string): never {
+  const status = error?.response?.status ?? error?.status;
+  const msg: string = error?.message || String(error);
+
+  if (status === 404) {
+    throw new CommandError(`${context} not found. Check that the ID is correct.`, {
+      hints: ['Use the list command to find valid IDs'],
+    });
+  }
+  if (status === 400) {
+    const detail = error?.response?.data?.message || error?.response?.data || '';
+    throw new CommandError(`${context} — bad request: ${detail || msg}`, {
+      hints: ['Check that all required fields are provided and the resource is in the correct state'],
+    });
+  }
+  if (status === 403) {
+    throw new CommandError(`${context} — permission denied. You do not have access to perform this action.`, {
+      hints: ['Check your Jira permissions for agile operations'],
+    });
+  }
+  throw error;
+}
+
 // TypeScript interfaces for Agile entities
 export interface Board {
   id: number;
@@ -108,17 +134,29 @@ export async function getBoards(options?: { projectKeyOrId?: string; type?: stri
 
 export async function getBoard(boardId: number): Promise<Board> {
   const client = await getAgileClient();
-  return client.board.getBoard({ boardId }) as Promise<Board>;
+  try {
+    return await client.board.getBoard({ boardId }) as Board;
+  } catch (error: any) {
+    mapAgileError(error, `Board ${boardId}`);
+  }
 }
 
 export async function getBoardConfig(boardId: number): Promise<BoardConfig> {
   const client = await getAgileClient();
-  return client.board.getConfiguration({ boardId }) as Promise<BoardConfig>;
+  try {
+    return await client.board.getConfiguration({ boardId }) as BoardConfig;
+  } catch (error: any) {
+    mapAgileError(error, `Board config for ${boardId}`);
+  }
 }
 
 export async function getBoardIssues(boardId: number, options?: { jql?: string; maxResults?: number }): Promise<BoardIssueList> {
   const client = await getAgileClient();
-  return client.board.getIssuesForBoard({ boardId, ...options }) as Promise<BoardIssueList>;
+  try {
+    return await client.board.getIssuesForBoard({ boardId, ...options }) as BoardIssueList;
+  } catch (error: any) {
+    mapAgileError(error, `Board issues for ${boardId}`);
+  }
 }
 
 // Sprint wrappers
@@ -126,8 +164,8 @@ export async function getBoardIssues(boardId: number, options?: { jql?: string; 
 export async function getSprints(boardId: number, options?: { state?: string; maxResults?: number }): Promise<SprintList> {
   const client = await getAgileClient();
   try {
-    // jira.js AgileClient types don't expose getAllSprints; cast required until upstream fixes typing
-    return await (client as any).sprint.getAllSprints({ boardId, ...options }) as SprintList;
+    // getAllSprints is on client.board in jira.js v5.2.2, not client.sprint
+    return await client.board.getAllSprints({ boardId, ...options }) as unknown as SprintList;
   } catch (error: any) {
     const msg = error?.message || '';
     if (msg.toLowerCase().includes('board does not support sprints') || msg.toLowerCase().includes('does not support sprints')) {
@@ -141,7 +179,11 @@ export async function getSprints(boardId: number, options?: { state?: string; ma
 
 export async function getSprint(sprintId: number): Promise<Sprint> {
   const client = await getAgileClient();
-  return client.sprint.getSprint({ sprintId }) as Promise<Sprint>;
+  try {
+    return await client.sprint.getSprint({ sprintId }) as Sprint;
+  } catch (error: any) {
+    mapAgileError(error, `Sprint ${sprintId}`);
+  }
 }
 
 export async function createSprint(
@@ -174,7 +216,11 @@ export async function updateSprint(sprintId: number, updates: { name?: string; g
 
 export async function deleteSprint(sprintId: number): Promise<void> {
   const client = await getAgileClient();
-  await client.sprint.deleteSprint({ sprintId });
+  try {
+    await client.sprint.deleteSprint({ sprintId });
+  } catch (error: any) {
+    mapAgileError(error, `Sprint ${sprintId}`);
+  }
 }
 
 export async function getSprintIssues(sprintId: number, options?: { jql?: string; maxResults?: number }): Promise<BoardIssueList> {
@@ -193,7 +239,11 @@ export async function moveIssuesToSprint(
     });
   }
   const client = await getAgileClient();
-  await client.sprint.moveIssuesToSprintAndRank({ sprintId, issues, ...options });
+  try {
+    await client.sprint.moveIssuesToSprintAndRank({ sprintId, issues, ...options });
+  } catch (error: any) {
+    mapAgileError(error, `Move issues to sprint ${sprintId}`);
+  }
 }
 
 // Backlog wrapper
@@ -205,7 +255,11 @@ export async function moveIssuesToBacklog(issues: string[]): Promise<void> {
     });
   }
   const client = await getAgileClient();
-  await client.backlog.moveIssuesToBacklog({ issues });
+  try {
+    await client.backlog.moveIssuesToBacklog({ issues });
+  } catch (error: any) {
+    mapAgileError(error, `Move issues to backlog`);
+  }
 }
 
 // Rank wrapper
@@ -220,5 +274,9 @@ export async function rankIssues(
     });
   }
   const client = await getAgileClient();
-  await client.issue.rankIssues({ issues, ...options });
+  try {
+    await client.issue.rankIssues({ issues, ...options });
+  } catch (error: any) {
+    mapAgileError(error, `Rank issues`);
+  }
 }

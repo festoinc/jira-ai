@@ -643,6 +643,9 @@ Command Groups (use in allowed-commands):
   user        - me, search, worklog
   epic        - list, get, create, update, issues, link, unlink, progress
   confl       - get, spaces, pages, create, comment, update
+  board       - list, get, config, issues, rank
+  sprint      - list, get, create, start, complete, update, delete, issues, move
+  backlog     - move
 
 Examples:
   - "issue"           → allows all issue subcommands
