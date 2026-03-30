@@ -112,6 +112,50 @@ Discover available fields for a project (including custom fields):
 jira-ai project fields PROJ --type Task
 ```
 
+### Transition Issues
+
+Change the status of an issue:
+```bash
+jira-ai issue transition PROJ-123 "In Progress"
+```
+
+Add a comment and resolution during transition:
+```bash
+jira-ai issue transition PROJ-123 Done --resolution Done --comment "Completed the feature."
+```
+
+Change assignee and fix version during transition:
+```bash
+jira-ai issue transition PROJ-123 "In Review" --assignee "Jane Smith" --fix-version "v2.0"
+```
+
+Set a custom field during transition:
+```bash
+jira-ai issue transition PROJ-123 Done --custom-field "Story Points=5"
+```
+
+Pass a comment from a file (useful for long comments):
+```bash
+jira-ai issue transition PROJ-123 Done --comment-file ./release-notes.md
+```
+
+Discover which transitions are available and what fields they require:
+```bash
+jira-ai issue transitions PROJ-123
+```
+
+Only show transitions that have required fields:
+```bash
+jira-ai issue transitions PROJ-123 --required-only
+```
+
+Get structured output for scripting:
+```bash
+jira-ai --json issue transitions PROJ-123
+```
+
+When a transition fails due to missing required fields, the error message lists what is needed and suggests running `issue transitions <key>` to discover them.
+
 ## Service Account Authentication
 
 Atlassian service accounts use scoped API tokens that must authenticate through the `api.atlassian.com` gateway rather than direct site URLs.

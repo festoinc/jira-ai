@@ -43,7 +43,8 @@ Errors in JSON mode return `{ "error": true, "message": "...", "hints": [...], "
 - `issue get <issue-id>`: Retrieve issue details.
 - `issue create`: Create a new issue. Supports `--title`, `--project`, `--issue-type`, `--parent` (for subtasks), `--priority`, `--description`, `--description-file`, `--labels`, `--component`, `--fix-version`, `--due-date`, `--assignee`, `--custom-field`.
 - `issue search <jql>`: Execute JQL search.
-- `issue transition <issue-id> <status>`: Change issue status.
+- `issue transition <issue-id> <status>`: Change issue status. Supports `--resolution <name>`, `--comment <text>`, `--comment-file <path>`, `--assignee <email-or-name>`, `--fix-version <name>`, `--custom-field "Field Name=value"`.
+- `issue transitions <issue-id>`: List available transitions for an issue, including required fields. Supports `--required-only`.
 - `issue update <issue-id>`: Update one or more fields of an issue. Supports `--priority`, `--summary`, `--description`, `--from-file`, `--labels`, `--clear-labels`, `--component`, `--fix-version`, `--due-date`, `--assignee`, `--custom-field`.
 - `issue comment <issue-id>`: Add comment from Markdown file.
 - `issue assign <issue-id> <account-id>`: Assign issue.

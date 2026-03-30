@@ -22,7 +22,8 @@
 | `issue get <issue-id>` | Retrieve comprehensive issue data including key, summary, status, assignee, reporter, dates, labels, description, and comments. Use `--include-detailed-history` for change logs. |
 | `issue create` | Create a new Jira issue with specified title, project key, and issue type. Supports `--priority`, `--description`, `--description-file`, `--labels`, `--component`, `--fix-version`, `--due-date`, `--assignee`, and `--custom-field` flags. |
 | `issue search <jql-query>` | Execute a JQL search query. Supports limiting results via `--limit` (default 50). |
-| `issue transition <issue-id> <to-status>` | Change the status of a Jira issue using status name or ID. |
+| `issue transition <issue-id> <to-status>` | Change the status of a Jira issue using status name or ID. Supports `--resolution <name>`, `--comment <text>`, `--comment-file <path>`, `--assignee <email-or-name>`, `--fix-version <name>`, and `--custom-field "Field Name=value"` flags. |
+| `issue transitions <issue-id>` | List all available transitions for an issue, including which fields are required for each. Supports `--required-only` to filter to transitions with required fields. |
 | `issue update <issue-id>` | Update one or more fields of a Jira issue. Supports `--priority`, `--summary`, `--description`, `--from-file`, `--labels`, `--clear-labels`, `--component`, `--fix-version`, `--due-date`, `--assignee`, and `--custom-field` flags. |
 | `issue comment <issue-id>` | Add a new comment to a Jira issue using content from a local Markdown file. |
 | `issue stats <issue-ids>` | Calculate time-based metrics (time logged, estimate, status duration) for one or more issues. |
@@ -101,6 +102,43 @@ jira-ai issue create \
   --description-file ./description.md \
   --custom-field "customfield_10001=value1" \
   --custom-field "customfield_10002=value2"
+```
+
+## Issue Transition Examples
+
+Basic status change:
+```bash
+jira-ai issue transition PROJ-123 "In Progress"
+```
+
+Add a comment and resolution:
+```bash
+jira-ai issue transition PROJ-123 Done --resolution Done --comment "Completed the feature."
+```
+
+Change assignee and fix version:
+```bash
+jira-ai issue transition PROJ-123 "In Review" --assignee "Jane Smith" --fix-version "v2.0"
+```
+
+Pass a comment from a file:
+```bash
+jira-ai issue transition PROJ-123 Done --comment-file ./release-notes.md
+```
+
+Set a custom field:
+```bash
+jira-ai issue transition PROJ-123 Done --custom-field "Story Points=5"
+```
+
+Discover available transitions and required fields:
+```bash
+jira-ai issue transitions PROJ-123
+```
+
+Only show transitions with required fields:
+```bash
+jira-ai issue transitions PROJ-123 --required-only
 ```
 
 ## Issue Update Examples
