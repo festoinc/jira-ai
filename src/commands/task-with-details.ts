@@ -1,13 +1,8 @@
-import chalk from 'chalk';
 import { validateIssuePermissions } from '../lib/jira-client.js';
-import { formatTaskDetails } from '../lib/formatters.js';
 import { CommandError } from '../lib/errors.js';
-import { ui } from '../lib/ui.js';
 import { outputResult } from '../lib/json-mode.js';
 
 export async function taskWithDetailsCommand(taskId: string, options: any = {}): Promise<void> {
-  ui.startSpinner(`Fetching details for ${taskId}...`);
-
   try {
     const task = await validateIssuePermissions(taskId, 'task-with-details', {
       includeHistory: options.includeDetailedHistory,
@@ -15,8 +10,7 @@ export async function taskWithDetailsCommand(taskId: string, options: any = {}):
       historyOffset: options.historyOffset ? parseInt(options.historyOffset, 10) : undefined,
     });
 
-    ui.succeedSpinner(chalk.green('Task details retrieved'));
-    outputResult(task, formatTaskDetails);
+    outputResult(task);
   } catch (error: any) {
     if (error instanceof CommandError) throw error;
     

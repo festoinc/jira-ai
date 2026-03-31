@@ -1,9 +1,8 @@
-import chalk from 'chalk';
 import { getProjectFields } from '../lib/field-resolver.js';
 import { CommandError } from '../lib/errors.js';
 import { validateOptions, ProjectKeySchema } from '../lib/validation.js';
 import { isCommandAllowed, isProjectAllowed } from '../lib/settings.js';
-import { outputResult, isJsonMode } from '../lib/json-mode.js';
+import { outputResult } from '../lib/json-mode.js';
 
 export async function projectFieldsCommand(
   projectKey: string,
@@ -38,29 +37,7 @@ export async function projectFieldsCommand(
       fields = fields.filter(f => f.name.toLowerCase().includes(lower) || f.id.toLowerCase().includes(lower));
     }
 
-    if (fields.length === 0) {
-      if (!isJsonMode()) {
-        console.log(chalk.yellow(`No fields found for project ${projectKey}`));
-      } else {
-        outputResult(fields);
-      }
-      return;
-    }
-
-    outputResult(fields, (data) => {
-      let out = chalk.bold(`\nFields for project ${projectKey}:`);
-      out += `\n${chalk.gray(`${'ID'.padEnd(30)} ${'Name'.padEnd(30)} ${'Type'.padEnd(20)} Required`)}`;
-      out += `\n${chalk.gray('-'.repeat(90))}`;
-      for (const field of data) {
-        const required = field.required ? chalk.red('yes') : chalk.gray('no');
-        const idLabel = field.custom ? chalk.cyan(field.id.padEnd(30)) : field.id.padEnd(30);
-        const nameLabel = field.custom ? chalk.cyan(field.name.padEnd(30)) : field.name.padEnd(30);
-        const type = (field.schema?.type || 'unknown').padEnd(20);
-        out += `\n${idLabel} ${nameLabel} ${type} ${required}`;
-      }
-      out += `\n${chalk.gray(`\nTotal: ${data.length} field(s)`)}`;
-      return out;
-    });
+    outputResult(fields);
   } catch (error: any) {
     if (error instanceof CommandError) throw error;
 

@@ -1,11 +1,9 @@
-import chalk from 'chalk';
 import * as fs from 'fs';
 import * as path from 'path';
 import { markdownToAdf } from 'marklassian';
 import { addIssueComment, validateIssuePermissions, resolveUserByName } from '../lib/jira-client.js';
 import { processMentionsInADF } from '../lib/adf-mentions.js';
 import { CommandError } from '../lib/errors.js';
-import { ui } from '../lib/ui.js';
 import { validateOptions, AddCommentSchema } from '../lib/validation.js';
 import { outputResult } from '../lib/json-mode.js';
 
@@ -49,19 +47,11 @@ export async function addCommentCommand(
   }
 
   // Check permissions and filters
-  ui.startSpinner(`Validating permissions for ${issueKey}...`);
   await validateIssuePermissions(issueKey, 'add-comment');
-
-  // Add comment with spinner
-  ui.startSpinner(`Adding comment to ${issueKey}...`);
 
   try {
     await addIssueComment(issueKey, adfContent);
-    ui.succeedSpinner(chalk.green(`Comment added successfully to ${issueKey}`));
-    outputResult(
-      { success: true, issueKey, file: absolutePath },
-      (data) => chalk.gray(`\nFile: ${data.file}`)
-    );
+    outputResult({ success: true, issueKey, file: absolutePath });
   } catch (error: any) {
     if (error instanceof CommandError) throw error;
 

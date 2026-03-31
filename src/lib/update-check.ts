@@ -1,7 +1,6 @@
 import fs from 'fs';
 import path from 'path';
 import os from 'node:os';
-import chalk from 'chalk';
 import { getVersion } from './utils.js';
 
 const CHECK_INTERVAL = 24 * 60 * 60 * 1000; // 24 hours
@@ -100,9 +99,9 @@ function isNewer(latest: string, current: string): boolean {
 }
 
 /**
- * Format the update message with colors
+ * Format the update message
  */
 export function formatUpdateMessage(latestVersion: string): string {
   const currentVersion = getVersion();
-  return chalk.yellow(`Update available: ${chalk.green(latestVersion)} (current: ${currentVersion}). Run 'npm install -g jira-ai' to update.`);
+  return `Update available: ${latestVersion} (current: ${currentVersion}). Run 'npm install -g jira-ai' to update.`;
 }

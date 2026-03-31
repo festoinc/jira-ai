@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
-import chalk from 'chalk';
 import { validateEnvVars, getVersion } from './lib/utils.js';
 import { meCommand } from './commands/me.js';
 import { projectsCommand } from './commands/projects.js';
@@ -71,7 +70,6 @@ import { hasCredentials } from './lib/auth-storage.js';
 import { checkForUpdate, formatUpdateMessage, checkForUpdateSync } from './lib/update-check.js';
 import { CliError } from './types/errors.js';
 import { CommandError } from './lib/errors.js';
-import { ui } from './lib/ui.js';
 import { initJsonMode, outputError } from './lib/json-mode.js';
 import {
   CreateTaskSchema,
@@ -113,6 +111,7 @@ program
   .version(getVersion())
   .option('--json', 'Output as JSON')
   .option('--json-compact', 'Output as compact JSON')
+  .option('--compact', 'Output as compact JSON')
   .addHelpText('after', () => {
     const latestVersion = checkForUpdateSync();
     if (latestVersion) {
@@ -785,7 +784,7 @@ export function configureCommandVisibility(program: Command) {
         (cmd as any)._hidden = true;
       }
     });
-    program.addHelpText('after', `\n${chalk.yellow('You are not authorized. Please use `jira-ai auth` to authorize. Then you can run other commands.')}`);
+    program.addHelpText('after', `\nYou are not authorized. Please use 'jira-ai auth' to authorize. Then you can run other commands.`);
   } else {
     program.commands.forEach(cmd => {
       if (!alwaysVisibleCommands.includes(cmd.name())) {
@@ -810,8 +809,6 @@ export async function main() {
     configureCommandVisibility(program);
     await program.parseAsync(process.argv);
   } catch (error) {
-    ui.failSpinner();
-
     if (error instanceof CommandError) {
       outputError(error.message, error.hints, error.exitCode);
     } else if (error instanceof CliError) {

@@ -1,7 +1,5 @@
-import chalk from 'chalk';
 import { assignIssue, validateIssuePermissions } from '../lib/jira-client.js';
 import { CommandError } from '../lib/errors.js';
-import { ui } from '../lib/ui.js';
 import { outputResult } from '../lib/json-mode.js';
 
 export async function issueAssignCommand(
@@ -11,21 +9,11 @@ export async function issueAssignCommand(
   const actualAccountId = accountId === 'null' ? null : accountId;
 
   // Check permissions and filters
-  ui.startSpinner(`Validating permissions for ${issueKey}...`);
   await validateIssuePermissions(issueKey, 'issue');
-
-  ui.startSpinner(`Assigning ${issueKey} to ${actualAccountId || 'Unassigned'}...`);
 
   try {
     await assignIssue(issueKey, actualAccountId);
-
-    ui.succeedSpinner(
-      chalk.green(`Issue ${issueKey} successfully assigned to ${actualAccountId || 'Unassigned'}.`)
-    );
-    outputResult(
-      { success: true, issueKey, assignee: actualAccountId || null },
-      (data) => chalk.green(`Issue ${data.issueKey} successfully assigned to ${data.assignee || 'Unassigned'}.`)
-    );
+    outputResult({ success: true, issueKey, assignee: actualAccountId || null });
   } catch (error: any) {
     if (error instanceof CommandError) {
       throw error;

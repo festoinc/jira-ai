@@ -1,7 +1,4 @@
-import chalk from 'chalk';
 import { getProjectIssueTypes } from '../lib/jira-client.js';
-import { formatProjectIssueTypes } from '../lib/formatters.js';
-import { ui } from '../lib/ui.js';
 import { isCommandAllowed, isProjectAllowed } from '../lib/settings.js';
 import { CommandError } from '../lib/errors.js';
 import { outputResult } from '../lib/json-mode.js';
@@ -17,9 +14,6 @@ export async function listIssueTypesCommand(projectKey: string): Promise<void> {
     throw new CommandError(`Command 'list-issue-types' is not allowed for project ${projectKey}.`);
   }
 
-  ui.startSpinner(`Fetching issue types for project ${projectKey}...`);
-
   const issueTypes = await getProjectIssueTypes(projectKey);
-  ui.succeedSpinner(chalk.green('Issue types retrieved'));
-  outputResult(issueTypes, (data) => formatProjectIssueTypes(projectKey, data));
+  outputResult(issueTypes);
 }

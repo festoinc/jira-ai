@@ -1,8 +1,6 @@
-import chalk from 'chalk';
 import * as fs from 'fs';
 import { getIssueTransitions, transitionIssue, validateIssuePermissions, resolveUserByName, TransitionPayload } from '../lib/jira-client.js';
 import { CommandError } from '../lib/errors.js';
-import { ui } from '../lib/ui.js';
 import { outputResult } from '../lib/json-mode.js';
 import { markdownToAdf } from 'marklassian';
 import { FieldResolver } from '../lib/field-resolver.js';
@@ -32,14 +30,10 @@ export async function transitionCommand(
   }
 
   // Check permissions and filters
-  ui.startSpinner(`Validating permissions for ${taskId}...`);
   await validateIssuePermissions(taskId, 'transition');
-
-  ui.startSpinner(`Fetching available transitions for ${taskId}...`);
 
   try {
     const transitions = await getIssueTransitions(taskId);
-    ui.stopSpinner();
 
     const matchingTransitions = transitions.filter(
       (t) => t.to.name.toLowerCase() === toStatus.toLowerCase()
@@ -133,17 +127,8 @@ export async function transitionCommand(
       if (Object.keys(payload).length === 0) payload = undefined;
     }
 
-    ui.startSpinner(`Transitioning ${taskId} to ${transition.to.name}...`);
-
     await transitionIssue(taskId, transition.id, payload);
-
-    ui.succeedSpinner(
-      chalk.green(`Issue ${taskId} successfully transitioned to ${transition.to.name}.`)
-    );
-    outputResult(
-      { success: true, issueKey: taskId, status: transition.to.name },
-      (data) => chalk.green(`Issue ${data.issueKey} successfully transitioned to ${data.status}.`)
-    );
+    outputResult({ success: true, issueKey: taskId, status: transition.to.name });
   } catch (error: any) {
     if (error instanceof CommandError) {
       throw error;
@@ -192,10 +177,5 @@ export async function listTransitionsCommand(
     rows = rows.filter((r) => r.requiredFields !== '(none)');
   }
 
-  outputResult(rows, (data: typeof rows) => {
-    const lines = data.map(
-      (r) => `  ${r.id.padEnd(6)} ${r.name.padEnd(30)} → ${r.to.padEnd(20)} [required: ${r.requiredFields}]`
-    );
-    return lines.join('\n');
-  });
+  outputResult(rows);
 }

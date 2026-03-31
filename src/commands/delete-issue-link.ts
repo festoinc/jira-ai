@@ -1,7 +1,5 @@
-import chalk from 'chalk';
 import { getIssueLinks, deleteIssueLink, validateIssuePermissions } from '../lib/jira-client.js';
 import { CommandError } from '../lib/errors.js';
-import { ui } from '../lib/ui.js';
 import { validateOptions, IssueKeySchema } from '../lib/validation.js';
 import { outputResult } from '../lib/json-mode.js';
 
@@ -12,10 +10,7 @@ export async function deleteIssueLinkCommand(
   validateOptions(IssueKeySchema, sourceKey);
   validateOptions(IssueKeySchema, targetKey);
 
-  ui.startSpinner(`Validating permissions for ${sourceKey}...`);
   await validateIssuePermissions(sourceKey, 'issue.link.delete');
-
-  ui.startSpinner(`Finding link between ${sourceKey} and ${targetKey}...`);
 
   try {
     const links = await getIssueLinks(sourceKey);
@@ -44,13 +39,8 @@ export async function deleteIssueLinkCommand(
     }
 
     const linkId = matchingLinks[0].id;
-    ui.startSpinner(`Deleting link ${linkId}...`);
     await deleteIssueLink(linkId);
-    ui.succeedSpinner(chalk.green(`Link deleted successfully`));
-    outputResult(
-      { success: true, sourceKey, targetKey, linkType: matchingLinks[0].type.name },
-      (data) => chalk.gray(`\nRemoved: ${data.sourceKey} <--> ${data.targetKey} (${data.linkType})`)
-    );
+    outputResult({ success: true, sourceKey, targetKey, linkType: matchingLinks[0].type.name });
   } catch (error: any) {
     if (error instanceof CommandError) throw error;
 

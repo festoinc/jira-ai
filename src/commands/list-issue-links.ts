@@ -1,23 +1,16 @@
-import chalk from 'chalk';
 import { getIssueLinks, validateIssuePermissions } from '../lib/jira-client.js';
-import { formatIssueLinks } from '../lib/formatters.js';
 import { CommandError } from '../lib/errors.js';
-import { ui } from '../lib/ui.js';
 import { validateOptions, IssueKeySchema } from '../lib/validation.js';
 import { outputResult } from '../lib/json-mode.js';
 
 export async function listIssueLinksCommand(issueKey: string): Promise<void> {
   validateOptions(IssueKeySchema, issueKey);
 
-  ui.startSpinner(`Validating permissions for ${issueKey}...`);
   await validateIssuePermissions(issueKey, 'issue.link.list');
-
-  ui.startSpinner(`Fetching issue links for ${issueKey}...`);
 
   try {
     const links = await getIssueLinks(issueKey);
-    ui.succeedSpinner(chalk.green(`Issue links retrieved for ${issueKey}`));
-    outputResult(links, (data) => formatIssueLinks(issueKey, data));
+    outputResult(links);
   } catch (error: any) {
     if (error instanceof CommandError) throw error;
 

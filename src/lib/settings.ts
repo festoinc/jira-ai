@@ -2,7 +2,6 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import yaml from 'js-yaml';
-import chalk from 'chalk';
 import { CliError } from '../types/errors.js';
 import { SettingsSchema } from './validation.js';
 
@@ -132,7 +131,7 @@ export function loadSettings(): Settings {
       try {
         const fileContents = fs.readFileSync(localSettingsPath, 'utf8');
         fs.writeFileSync(SETTINGS_FILE, fileContents);
-        console.log(chalk.cyan(`Migrated settings.yaml to ${SETTINGS_FILE}`));
+        console.log(`Migrated settings.yaml to ${SETTINGS_FILE}`);
       } catch (error) {
         console.error('Error migrating settings.yaml:', error);
         cachedSettings = { ...DEFAULT_SETTINGS };
@@ -158,9 +157,9 @@ export function loadSettings(): Settings {
 
     const result = SettingsSchema.safeParse(rawSettings);
     if (!result.success) {
-      console.warn(chalk.yellow(`Warning: ${SETTINGS_FILE} has validation errors:`));
+      console.warn(`Warning: ${SETTINGS_FILE} has validation errors:`);
       result.error.issues.forEach(issue => {
-        console.warn(chalk.yellow(`  - ${issue.path.join('.')}: ${issue.message}`));
+        console.warn(`  - ${issue.path.join('.')}: ${issue.message}`);
       });
       // Fallback to defaults if parsing fails completely
       return DEFAULT_SETTINGS;

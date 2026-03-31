@@ -1,4 +1,3 @@
-import chalk from 'chalk';
 import fs from 'fs';
 import yaml from 'js-yaml';
 import {
@@ -8,10 +7,8 @@ import {
   DEFAULT_SETTINGS,
   migrateSettings
 } from '../lib/settings.js';
-import { formatSettings } from '../lib/formatters.js';
-import { ui } from '../lib/ui.js';
 import { SettingsSchema } from '../lib/validation.js';
-import { getProjects, getProjectIssueTypes } from '../lib/jira-client.js';
+import { getProjects } from '../lib/jira-client.js';
 import { CommandError } from '../lib/errors.js';
 import { validateEnvVars } from '../lib/utils.js';
 import { outputResult } from '../lib/json-mode.js';
@@ -24,12 +21,11 @@ export interface SettingsOptions {
 
 export async function settingsCommand(options: SettingsOptions): Promise<void> {
   if (options.reset) {
-    ui.startSpinner('Resetting settings to default...');
     try {
       saveSettings(DEFAULT_SETTINGS);
-      ui.succeedSpinner(chalk.green('Settings reset to default successfully!'));
+      console.log('Settings reset to default successfully!');
     } catch (error) {
-      ui.failSpinner(`Error resetting settings: ${error instanceof Error ? error.message : String(error)}`);
+      console.error(`Error resetting settings: ${error instanceof Error ? error.message : String(error)}`);
       throw error;
     }
     return;
@@ -47,14 +43,11 @@ export async function settingsCommand(options: SettingsOptions): Promise<void> {
 
   // Default: Show current settings
   const settings = loadSettings();
-  outputResult(settings, formatSettings);
+  outputResult(settings);
 }
 
 async function validateSettingsFile(filePath: string): Promise<Settings> {
-  ui.startSpinner(`Validating ${filePath}...`);
-
   if (!fs.existsSync(filePath)) {
-    ui.failSpinner(`File not found: ${filePath}`);
     throw new CommandError(`File not found: ${filePath}`);
   }
 
@@ -63,14 +56,12 @@ async function validateSettingsFile(filePath: string): Promise<Settings> {
     const content = fs.readFileSync(filePath, 'utf8');
     rawSettings = yaml.load(content);
   } catch (error) {
-    ui.failSpinner(`Error parsing YAML: ${error instanceof Error ? error.message : String(error)}`);
     throw new CommandError(`Error parsing YAML in ${filePath}`);
   }
 
   // Schema Validation
   const result = SettingsSchema.safeParse(rawSettings);
   if (!result.success) {
-    ui.failSpinner('Schema validation failed');
     const messages = result.error.issues
       .map((err) => `${err.path.join('.')}: ${err.message}`)
       .join('\n');
@@ -80,7 +71,6 @@ async function validateSettingsFile(filePath: string): Promise<Settings> {
   const settings = migrateSettings(result.data);
 
   // Deep Validation
-  ui.updateSpinner('Performing deep validation against Jira...');
   try {
     validateEnvVars();
     const projects = await getProjects();
@@ -90,12 +80,11 @@ async function validateSettingsFile(filePath: string): Promise<Settings> {
       const projectsToValidate = orgSettings['allowed-jira-projects'] || [];
       for (const p of projectsToValidate) {
         const key = typeof p === 'string' ? p : p.key;
-        
+
         if (key === 'all') continue;
 
         if (!projectKeys.has(key)) {
           const msg = `Project "${key}" (in ${label}) not found in Jira.`;
-          ui.failSpinner(`Deep validation failed: ${msg}`);
           throw new CommandError(msg);
         }
       }
@@ -105,24 +94,22 @@ async function validateSettingsFile(filePath: string): Promise<Settings> {
       validateOrg(settings.defaults, 'defaults');
     }
 
-    ui.succeedSpinner(chalk.green('Settings are valid!'));
+    console.log('Settings are valid!');
     return settings;
   } catch (error) {
     if (error instanceof CommandError) throw error;
-    ui.failSpinner(`Deep validation failed: ${error instanceof Error ? error.message : String(error)}`);
     throw new CommandError(`Failed to connect to Jira for validation: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
 async function applySettings(filePath: string): Promise<void> {
   const settings = await validateSettingsFile(filePath);
-  
-  ui.startSpinner('Applying settings...');
+
   try {
     saveSettings(settings);
-    ui.succeedSpinner(chalk.green('Settings applied successfully!'));
+    console.log('Settings applied successfully!');
   } catch (error) {
-    ui.failSpinner(`Error applying settings: ${error instanceof Error ? error.message : String(error)}`);
+    console.error(`Error applying settings: ${error instanceof Error ? error.message : String(error)}`);
     throw error;
   }
 }

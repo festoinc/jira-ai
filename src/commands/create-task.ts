@@ -1,13 +1,11 @@
-import chalk from 'chalk';
 import * as fs from 'fs';
 import * as path from 'path';
 import { markdownToAdf } from 'marklassian';
 import { createIssue, resolveUserByName } from '../lib/jira-client.js';
 import { CommandError } from '../lib/errors.js';
-import { ui } from '../lib/ui.js';
 import { validateOptions, CreateTaskSchema } from '../lib/validation.js';
 import { isCommandAllowed, isProjectAllowed } from '../lib/settings.js';
-import { outputResult, isJsonMode } from '../lib/json-mode.js';
+import { outputResult } from '../lib/json-mode.js';
 
 export async function createTaskCommand(
   options: {
@@ -104,8 +102,6 @@ export async function createTaskCommand(
     }
   }
 
-  ui.startSpinner(`Creating ${issueType} in project ${project}...`);
-
   try {
     const result = await createIssue({
       project,
@@ -115,20 +111,7 @@ export async function createTaskCommand(
       ...issueFields,
     });
 
-    ui.succeedSpinner(chalk.green(`Issue created successfully: ${result.key}`));
-    outputResult(
-      { key: result.key, title, project, issueType, parent },
-      (data) => {
-        let out = chalk.gray(`\nTitle: ${data.title}`);
-        out += `\n${chalk.gray(`Project: ${data.project}`)}`;
-        out += `\n${chalk.gray(`Issue Type: ${data.issueType}`)}`;
-        if (data.parent) {
-          out += `\n${chalk.gray(`Parent: ${data.parent}`)}`;
-        }
-        out += `\n${chalk.cyan(`\nIssue Key: ${data.key}`)}`;
-        return out;
-      }
-    );
+    outputResult({ key: result.key, title, project, issueType, parent });
   } catch (error: any) {
     const errorMsg = error.message?.toLowerCase() || '';
     const hints: string[] = [];

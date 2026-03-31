@@ -1,7 +1,4 @@
-import chalk from 'chalk';
 import { getProjectStatuses } from '../lib/jira-client.js';
-import { formatProjectStatuses } from '../lib/formatters.js';
-import { ui } from '../lib/ui.js';
 import { isCommandAllowed, isProjectAllowed } from '../lib/settings.js';
 import { CommandError } from '../lib/errors.js';
 import { outputResult } from '../lib/json-mode.js';
@@ -17,14 +14,10 @@ export async function projectStatusesCommand(projectIdOrKey: string): Promise<vo
     throw new CommandError(`Command 'project-statuses' is not allowed for project ${projectIdOrKey}.`);
   }
 
-  ui.startSpinner(`Fetching statuses for project ${projectIdOrKey}...`);
-
   try {
     const statuses = await getProjectStatuses(projectIdOrKey);
-    ui.succeedSpinner(chalk.green('Project statuses retrieved'));
-    outputResult(statuses, (data) => formatProjectStatuses(projectIdOrKey, data));
+    outputResult(statuses);
   } catch (error: any) {
-    ui.failSpinner(chalk.red('Failed to fetch project statuses'));
     throw error;
   }
 }

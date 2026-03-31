@@ -1,7 +1,5 @@
-import chalk from 'chalk';
 import { addIssueLabels, validateIssuePermissions } from '../lib/jira-client.js';
 import { CommandError } from '../lib/errors.js';
-import { ui } from '../lib/ui.js';
 import { validateOptions, IssueKeySchema } from '../lib/validation.js';
 import { outputResult } from '../lib/json-mode.js';
 
@@ -23,18 +21,11 @@ export async function addLabelCommand(
   }
 
   // Check permissions and filters
-  ui.startSpinner(`Validating permissions for ${taskId}...`);
   await validateIssuePermissions(taskId, 'add-label-to-issue');
-
-  ui.startSpinner(`Adding labels to ${taskId}...`);
 
   try {
     await addIssueLabels(taskId, labels);
-    ui.succeedSpinner(chalk.green(`Labels added successfully to ${taskId}`));
-    outputResult(
-      { success: true, issueKey: taskId, labels },
-      (data) => chalk.gray(`\nLabels: ${data.labels.join(', ')}`)
-    );
+    outputResult({ success: true, issueKey: taskId, labels });
   } catch (error: any) {
     if (error instanceof CommandError) throw error;
 

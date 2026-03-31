@@ -1,7 +1,5 @@
-import chalk from 'chalk';
 import { createIssueLink, validateIssuePermissions } from '../lib/jira-client.js';
 import { CommandError } from '../lib/errors.js';
-import { ui } from '../lib/ui.js';
 import { validateOptions, IssueKeySchema } from '../lib/validation.js';
 import { outputResult } from '../lib/json-mode.js';
 
@@ -13,18 +11,11 @@ export async function createIssueLinkCommand(
   validateOptions(IssueKeySchema, inwardKey);
   validateOptions(IssueKeySchema, outwardKey);
 
-  ui.startSpinner(`Validating permissions for ${inwardKey}...`);
   await validateIssuePermissions(inwardKey, 'issue.link.create');
-
-  ui.startSpinner(`Creating link between ${inwardKey} and ${outwardKey}...`);
 
   try {
     await createIssueLink(inwardKey, outwardKey, linkType.trim());
-    ui.succeedSpinner(chalk.green(`Link created successfully`));
-    outputResult(
-      { success: true, inwardKey, linkType: linkType.trim(), outwardKey },
-      (data) => chalk.gray(`\n${data.inwardKey} --[${data.linkType}]--> ${data.outwardKey}`)
-    );
+    outputResult({ success: true, inwardKey, linkType: linkType.trim(), outwardKey });
   } catch (error: any) {
     if (error instanceof CommandError) throw error;
 

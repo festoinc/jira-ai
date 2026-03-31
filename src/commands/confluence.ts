@@ -1,28 +1,20 @@
-import chalk from 'chalk';
 import * as fs from 'fs';
 import * as path from 'path';
 import { markdownToAdf } from 'marklassian';
-import { 
-  getPage, 
-  getPageComments, 
-  parseConfluenceUrl, 
-  listSpaces, 
-  getSpacePagesHierarchy, 
-  addPageComment, 
-  createPage, 
+import {
+  getPage,
+  getPageComments,
+  parseConfluenceUrl,
+  listSpaces,
+  getSpacePagesHierarchy,
+  addPageComment,
+  createPage,
   updatePageContent,
   searchContent
 } from '../lib/confluence-client.js';
-import { 
-  formatConfluencePage, 
-  formatConfluenceSpaces, 
-  formatConfluencePageHierarchy,
-  formatConfluenceSearchResults
-} from '../lib/formatters.js';
-import { ui } from '../lib/ui.js';
 import { CommandError } from '../lib/errors.js';
 import { isConfluenceSpaceAllowed } from '../lib/settings.js';
-import { outputResult, isJsonMode } from '../lib/json-mode.js';
+import { outputResult } from '../lib/json-mode.js';
 
 export async function confluenceCreatePageCommand(
   space: string, 
@@ -35,22 +27,10 @@ export async function confluenceCreatePageCommand(
     throw new CommandError(`Access to Confluence space '${space}' is restricted by your settings.`);
   }
 
-  ui.startSpinner(`Creating Confluence page '${title}' in space '${space}'...`);
-
   try {
     const result = await createPage(space, title, parentPage, { returnBoth: options.returnBothUrls });
-    ui.succeedSpinner(chalk.green('Confluence page created successfully'));
-    outputResult(
-      typeof result === 'object' ? result : { url: result },
-      (data) => {
-        if ('shortUrl' in data) {
-          return chalk.cyan(`\nFull URL:  ${data.url}\nShort URL: ${(data as any).shortUrl}`);
-        }
-        return chalk.cyan(`\nURL: ${data.url}`);
-      }
-    );
+    outputResult(typeof result === 'object' ? result : { url: result });
   } catch (error: any) {
-    ui.failSpinner();
 
     if (error instanceof CommandError) throw error;
 
@@ -106,17 +86,10 @@ export async function confluenceAddCommentCommand(url: string, options: { fromFi
     });
   }
 
-  ui.startSpinner('Adding comment to Confluence page...');
-
   try {
     await addPageComment(url, adfContent);
-    ui.succeedSpinner(chalk.green('Comment added successfully to Confluence page'));
-    outputResult(
-      { success: true, page: url, file: absolutePath },
-      (data) => chalk.gray(`\nPage: ${data.page}\nFile: ${data.file}`)
-    );
+    outputResult({ success: true, page: url, file: absolutePath });
   } catch (error: any) {
-    ui.failSpinner();
     
     if (error instanceof CommandError) throw error;
 
@@ -145,8 +118,6 @@ export async function confluenceGetPageCommand(url: string, options: { returnBot
     // If URL parsing fails, let the fetch attempt handle it or catch it later
   }
 
-  ui.startSpinner(`Fetching Confluence page details for: ${url}`);
-
   try {
     const [page, comments] = await Promise.all([
       getPage(url, { returnBoth: options.returnBothUrls }),
@@ -158,10 +129,8 @@ export async function confluenceGetPageCommand(url: string, options: { returnBot
       throw new CommandError(`Access to Confluence space '${page.space}' is restricted by your settings.`);
     }
 
-    ui.succeedSpinner(chalk.green('Confluence page details retrieved'));
-    outputResult({ page, comments }, (data) => formatConfluencePage(data.page, data.comments));
+    outputResult({ page, comments });
   } catch (error: any) {
-    ui.failSpinner();
     
     if (error instanceof CommandError) throw error;
 
@@ -182,32 +151,14 @@ export async function confluenceGetPageCommand(url: string, options: { returnBot
 }
 
 export async function confluenceListSpacesCommand(): Promise<void> {
-  ui.startSpinner('Fetching Confluence spaces...');
-
   try {
     const spaces = await listSpaces();
-    
+
     // Filter spaces based on settings
     const allowedSpaces = spaces.filter(space => isConfluenceSpaceAllowed(space.key));
 
-    if (allowedSpaces.length === 0) {
-      ui.failSpinner('No allowed Confluence spaces found.');
-      if (!isJsonMode()) {
-        console.log(chalk.yellow('\nHint: Add allowed spaces to your settings.yaml under "allowed-confluence-spaces".'));
-        console.log(chalk.gray('Example:'));
-        console.log(chalk.gray('  allowed-confluence-spaces:'));
-        console.log(chalk.gray('    - SPACE1'));
-        console.log(chalk.gray('    - SPACE2'));
-      } else {
-        outputResult([]);
-      }
-      return;
-    }
-
-    ui.succeedSpinner(chalk.green('Confluence spaces retrieved'));
-    outputResult(allowedSpaces, formatConfluenceSpaces);
+    outputResult(allowedSpaces);
   } catch (error: any) {
-    ui.failSpinner();
     throw new CommandError(`Failed to fetch Confluence spaces: ${error.message}`);
   }
 }
@@ -218,14 +169,10 @@ export async function confluenceGetSpacePagesHierarchyCommand(spaceKey: string):
     throw new CommandError(`Access to Confluence space '${spaceKey}' is restricted by your settings.`);
   }
 
-  ui.startSpinner(`Fetching page hierarchy for space: ${spaceKey}`);
-
   try {
     const hierarchy = await getSpacePagesHierarchy(spaceKey);
-    ui.succeedSpinner(chalk.green('Confluence page hierarchy retrieved'));
-    outputResult(hierarchy, formatConfluencePageHierarchy);
+    outputResult(hierarchy);
   } catch (error: any) {
-    ui.failSpinner();
     throw new CommandError(`Failed to fetch page hierarchy: ${error.message}`);
   }
 }
@@ -268,17 +215,10 @@ export async function confluenceUpdateDescriptionCommand(url: string, options: {
     });
   }
 
-  ui.startSpinner('Updating Confluence page content...');
-
   try {
     await updatePageContent(url, adfContent);
-    ui.succeedSpinner(chalk.green('Confluence page content updated successfully'));
-    outputResult(
-      { success: true, page: url, file: absolutePath },
-      (data) => chalk.gray(`\nPage: ${data.page}\nFile: ${data.file}`)
-    );
+    outputResult({ success: true, page: url, file: absolutePath });
   } catch (error: any) {
-    ui.failSpinner();
 
     if (error instanceof CommandError) throw error;
 
@@ -298,11 +238,9 @@ export async function confluenceUpdateDescriptionCommand(url: string, options: {
 export async function confluenceSearchCommand(query: string, options: { limit?: number } = {}): Promise<void> {
   const limit = options.limit || 20;
 
-  ui.startSpinner(`Searching Confluence for: "${query}"...`);
-
   try {
     const results = await searchContent(query, limit);
-    
+
     // Filter results based on allowed spaces
     // We prefer filtering by spaceKey, falling back to space name if key is missing
     const filteredResults = results.filter(result => {
@@ -312,10 +250,8 @@ export async function confluenceSearchCommand(query: string, options: { limit?: 
       return isConfluenceSpaceAllowed(result.space);
     });
 
-    ui.succeedSpinner(chalk.green('Confluence search completed'));
-    outputResult(filteredResults, formatConfluenceSearchResults);
+    outputResult(filteredResults);
   } catch (error: any) {
-    ui.failSpinner();
     
     if (error instanceof CommandError) throw error;
 

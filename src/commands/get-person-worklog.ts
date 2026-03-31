@@ -1,10 +1,7 @@
-import chalk from 'chalk';
-import { ui } from '../lib/ui.js';
-import { searchIssuesByJql, getIssueWorklogs, WorklogWithIssue, getJiraClient } from '../lib/jira-client.js';
+import { searchIssuesByJql, getIssueWorklogs, WorklogWithIssue } from '../lib/jira-client.js';
 import { parseTimeframe, formatDateForJql } from '../lib/utils.js';
-import { formatWorklogs } from '../lib/formatters.js';
 import { CommandError } from '../lib/errors.js';
-import { outputResult, isJsonMode } from '../lib/json-mode.js';
+import { outputResult } from '../lib/json-mode.js';
 
 export interface GetPersonWorklogOptions {
   groupByIssue?: boolean;
@@ -15,8 +12,6 @@ export async function getPersonWorklogCommand(
   timeframe: string,
   options: GetPersonWorklogOptions
 ): Promise<void> {
-  ui.startSpinner(`Fetching worklogs for ${person}...`);
-
   try {
     const { startDate, endDate } = parseTimeframe(timeframe);
     const startJql = formatDateForJql(startDate);
@@ -25,16 +20,11 @@ export async function getPersonWorklogCommand(
     // 1. Search for issues where the person has tracked time in the timeframe
     // We use a broader search first to find relevant issues
     const jql = `worklogAuthor = "${person}" AND worklogDate >= "${startJql}" AND worklogDate <= "${endJql}"`;
-    
+
     const issues = await searchIssuesByJql(jql, 100);
-    
+
     if (issues.length === 0) {
-      ui.stopSpinner();
-      if (!isJsonMode()) {
-        console.log(chalk.yellow(`\nNo worklogs found for ${person} between ${startJql} and ${endJql}.\n`));
-      } else {
-        outputResult([]);
-      }
+      outputResult([]);
       return;
     }
 
@@ -59,21 +49,14 @@ export async function getPersonWorklogCommand(
       });
     }
 
-    ui.stopSpinner();
-
     if (allWorklogs.length === 0) {
-      if (!isJsonMode()) {
-        console.log(chalk.yellow(`\nNo worklogs found for ${person} after detailed filtering.\n`));
-      } else {
-        outputResult([]);
-      }
+      outputResult([]);
       return;
     }
 
-    outputResult(allWorklogs, (data) => formatWorklogs(data, options.groupByIssue));
+    outputResult(allWorklogs);
 
   } catch (error: any) {
-    ui.failSpinner(`Failed to fetch worklogs: ${error.message}`);
     throw new CommandError(error.message);
   }
 }

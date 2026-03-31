@@ -1,4 +1,3 @@
-import chalk from 'chalk';
 import {
   getEpics,
   getEpic,
@@ -9,15 +8,8 @@ import {
   unlinkIssueFromEpic,
   getEpicProgress,
 } from '../lib/jira-client.js';
-import {
-  formatEpicList,
-  formatEpicDetails,
-  formatEpicProgress,
-  formatEpicIssues,
-} from '../lib/formatters.js';
 import { CommandError } from '../lib/errors.js';
-import { ui } from '../lib/ui.js';
-import { outputResult, isJsonMode } from '../lib/json-mode.js';
+import { outputResult } from '../lib/json-mode.js';
 
 // =============================================================================
 // epic list <project-key> [--done] [--max <n>]
@@ -26,16 +18,13 @@ export async function epicListCommand(
   projectKey: string,
   options: { done?: boolean; max?: number } = {}
 ): Promise<void> {
-  ui.startSpinner(`Fetching epics for project ${projectKey}...`);
   try {
     const epics = await getEpics(projectKey, {
       includeDone: !!options.done,
       max: options.max,
     });
-    ui.stopSpinner();
-    outputResult(epics, formatEpicList);
+    outputResult(epics);
   } catch (error: any) {
-    ui.failSpinner();
     const hints: string[] = [];
     const msg = error.message?.toLowerCase() || '';
     if (msg.includes('404') || msg.includes('not found') || msg.includes('project')) {
@@ -52,13 +41,10 @@ export async function epicListCommand(
 // epic get <epic-key>
 // =============================================================================
 export async function epicGetCommand(epicKey: string): Promise<void> {
-  ui.startSpinner(`Fetching epic ${epicKey}...`);
   try {
     const epic = await getEpic(epicKey);
-    ui.stopSpinner();
-    outputResult(epic, formatEpicDetails);
+    outputResult(epic);
   } catch (error: any) {
-    ui.failSpinner();
     const hints: string[] = [];
     const msg = error.message?.toLowerCase() || '';
     if (msg.includes('404') || msg.includes('not found')) {
@@ -78,7 +64,6 @@ export async function epicCreateCommand(
   projectKey: string,
   options: { name: string; summary: string; description?: string; labels?: string }
 ): Promise<void> {
-  ui.startSpinner(`Creating epic in project ${projectKey}...`);
   try {
     const labels = options.labels
       ? options.labels.split(',').map(l => l.trim()).filter(Boolean)
@@ -89,19 +74,8 @@ export async function epicCreateCommand(
       labels,
     });
 
-    ui.succeedSpinner(chalk.green(`Epic created successfully: ${result.key}`));
-    outputResult(
-      { key: result.key, name: options.name, summary: options.summary, project: projectKey },
-      (data) => {
-        let out = chalk.gray(`\nName: ${data.name}`);
-        out += `\n${chalk.gray(`Summary: ${data.summary}`)}`;
-        out += `\n${chalk.gray(`Project: ${data.project}`)}`;
-        out += `\n${chalk.cyan(`\nEpic Key: ${data.key}`)}`;
-        return out;
-      }
-    );
+    outputResult({ key: result.key, name: options.name, summary: options.summary, project: projectKey });
   } catch (error: any) {
-    ui.failSpinner();
     const hints: string[] = [];
     const msg = error.message?.toLowerCase() || '';
     if (msg.includes('403')) {
@@ -124,21 +98,10 @@ export async function epicUpdateCommand(
   epicKey: string,
   options: { name?: string; summary?: string }
 ): Promise<void> {
-  ui.startSpinner(`Updating epic ${epicKey}...`);
   try {
     await updateEpic(epicKey, { name: options.name, summary: options.summary });
-    ui.succeedSpinner(chalk.green(`Epic ${epicKey} updated successfully.`));
-    outputResult(
-      { success: true, epicKey, name: options.name, summary: options.summary },
-      (data) => {
-        const lines: string[] = [];
-        if (data.name) lines.push(chalk.gray(`Name: ${data.name}`));
-        if (data.summary) lines.push(chalk.gray(`Summary: ${data.summary}`));
-        return lines.join('\n');
-      }
-    );
+    outputResult({ success: true, epicKey, name: options.name, summary: options.summary });
   } catch (error: any) {
-    ui.failSpinner();
     const hints: string[] = [];
     const msg = error.message?.toLowerCase() || '';
     if (msg.includes('404') || msg.includes('not found')) {
@@ -157,13 +120,10 @@ export async function epicIssuesCommand(
   epicKey: string,
   options: { max?: number }
 ): Promise<void> {
-  ui.startSpinner(`Fetching issues for epic ${epicKey}...`);
   try {
     const issues = await getEpicIssues(epicKey, { max: options.max });
-    ui.stopSpinner();
-    outputResult(issues, formatEpicIssues);
+    outputResult(issues);
   } catch (error: any) {
-    ui.failSpinner();
     const hints: string[] = [];
     const msg = error.message?.toLowerCase() || '';
     if (msg.includes('404') || msg.includes('not found')) {
@@ -180,12 +140,10 @@ export async function epicIssuesCommand(
 // epic link <issue-key> --epic <epic-key>
 // =============================================================================
 export async function epicLinkCommand(issueKey: string, epicKey: string): Promise<void> {
-  ui.startSpinner(`Linking ${issueKey} to epic ${epicKey}...`);
   try {
     await linkIssueToEpic(issueKey, epicKey);
-    ui.succeedSpinner(chalk.green(`Issue ${issueKey} linked to epic ${epicKey}.`));
+    console.log(`Issue ${issueKey} linked to epic ${epicKey}.`);
   } catch (error: any) {
-    ui.failSpinner();
     const hints: string[] = [];
     const msg = error.message?.toLowerCase() || '';
     if (msg.includes('404') || msg.includes('not found')) {
@@ -203,12 +161,10 @@ export async function epicLinkCommand(issueKey: string, epicKey: string): Promis
 // epic unlink <issue-key>
 // =============================================================================
 export async function epicUnlinkCommand(issueKey: string): Promise<void> {
-  ui.startSpinner(`Removing ${issueKey} from its epic...`);
   try {
     await unlinkIssueFromEpic(issueKey);
-    ui.succeedSpinner(chalk.green(`Issue ${issueKey} removed from epic.`));
+    console.log(`Issue ${issueKey} removed from epic.`);
   } catch (error: any) {
-    ui.failSpinner();
     const hints: string[] = [];
     const msg = error.message?.toLowerCase() || '';
     if (msg.includes('404') || msg.includes('not found')) {
@@ -224,13 +180,10 @@ export async function epicUnlinkCommand(issueKey: string): Promise<void> {
 // epic progress <epic-key>
 // =============================================================================
 export async function epicProgressCommand(epicKey: string): Promise<void> {
-  ui.startSpinner(`Calculating progress for epic ${epicKey}...`);
   try {
     const progress = await getEpicProgress(epicKey);
-    ui.stopSpinner();
-    outputResult(progress, formatEpicProgress);
+    outputResult(progress);
   } catch (error: any) {
-    ui.failSpinner();
     const hints: string[] = [];
     const msg = error.message?.toLowerCase() || '';
     if (msg.includes('404') || msg.includes('not found')) {

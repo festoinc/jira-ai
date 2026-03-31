@@ -49,8 +49,6 @@
   },
   "dependencies": {
     "adf-to-markdown": "^1.0.1",
-    "chalk": "^5.6.2",
-    "cli-table3": "^0.6.5",
     "commander": "^11.0.0",
     "confluence.js": "^2.1.0",
     "dotenv": "^17.2.3",
@@ -59,7 +57,6 @@
     "jira.js": "^5.2.2",
     "js-yaml": "^4.1.1",
     "marklassian": "^1.0.0",
-    "ora": "^6.3.1",
     "zod": "^4.3.5"
   },
   "devDependencies": {

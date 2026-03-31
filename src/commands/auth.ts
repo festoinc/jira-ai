@@ -1,12 +1,10 @@
 import readline from 'readline';
-import chalk from 'chalk';
 import fs from 'fs';
 import dotenv from 'dotenv';
 import { createTemporaryClient } from '../lib/jira-client.js';
 import { saveCredentials, clearCredentials } from '../lib/auth-storage.js';
 import { CommandError } from '../lib/errors.js';
-import { ui } from '../lib/ui.js';
-import { outputResult, isJsonMode } from '../lib/json-mode.js';
+import { outputResult } from '../lib/json-mode.js';
 
 interface AuthOptions {
   fromJson?: string;
@@ -39,10 +37,7 @@ async function discoverCloudId(host: string): Promise<string> {
 
 export async function logoutCommand(): Promise<void> {
   clearCredentials();
-  outputResult(
-    { success: true, message: 'Successfully logged out. Authentication credentials cleared.' },
-    (data) => chalk.green(data.message)
-  );
+  outputResult({ success: true, message: 'Successfully logged out. Authentication credentials cleared.' });
 }
 
 export async function authCommand(options: AuthOptions = {}): Promise<void> {
@@ -118,10 +113,6 @@ export async function authCommand(options: AuthOptions = {}): Promise<void> {
   }
 
   if (!host || !email || !apiToken) {
-    if (!isJsonMode()) {
-      console.log(chalk.cyan('\n--- Jira Authentication Setup ---\n'));
-    }
-
     try {
       host = await ask('Jira URL (e.g., https://your-domain.atlassian.net): ');
       if (!host) {
@@ -133,7 +124,7 @@ export async function authCommand(options: AuthOptions = {}): Promise<void> {
         throw new CommandError('Email is required.');
       }
 
-      console.log(chalk.gray('Get your API token from: https://id.atlassian.com/manage-profile/security/api-tokens'));
+      console.log('Get your API token from: https://id.atlassian.com/manage-profile/security/api-tokens');
       apiToken = await ask('API Token: ');
       if (!apiToken) {
         throw new CommandError('API Token is required.');
@@ -148,36 +139,20 @@ export async function authCommand(options: AuthOptions = {}): Promise<void> {
 
   // Auto-discover Cloud ID for service accounts if not provided
   if (authType === 'service_account' && !cloudId) {
-    ui.startSpinner('Discovering Cloud ID...');
     try {
       cloudId = await discoverCloudId(host);
-      ui.succeedSpinner(chalk.green(`Discovered Cloud ID: ${cloudId}`));
+      console.log(`Discovered Cloud ID: ${cloudId}`);
     } catch (error: any) {
-      ui.failSpinner('Failed to discover Cloud ID');
       throw error;
     }
   }
-
-  ui.startSpinner('Verifying credentials...');
 
   try {
     const tempClient = createTemporaryClient(host, email, apiToken, { authType, cloudId });
     const user = await tempClient.myself.getCurrentUser();
 
-    ui.succeedSpinner(chalk.green('Authentication successful!'));
     saveCredentials({ host, email, apiToken, authType, cloudId });
-    outputResult(
-      { success: true, displayName: user.displayName, email: user.emailAddress, authType },
-      (data) => {
-        let out = chalk.blue(`\nWelcome, ${data.displayName} (${data.email})`);
-        if (data.authType === 'service_account') {
-          out += `\n${chalk.gray('Auth type: service_account (via api.atlassian.com gateway)')}`;
-        }
-        out += `\n${chalk.green('\nCredentials saved successfully to ~/.jira-ai/config.json')}`;
-        out += `\n${chalk.gray('These credentials will be used for future commands on this machine.')}`;
-        return out;
-      }
-    );
+    outputResult({ success: true, displayName: user.displayName, email: user.emailAddress, authType });
   } catch (error: any) {
     const hints: string[] = [];
     if (error.response && error.response.status === 401) {
