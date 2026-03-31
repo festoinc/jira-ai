@@ -27,8 +27,8 @@ from conftest import (
     run_cli,
 )
 
-JIRA_URL = os.environ.get("JIRA_URL", "https://festoinc.atlassian.net")
-JIRA_EMAIL = os.environ.get("JIRA_EMAIL", "anatolii.fesiuk@gmail.com")
+JIRA_URL = os.environ.get("JIRA_URL")
+JIRA_EMAIL = os.environ.get("JIRA_EMAIL")
 JIRA_TOKEN = os.environ.get("JIRA_API_TOKEN", "")
 
 CREDENTIALS = f"{JIRA_EMAIL}:{JIRA_TOKEN}"
