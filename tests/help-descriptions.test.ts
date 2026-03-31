@@ -4,7 +4,7 @@ import { program } from '../src/cli.js';
 describe('CLI Help Descriptions', () => {
   it('should have updated description for auth command', () => {
     const cmd = program.commands.find(c => c.name() === 'auth');
-    expect(cmd?.description()).toBe('Set up Jira authentication credentials. Supports interactive input, raw JSON string via --from-json, or .env file via --from-file.');
+    expect(cmd?.description()).toBe('Set up Jira authentication credentials via --from-json or --from-file.');
   });
 
   it('should have updated description for user me command', () => {

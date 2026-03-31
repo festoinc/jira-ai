@@ -262,7 +262,7 @@ describe('JIR-81 [RED] about command outputs pure JSON at runtime', () => {
 // ---------------------------------------------------------------------------
 // 8. --json-compact flag: single-line JSON output (existing behavior preserved)
 // ---------------------------------------------------------------------------
-describe('JIR-81 --json-compact flag produces single-line JSON', () => {
+describe('JIR-81 --compact flag produces single-line JSON', () => {
   let consoleLogSpy: ReturnType<typeof vi.spyOn>;
   let originalArgv: string[];
 
@@ -276,8 +276,8 @@ describe('JIR-81 --json-compact flag produces single-line JSON', () => {
     vi.restoreAllMocks();
   });
 
-  it('should produce single-line JSON with --json-compact flag', () => {
-    process.argv = ['node', 'jira-ai', 'issue', 'get', 'TEST-1', '--json-compact'];
+  it('should produce single-line JSON with --compact flag', () => {
+    process.argv = ['node', 'jira-ai', 'issue', 'get', 'TEST-1', '--compact'];
     initJsonMode();
 
     const data = { key: 'TEST-1', summary: 'Test issue', status: 'To Do' };

@@ -1,7 +1,7 @@
 let _compactMode = false;
 
 export function initJsonMode(): void {
-  _compactMode = process.argv.includes('--json-compact') || process.argv.includes('--compact');
+  _compactMode = process.argv.includes('--compact');
 }
 
 export function isJsonMode(): boolean {

@@ -170,9 +170,9 @@ describe('JSON output integration tests', () => {
     });
   });
 
-  describe('--json-compact flag', () => {
+  describe('--compact flag', () => {
     it('should produce single-line JSON output for project list', async () => {
-      process.argv = ['node', 'jira-ai', 'project', 'list', '--json-compact'];
+      process.argv = ['node', 'jira-ai', 'project', 'list', '--compact'];
       initJsonMode();
 
       const { projectsCommand } = await import('../src/commands/projects.js');
@@ -185,7 +185,7 @@ describe('JSON output integration tests', () => {
     });
 
     it('should produce single-line JSON output for me command', async () => {
-      process.argv = ['node', 'jira-ai', 'me', '--json-compact'];
+      process.argv = ['node', 'jira-ai', 'me', '--compact'];
       initJsonMode();
 
       const { meCommand } = await import('../src/commands/me.js');

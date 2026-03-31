@@ -32,8 +32,8 @@ describe('json-mode module', () => {
       expect(isJsonMode()).toBe(true);
     });
 
-    it('should set compact mode when --json-compact is in process.argv', () => {
-      process.argv = ['node', 'jira-ai', 'project', 'list', '--json-compact'];
+    it('should set compact mode when --compact is in process.argv', () => {
+      process.argv = ['node', 'jira-ai', 'project', 'list', '--compact'];
       initJsonMode();
       expect(isJsonMode()).toBe(true);
       expect(isCompactMode()).toBe(true);
@@ -75,8 +75,8 @@ describe('json-mode module', () => {
       expect(isCompactMode()).toBe(false);
     });
 
-    it('should return true only when --json-compact flag is present', () => {
-      process.argv = ['node', 'jira-ai', 'project', 'list', '--json-compact'];
+    it('should return true when --compact flag is present', () => {
+      process.argv = ['node', 'jira-ai', 'project', 'list', '--compact'];
       initJsonMode();
       expect(isCompactMode()).toBe(true);
     });
@@ -115,7 +115,7 @@ describe('json-mode module', () => {
     });
 
     it('should produce single-line JSON in compact mode', () => {
-      process.argv = ['node', 'jira-ai', 'me', '--json-compact'];
+      process.argv = ['node', 'jira-ai', 'me', '--compact'];
       initJsonMode();
 
       const data = { accountId: 'abc', displayName: 'Alice' };

@@ -109,8 +109,6 @@ program
   .name('jira-ai')
   .description('CLI tool for interacting with Atlassian Jira')
   .version(getVersion())
-  .option('--json', 'Output as JSON')
-  .option('--json-compact', 'Output as compact JSON')
   .option('--compact', 'Output as compact JSON')
   .addHelpText('after', () => {
     const latestVersion = checkForUpdateSync();
@@ -169,7 +167,7 @@ function withPermission(
 // Auth command (always allowed, skips validation)
 program
   .command('auth')
-  .description('Set up Jira authentication credentials. Supports interactive input, raw JSON string via --from-json, or .env file via --from-file.')
+  .description('Set up Jira authentication credentials via --from-json or --from-file.')
   .option('--from-json <json_string>', 'Accepts a raw JSON string with credentials')
   .option('--from-file <path>', 'Accepts a path to a file (typically .env) with credentials')
   .option('--logout', 'Logout from Jira')
