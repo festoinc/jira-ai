@@ -7,14 +7,6 @@ import fs from 'fs';
 
 vi.mock('../src/lib/jira-client.js');
 vi.mock('../src/lib/auth-storage.js');
-vi.mock('readline', () => ({
-  default: {
-    createInterface: vi.fn().mockReturnValue({
-      question: vi.fn(),
-      close: vi.fn(),
-    }),
-  }
-}));
 
 describe('authCommand non-interactive', () => {
   let consoleSpy: vi.SpyInstance;

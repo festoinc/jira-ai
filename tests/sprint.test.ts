@@ -86,9 +86,9 @@ describe('Sprint Commands', () => {
 
       await sprintListCommand(36);
 
-      expect(console.log).toHaveBeenCalledWith(
-        expect.stringContaining('No sprints found')
-      );
+      const output = (console.log as vi.Mock).mock.calls[0]?.[0];
+      const parsed = JSON.parse(output);
+      expect(parsed).toEqual({ sprints: [], total: 0 });
     });
 
     it('should show error when board does not support sprints', async () => {

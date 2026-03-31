@@ -23,10 +23,9 @@ export async function settingsCommand(options: SettingsOptions): Promise<void> {
   if (options.reset) {
     try {
       saveSettings(DEFAULT_SETTINGS);
-      console.log('Settings reset to default successfully!');
+      outputResult({ success: true, message: 'Settings reset to default successfully!' });
     } catch (error) {
-      console.error(`Error resetting settings: ${error instanceof Error ? error.message : String(error)}`);
-      throw error;
+      throw new CommandError(`Error resetting settings: ${error instanceof Error ? error.message : String(error)}`);
     }
     return;
   }
@@ -41,7 +40,6 @@ export async function settingsCommand(options: SettingsOptions): Promise<void> {
     return;
   }
 
-  // Default: Show current settings
   const settings = loadSettings();
   outputResult(settings);
 }
@@ -59,7 +57,6 @@ async function validateSettingsFile(filePath: string): Promise<Settings> {
     throw new CommandError(`Error parsing YAML in ${filePath}`);
   }
 
-  // Schema Validation
   const result = SettingsSchema.safeParse(rawSettings);
   if (!result.success) {
     const messages = result.error.issues
@@ -70,7 +67,6 @@ async function validateSettingsFile(filePath: string): Promise<Settings> {
 
   const settings = migrateSettings(result.data);
 
-  // Deep Validation
   try {
     validateEnvVars();
     const projects = await getProjects();
@@ -94,7 +90,7 @@ async function validateSettingsFile(filePath: string): Promise<Settings> {
       validateOrg(settings.defaults, 'defaults');
     }
 
-    console.log('Settings are valid!');
+    outputResult({ success: true, message: 'Settings are valid!' });
     return settings;
   } catch (error) {
     if (error instanceof CommandError) throw error;
@@ -107,9 +103,8 @@ async function applySettings(filePath: string): Promise<void> {
 
   try {
     saveSettings(settings);
-    console.log('Settings applied successfully!');
+    outputResult({ success: true, message: 'Settings applied successfully!' });
   } catch (error) {
-    console.error(`Error applying settings: ${error instanceof Error ? error.message : String(error)}`);
     throw error;
   }
 }

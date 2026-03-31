@@ -1,6 +1,6 @@
 # Jira AI CLI - AI Agent Skill
 
-An AI-friendly CLI for Jira designed for maximum efficiency and security.
+An AI-friendly CLI for Jira designed for maximum efficiency and security. All output is structured JSON — no human-readable formatting, no interactive prompts.
 
 ## Why Use Jira AI CLI?
 - **Efficiency:** Consumes significantly fewer tokens than Jira MCP or similar tools by eliminating redundant context data.
@@ -8,16 +8,17 @@ An AI-friendly CLI for Jira designed for maximum efficiency and security.
 
 ## Installation & Setup
 
-### General Installation
 ```bash
 npm install -g jira-ai
 ```
 
 ### Authentication
-Run interactive authorization:
+Provide credentials via JSON string or `.env` file (no interactive prompts):
+
 ```bash
-jira-ai auth
+jira-ai auth --from-json '{"url":"https://your-domain.atlassian.net","email":"you@example.com","apikey":"your-api-token"}'
 ```
+
 Or use a `.env` file for service accounts:
 ```bash
 jira-ai auth --from-file path/to/.env
@@ -30,12 +31,22 @@ jira-ai settings --help
 
 ## JSON Output
 
-All commands support `--json` and `--json-compact` global flags for structured output:
+All commands always output structured JSON. Use global flags to control formatting:
 
-- `jira-ai --json <command>` — pretty-printed JSON
-- `jira-ai --json-compact <command>` — single-line JSON (best for token efficiency)
+- Default: pretty-printed JSON (2-space indentation)
+- `--compact`: single-line JSON for maximum token efficiency
 
-Errors in JSON mode return `{ "error": true, "message": "...", "hints": [...], "exitCode": 1 }` to stdout.
+```bash
+jira-ai issue get PROJ-123
+jira-ai --compact issue get PROJ-123
+jira-ai project list
+jira-ai issue search "project = PROJ AND status = Open"
+```
+
+Errors are returned as structured JSON to stdout:
+```json
+{ "error": true, "message": "Issue not found", "hints": ["Check the issue key"], "exitCode": 1 }
+```
 
 ## Command Overview
 

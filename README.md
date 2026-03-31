@@ -11,14 +11,9 @@ An AI-friendly CLI for Jira that prioritizes efficiency and security.
 2.  **Bullet-proof Security:** Restrict AI to only the actions you permit, ensuring your environment remains secure. 
 
 ## Start
-- **Human:** [Quick walk through video](https://www.loom.com/share/defb69de020e413aa8c33eda0671c29f)
 - **AI Agent:** [Project overview and commands](https://raw.githubusercontent.com/festoinc/jira-ai/main/SKILL.md)
 
 ## Installation
-
-If you **know how to install npm** then after installation run [this instuction.](https://raw.githubusercontent.com/festoinc/jira-ai/refs/heads/main/advanced-installation.md) in your CLI agent.
-
-If you **don't know what npm** is but want to use Jira **"the haker way"** [this instruction is for you.](https://raw.githubusercontent.com/festoinc/jira-ai/refs/heads/main/starter-installation.md) copy it and run in any AI agent like chat GPT, Gemini e.t.c.
 
 ```bash
 npm install -g jira-ai
@@ -53,9 +48,9 @@ Will be avalible as slash command
 
 ## Quick Start
 
-Run interactive authorization:
+Authenticate with credentials (non-interactive — JSON or .env file only):
 ```bash
-jira-ai auth
+jira-ai auth --from-json '{"url":"https://your-domain.atlassian.net","email":"you@example.com","apikey":"your-api-token"}'
 ```
 
 See all available commands:
@@ -63,34 +58,23 @@ See all available commands:
 jira-ai --help
 ```
 
-## JSON Output Mode
+## JSON Output
 
-All commands support structured JSON output via global flags. This is designed for AI agents and scripting integrations where parsed data is more useful than formatted tables.
+All commands always output structured JSON. Use global flags to control formatting:
 
-### `--json`
+- Default: pretty-printed JSON (2-space indentation)
+- `--compact`: single-line JSON for maximum token efficiency
 
-Outputs pretty-printed JSON (2-space indentation):
 ```bash
-jira-ai --json issue get PROJ-123
-jira-ai --json project list
-jira-ai --json issue search "project = PROJ AND status = Open"
+jira-ai issue get PROJ-123
+jira-ai --compact project list
+jira-ai --compact issue search "project = PROJ AND status = Open"
 ```
-
-### `--json-compact`
-
-Outputs single-line JSON for maximum token efficiency — ideal for AI agent workflows:
-```bash
-jira-ai --json-compact issue get PROJ-123
-```
-
-### Error handling in JSON mode
 
 Errors are returned as structured JSON to stdout:
 ```json
 { "error": true, "message": "Issue not found", "hints": ["Check the issue key"], "exitCode": 1 }
 ```
-
-Default table output is unchanged when neither flag is used.
 
 ### Rich Issue Management
 
@@ -151,7 +135,7 @@ jira-ai issue transitions PROJ-123 --required-only
 
 Get structured output for scripting:
 ```bash
-jira-ai --json issue transitions PROJ-123
+jira-ai issue transitions PROJ-123
 ```
 
 When a transition fails due to missing required fields, the error message lists what is needed and suggests running `issue transitions <key>` to discover them.
@@ -186,13 +170,13 @@ JIRA_CLOUD_ID=your-cloud-id
 ### Using CLI flags
 
 ```bash
-jira-ai auth --service-account
+jira-ai auth --service-account --from-json '{"url":"...","email":"...","apikey":"..."}'
 ```
 
 Or with an explicit Cloud ID:
 
 ```bash
-jira-ai auth --service-account --cloud-id your-cloud-id
+jira-ai auth --service-account --cloud-id your-cloud-id --from-json '{"url":"...","email":"...","apikey":"..."}'
 ```
 
 ### How it works

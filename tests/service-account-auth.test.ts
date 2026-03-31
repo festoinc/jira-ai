@@ -3,33 +3,18 @@ import { authCommand } from '../src/commands/auth.js';
 import * as jiraClient from '../src/lib/jira-client.js';
 import * as authStorage from '../src/lib/auth-storage.js';
 import { CommandError } from '../src/lib/errors.js';
-import * as ui from '../src/lib/ui.js';
-import readline from 'readline';
 import fs from 'fs';
 
 vi.mock('../src/lib/jira-client.js');
 vi.mock('../src/lib/auth-storage.js');
-vi.mock('../src/lib/ui.js');
-vi.mock('readline');
 vi.mock('fs');
 
 describe('Service Account Authentication', () => {
   let consoleLogSpy: any;
-  let rlMock: any;
 
   beforeEach(() => {
     vi.clearAllMocks();
     consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-
-    rlMock = {
-      question: vi.fn(),
-      close: vi.fn(),
-    };
-    vi.mocked(readline.createInterface).mockReturnValue(rlMock);
-
-    vi.mocked(ui.ui.startSpinner).mockImplementation(() => {});
-    vi.mocked(ui.ui.succeedSpinner).mockImplementation(() => {});
-    vi.mocked(ui.ui.failSpinner).mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -98,7 +83,6 @@ describe('Service Account Authentication', () => {
       apikey: 'service-token'
     });
 
-    // Mock fetch for cloud ID discovery
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
       json: () => Promise.resolve({ cloudId: 'discovered-cloud-id' })

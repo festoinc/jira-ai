@@ -1,7 +1,6 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { authCommand, logoutCommand } from '../src/commands/auth.js';
 import * as authStorage from '../src/lib/auth-storage.js';
-import chalk from 'chalk';
 
 vi.mock('../src/lib/auth-storage.js');
 vi.mock('../src/lib/ui.js');

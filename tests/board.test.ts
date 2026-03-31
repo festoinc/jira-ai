@@ -74,9 +74,9 @@ describe('Board Commands', () => {
 
       await boardListCommand();
 
-      expect(console.log).toHaveBeenCalledWith(
-        expect.stringContaining('No boards found')
-      );
+      const output = (console.log as vi.Mock).mock.calls[0]?.[0];
+      const parsed = JSON.parse(output);
+      expect(parsed).toEqual({ boards: [], total: 0 });
     });
 
     it('should deny execution when board.list permission is not granted', async () => {

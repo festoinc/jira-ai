@@ -3,91 +3,39 @@ import { authCommand } from '../src/commands/auth.js';
 import * as jiraClient from '../src/lib/jira-client.js';
 import * as authStorage from '../src/lib/auth-storage.js';
 import { CommandError } from '../src/lib/errors.js';
-import * as ui from '../src/lib/ui.js';
-import readline from 'readline';
 import fs from 'fs';
-import chalk from 'chalk';
 
 vi.mock('../src/lib/jira-client.js');
 vi.mock('../src/lib/auth-storage.js');
-vi.mock('../src/lib/ui.js');
-vi.mock('readline');
 vi.mock('fs');
 
-describe('authCommand interactive', () => {
+describe('authCommand non-interactive error', () => {
   let consoleLogSpy: any;
-  let rlMock: any;
 
   beforeEach(() => {
     vi.clearAllMocks();
     consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-    
-    rlMock = {
-      question: vi.fn(),
-      close: vi.fn(),
-    };
-    vi.mocked(readline.createInterface).mockReturnValue(rlMock);
-    
-    vi.mocked(ui.ui.startSpinner).mockImplementation(() => {});
-    vi.mocked(ui.ui.succeedSpinner).mockImplementation(() => {});
-    vi.mocked(ui.ui.failSpinner).mockImplementation(() => {});
   });
 
   afterEach(() => {
     consoleLogSpy.mockRestore();
   });
 
-  it('should successfully authenticate interactively', async () => {
-    rlMock.question
-      .mockImplementationOnce((q: string, cb: any) => cb('https://test.atlassian.net'))
-      .mockImplementationOnce((q: string, cb: any) => cb('test@example.com'))
-      .mockImplementationOnce((q: string, cb: any) => cb('test-token'));
-
-    const mockUser = { displayName: 'Test User', emailAddress: 'test@example.com' };
-    const mockClient = {
-      myself: {
-        getCurrentUser: vi.fn().mockResolvedValue(mockUser)
-      }
-    };
-    vi.mocked(jiraClient.createTemporaryClient).mockReturnValue(mockClient as any);
-
-    await authCommand({});
-
-    expect(rlMock.question).toHaveBeenCalledTimes(3);
-    expect(jiraClient.createTemporaryClient).toHaveBeenCalledWith(
-      'https://test.atlassian.net',
-      'test@example.com',
-      'test-token',
-      { authType: 'basic', cloudId: undefined }
-    );
-    expect(authStorage.saveCredentials).toHaveBeenCalled();
-    expect(rlMock.close).toHaveBeenCalled();
+  it('should throw CommandError when called with no flags', async () => {
+    await expect(authCommand({})).rejects.toThrow('Authentication credentials are required.');
+    await expect(authCommand({})).rejects.toBeInstanceOf(CommandError);
   });
 
-  it('should throw error if URL is missing in interactive mode', async () => {
-    rlMock.question.mockImplementationOnce((q: string, cb: any) => cb(''));
-
-    await expect(authCommand({})).rejects.toThrow('URL is required.');
-    expect(rlMock.close).toHaveBeenCalled();
-  });
-
-  it('should throw error if Email is missing in interactive mode', async () => {
-    rlMock.question
-      .mockImplementationOnce((q: string, cb: any) => cb('https://test.atlassian.net'))
-      .mockImplementationOnce((q: string, cb: any) => cb(''));
-
-    await expect(authCommand({})).rejects.toThrow('Email is required.');
-    expect(rlMock.close).toHaveBeenCalled();
-  });
-
-  it('should throw error if API Token is missing in interactive mode', async () => {
-    rlMock.question
-      .mockImplementationOnce((q: string, cb: any) => cb('https://test.atlassian.net'))
-      .mockImplementationOnce((q: string, cb: any) => cb('test@example.com'))
-      .mockImplementationOnce((q: string, cb: any) => cb(''));
-
-    await expect(authCommand({})).rejects.toThrow('API Token is required.');
-    expect(rlMock.close).toHaveBeenCalled();
+  it('should include hints when no credentials provided', async () => {
+    try {
+      await authCommand({});
+    } catch (e: any) {
+      expect(e).toBeInstanceOf(CommandError);
+      expect(e.hints).toEqual(expect.arrayContaining([
+        expect.stringContaining('--from-json'),
+        expect.stringContaining('--from-file'),
+      ]));
+    }
   });
 
   it('should handle 401 error with hint', async () => {

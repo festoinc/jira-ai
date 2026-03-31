@@ -1,4 +1,3 @@
-import readline from 'readline';
 import fs from 'fs';
 import dotenv from 'dotenv';
 import { createTemporaryClient } from '../lib/jira-client.js';
@@ -14,9 +13,6 @@ interface AuthOptions {
   cloudId?: string;
 }
 
-/**
- * Auto-discover the Atlassian Cloud ID for a given site hostname.
- */
 async function discoverCloudId(host: string): Promise<string> {
   const hostname = host.replace(/^https?:\/\//, '').replace(/\/+$/, '');
   const url = `https://${hostname}/_edge/tenant_info`;
@@ -43,19 +39,6 @@ export async function logoutCommand(): Promise<void> {
 export async function authCommand(options: AuthOptions = {}): Promise<void> {
   if (options.logout) {
     return logoutCommand();
-  }
-
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
-
-  function ask(question: string): Promise<string> {
-    return new Promise((resolve) => {
-      rl.question(question, (answer) => {
-        resolve(answer.trim());
-      });
-    });
   }
 
   let host: string = '';
@@ -93,7 +76,6 @@ export async function authCommand(options: AuthOptions = {}): Promise<void> {
       email = config.JIRA_USER_EMAIL;
       apiToken = config.JIRA_API_TOKEN;
 
-      // Support JIRA_AUTH_TYPE and JIRA_CLOUD_ID from .env
       if (config.JIRA_AUTH_TYPE === 'service_account') {
         authType = 'service_account';
       }
@@ -113,35 +95,18 @@ export async function authCommand(options: AuthOptions = {}): Promise<void> {
   }
 
   if (!host || !email || !apiToken) {
-    try {
-      host = await ask('Jira URL (e.g., https://your-domain.atlassian.net): ');
-      if (!host) {
-        throw new CommandError('URL is required.');
-      }
-
-      email = await ask('Email: ');
-      if (!email) {
-        throw new CommandError('Email is required.');
-      }
-
-      console.log('Get your API token from: https://id.atlassian.com/manage-profile/security/api-tokens');
-      apiToken = await ask('API Token: ');
-      if (!apiToken) {
-        throw new CommandError('API Token is required.');
-      }
-    } finally {
-      rl.close();
-    }
-  } else {
-    // Non-interactive mode, just close readline
-    rl.close();
+    throw new CommandError('Authentication credentials are required.', {
+      hints: [
+        'Use --from-json \'{"url":"...","email":"...","apikey":"..."}\' to provide credentials.',
+        'Use --from-file path/to/.env to read credentials from a file.',
+        'Required fields: url/host, email, apikey/apiToken.',
+      ],
+    });
   }
 
-  // Auto-discover Cloud ID for service accounts if not provided
   if (authType === 'service_account' && !cloudId) {
     try {
       cloudId = await discoverCloudId(host);
-      console.log(`Discovered Cloud ID: ${cloudId}`);
     } catch (error: any) {
       throw error;
     }

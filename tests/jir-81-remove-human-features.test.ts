@@ -110,6 +110,10 @@ describe('JIR-81 [RED] Human-facing dependencies removed from package.json', () 
   it('should not have ora in dependencies', () => {
     expect(allDeps).not.toContain('ora');
   });
+
+  it('should not have inquirer in dependencies', () => {
+    expect(allDeps).not.toContain('inquirer');
+  });
 });
 
 // ---------------------------------------------------------------------------

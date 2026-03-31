@@ -11,8 +11,8 @@ import {
 } from '../lib/agile-client.js';
 import { requirePermission } from '../lib/permissions.js';
 import { CommandError } from '../lib/errors.js';
+import { outputResult } from '../lib/json-mode.js';
 
-// sprint list <board-id> [--state <state>]
 export async function sprintListCommand(boardId: number, options?: { state?: string }): Promise<void> {
   requirePermission('sprint.list');
   const params: { state?: string } = {};
@@ -21,37 +21,22 @@ export async function sprintListCommand(boardId: number, options?: { state?: str
   const result = await getSprints(boardId, params);
 
   if (!result.values || result.values.length === 0) {
-    console.log('No sprints found for this board.');
+    outputResult({ sprints: [], total: 0 });
     return;
   }
 
-  console.log(`\nSprints (${result.values.length} total)\n`);
-  result.values.forEach(sprint => {
-    const dates = sprint.startDate ? ` ${sprint.startDate} -> ${sprint.endDate || '?'}` : '';
-    console.log(`  ${String(sprint.id)}  ${sprint.name}  [${sprint.state}]${dates}`);
-  });
-  console.log();
+  outputResult({ sprints: result.values, total: result.values.length });
 }
 
-// sprint get <sprint-id>
 export async function sprintGetCommand(sprintId: number): Promise<void> {
   requirePermission('sprint.get');
   if (sprintId == null) {
     throw new CommandError('Sprint ID is required.', { hints: ['Provide a numeric sprint ID'] });
   }
   const sprint = await getSprint(sprintId);
-
-  console.log(`\nSprint: ${sprint.name}\n`);
-  console.log(`  ID:     ${String(sprint.id)}`);
-  console.log(`  State:  ${sprint.state}`);
-  if (sprint.startDate) console.log(`  Start:  ${sprint.startDate}`);
-  if (sprint.endDate) console.log(`  End:    ${sprint.endDate}`);
-  if (sprint.goal) console.log(`  Goal:   ${sprint.goal}`);
-  if (sprint.originBoardId) console.log(`  Board:  ${sprint.originBoardId}`);
-  console.log();
+  outputResult(sprint);
 }
 
-// sprint create <board-id> --name <name> [--goal <goal>] [--start <date>] [--end <date>]
 export async function sprintCreateCommand(
   boardId: number,
   name: string,
@@ -71,11 +56,9 @@ export async function sprintCreateCommand(
   if (options?.end) params.endDate = options.end;
 
   const sprint = await createSprint(boardId, name, params);
-  console.log(`Sprint created: ${sprint.name} (ID: ${sprint.id})`);
-  console.log();
+  outputResult({ success: true, sprint: { id: sprint.id, name: sprint.name } });
 }
 
-// sprint start <sprint-id>
 export async function sprintStartCommand(sprintId: number): Promise<void> {
   requirePermission('sprint.start');
   if (sprintId == null) {
@@ -95,11 +78,9 @@ export async function sprintStartCommand(sprintId: number): Promise<void> {
     );
   }
   await startSprint(sprintId);
-  console.log(`Sprint ${sprintId} started successfully.`);
-  console.log();
+  outputResult({ success: true, message: `Sprint ${sprintId} started successfully.` });
 }
 
-// sprint complete <sprint-id>
 export async function sprintCompleteCommand(sprintId: number): Promise<void> {
   requirePermission('sprint.complete');
   if (sprintId == null) {
@@ -113,11 +94,9 @@ export async function sprintCompleteCommand(sprintId: number): Promise<void> {
     );
   }
   await completeSprint(sprintId);
-  console.log(`Sprint ${sprintId} completed successfully.`);
-  console.log();
+  outputResult({ success: true, message: `Sprint ${sprintId} completed successfully.` });
 }
 
-// sprint update <sprint-id> [--name <name>] [--goal <goal>]
 export async function sprintUpdateCommand(
   sprintId: number,
   options: { name?: string; goal?: string; start?: string; end?: string }
@@ -139,11 +118,9 @@ export async function sprintUpdateCommand(
   if (options?.end) updates.endDate = options.end;
 
   await updateSprint(sprintId, updates);
-  console.log(`Sprint ${sprintId} updated successfully.`);
-  console.log();
+  outputResult({ success: true, message: `Sprint ${sprintId} updated successfully.` });
 }
 
-// sprint delete <sprint-id>
 export async function sprintDeleteCommand(sprintId: number): Promise<void> {
   requirePermission('sprint.delete');
   if (sprintId == null) {
@@ -151,11 +128,9 @@ export async function sprintDeleteCommand(sprintId: number): Promise<void> {
   }
 
   await deleteSprint(sprintId);
-  console.log(`Sprint ${sprintId} deleted successfully.`);
-  console.log();
+  outputResult({ success: true, message: `Sprint ${sprintId} deleted successfully.` });
 }
 
-// sprint issues <sprint-id> [--jql <jql>] [--max <n>]
 export async function sprintIssuesCommand(sprintId: number, options?: { jql?: string; max?: number }): Promise<void> {
   requirePermission('sprint.issues');
   const params: { jql?: string; maxResults?: number } = {};
@@ -165,19 +140,13 @@ export async function sprintIssuesCommand(sprintId: number, options?: { jql?: st
   const result = await getSprintIssues(sprintId, params);
 
   if (!result.issues || result.issues.length === 0) {
-    console.log('No issues found in this sprint.');
+    outputResult({ issues: [], total: 0 });
     return;
   }
 
-  console.log(`\nSprint Issues (${result.total} total)\n`);
-  result.issues.forEach(issue => {
-    const status = `[${issue.fields.status.name}]`;
-    console.log(`  ${issue.key}  ${issue.fields.summary}  ${status}`);
-  });
-  console.log();
+  outputResult({ issues: result.issues, total: result.total });
 }
 
-// sprint move <sprint-id> --issues <keys> [--before <key>] [--after <key>]
 export async function sprintMoveCommand(
   sprintId: number,
   options: { issues: string[]; before?: string; after?: string }
@@ -197,6 +166,5 @@ export async function sprintMoveCommand(
   if (options.after) rankOptions.rankAfterIssue = options.after;
 
   await moveIssuesToSprint(sprintId, options.issues, rankOptions);
-  console.log(`Moved ${options.issues.length} issue(s) to sprint ${sprintId}.`);
-  console.log();
+  outputResult({ success: true, message: `Moved ${options.issues.length} issue(s) to sprint ${sprintId}.` });
 }

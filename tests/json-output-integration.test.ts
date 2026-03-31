@@ -3,11 +3,9 @@ import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { initJsonMode } from '../src/lib/json-mode.js';
 import * as jiraClient from '../src/lib/jira-client.js';
 import * as settings from '../src/lib/settings.js';
-import * as formatters from '../src/lib/formatters.js';
 
 vi.mock('../src/lib/jira-client.js');
 vi.mock('../src/lib/settings.js');
-vi.mock('../src/lib/formatters.js');
 vi.mock('../src/lib/auth-storage.js', () => ({ hasCredentials: vi.fn(() => true) }));
 vi.mock('../src/lib/update-check.js', () => ({
   checkForUpdate: vi.fn().mockResolvedValue(null),
@@ -17,7 +15,6 @@ vi.mock('../src/lib/update-check.js', () => ({
 
 const mockJiraClient = jiraClient as vi.Mocked<typeof jiraClient>;
 const mockSettings = settings as vi.Mocked<typeof settings>;
-const mockFormatters = formatters as vi.Mocked<typeof formatters>;
 
 describe('JSON output integration tests', () => {
   let originalArgv: string[];
@@ -94,12 +91,6 @@ describe('JSON output integration tests', () => {
     mockJiraClient.getEpics.mockResolvedValue(mockEpics as any);
     mockJiraClient.searchIssuesByJql.mockResolvedValue(mockJqlIssues as any);
     mockJiraClient.createIssue.mockResolvedValue({ key: 'TEST-99', id: '10099' });
-
-    mockFormatters.formatUserInfo.mockReturnValue('table: user info');
-    mockFormatters.formatProjects.mockReturnValue('table: projects');
-    mockFormatters.formatEpicList.mockReturnValue('table: epics');
-    mockFormatters.formatJqlResults.mockReturnValue('table: jql results');
-    mockFormatters.formatTaskDetails.mockReturnValue('table: task details');
   });
 
   afterEach(() => {
@@ -123,16 +114,6 @@ describe('JSON output integration tests', () => {
       expect(parsed).toHaveProperty('accountId', mockUser.accountId);
       expect(parsed).toHaveProperty('displayName', mockUser.displayName);
     });
-
-    it('should NOT call formatUserInfo when --json is active', async () => {
-      process.argv = ['node', 'jira-ai', 'me', '--json'];
-      initJsonMode();
-
-      const { meCommand } = await import('../src/commands/me.js');
-      await meCommand();
-
-      expect(mockFormatters.formatUserInfo).not.toHaveBeenCalled();
-    });
   });
 
   describe('project list with --json flag', () => {
@@ -151,16 +132,6 @@ describe('JSON output integration tests', () => {
       expect(Array.isArray(parsed)).toBe(true);
       expect(parsed[0]).toHaveProperty('key', 'TEST');
     });
-
-    it('should NOT call formatProjects when --json is active', async () => {
-      process.argv = ['node', 'jira-ai', 'project', 'list', '--json'];
-      initJsonMode();
-
-      const { projectsCommand } = await import('../src/commands/projects.js');
-      await projectsCommand();
-
-      expect(mockFormatters.formatProjects).not.toHaveBeenCalled();
-    });
   });
 
   describe('epic list with --json flag', () => {
@@ -178,16 +149,6 @@ describe('JSON output integration tests', () => {
       const parsed = JSON.parse(output);
       expect(Array.isArray(parsed)).toBe(true);
       expect(parsed[0]).toHaveProperty('key', 'TEST-2');
-    });
-
-    it('should NOT call formatEpicList when --json is active', async () => {
-      process.argv = ['node', 'jira-ai', 'epic', 'list', 'TEST', '--json'];
-      initJsonMode();
-
-      const { epicListCommand } = await import('../src/commands/epic.js');
-      await epicListCommand('TEST');
-
-      expect(mockFormatters.formatEpicList).not.toHaveBeenCalled();
     });
   });
 
@@ -238,27 +199,25 @@ describe('JSON output integration tests', () => {
   });
 
   describe('backward compatibility — no --json flag', () => {
-    it('project list still produces table output without --json', async () => {
+    it('project list still produces JSON output without --json', async () => {
       process.argv = ['node', 'jira-ai', 'project', 'list'];
       initJsonMode();
 
       const { projectsCommand } = await import('../src/commands/projects.js');
       await projectsCommand();
 
-      // Current implementation: commands always output JSON, formatters not called
       expect(consoleLogSpy).toHaveBeenCalled();
       const output = consoleLogSpy.mock.calls[0][0];
       expect(() => JSON.parse(output)).not.toThrow();
     });
 
-    it('me command still calls formatUserInfo without --json', async () => {
+    it('me command still produces JSON output without --json', async () => {
       process.argv = ['node', 'jira-ai', 'me'];
       initJsonMode();
 
       const { meCommand } = await import('../src/commands/me.js');
       await meCommand();
 
-      // Current implementation: me command always outputs JSON
       expect(consoleLogSpy).toHaveBeenCalled();
       const output = consoleLogSpy.mock.calls[0][0];
       expect(() => JSON.parse(output)).not.toThrow();
