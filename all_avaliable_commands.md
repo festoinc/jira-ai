@@ -4,16 +4,15 @@
 
 | Flag | Description |
 | :--- | :--- |
-| `--json` | Output results as pretty-printed JSON instead of formatted tables. Works with all commands. |
-| `--json-compact` | Output results as single-line JSON for maximum token efficiency. Ideal for AI agent workflows. |
+| `--compact` | Output results as single-line JSON for maximum token efficiency. Works with all commands. |
 
 ## Top-Level Commands
 
 | Command | Description |
 | :--- | :--- |
-| `auth` | Set up Jira authentication credentials. Supports interactive input, raw JSON string via `--from-json`, or `.env` file via `--from-file`. |
+| `auth` | Set up Jira authentication credentials via `--from-json` or `.env` file via `--from-file`. |
 | `settings` | View, validate (`--validate <file>`), or apply (`--apply <file>`) configuration settings. |
-| `about` | Show information about the tool. |
+| `about` | Show version information. |
 
 ## Issue Commands (`issue`)
 

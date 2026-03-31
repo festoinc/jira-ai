@@ -85,13 +85,11 @@ Current coverage for tested modules:
 The test suite uses Jest mocks for:
 - **fs module**: Mocked to test file I/O without actual files
 - **jira.js**: Mocked to avoid ES module issues
-- **ora, chalk**: Mocked to test CLI output
 - **console**: Spied to verify error/warning messages
 
 ## Future Test Coverage
 
 Potential areas to expand testing:
 - Other command modules (me, task-with-details, project-statuses)
-- Formatters
 - Jira client integration tests
 - End-to-end CLI tests
