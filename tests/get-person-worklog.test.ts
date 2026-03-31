@@ -1,14 +1,9 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { getPersonWorklogCommand } from '../src/commands/get-person-worklog.js';
 import * as jiraClient from '../src/lib/jira-client.js';
-import * as formatters from '../src/lib/formatters.js';
-import * as ui from '../src/lib/ui.js';
 import * as utils from '../src/lib/utils.js';
-import chalk from 'chalk';
 
 vi.mock('../src/lib/jira-client.js');
-vi.mock('../src/lib/formatters.js');
-vi.mock('../src/lib/ui.js');
 vi.mock('../src/lib/utils.js');
 
 describe('getPersonWorklogCommand', () => {
@@ -17,9 +12,6 @@ describe('getPersonWorklogCommand', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-    vi.mocked(ui.ui.startSpinner).mockImplementation(() => {});
-    vi.mocked(ui.ui.stopSpinner).mockImplementation(() => {});
-    vi.mocked(ui.ui.failSpinner).mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -41,20 +33,26 @@ describe('getPersonWorklogCommand', () => {
         id: '1',
         author: { accountId: 'user1', emailAddress: 'user1@example.com' },
         started: '2023-01-15T10:00:00.000+0000',
-        timeSpentSeconds: 3600
+        timeSpentSeconds: 3600,
+        timeSpent: '1h',
+        comment: '',
+        created: '2023-01-15T10:00:00.000Z',
+        updated: '2023-01-15T10:00:00.000Z',
+        issueKey: 'TEST-1',
+        summary: 'Issue 1'
       }
     ];
     vi.mocked(jiraClient.getIssueWorklogs).mockResolvedValue(mockWorklogs as any);
-    vi.mocked(formatters.formatWorklogs).mockReturnValue('Formatted worklogs');
 
     await getPersonWorklogCommand('user1', 'january', {});
 
-    expect(ui.ui.startSpinner).toHaveBeenCalledWith('Fetching worklogs for user1...');
     expect(utils.parseTimeframe).toHaveBeenCalledWith('january');
     expect(jiraClient.searchIssuesByJql).toHaveBeenCalled();
     expect(jiraClient.getIssueWorklogs).toHaveBeenCalledWith('TEST-1');
-    expect(ui.ui.stopSpinner).toHaveBeenCalled();
-    expect(consoleLogSpy).toHaveBeenCalledWith('Formatted worklogs');
+    const output = consoleLogSpy.mock.calls[0][0];
+    const parsed = JSON.parse(output);
+    expect(Array.isArray(parsed)).toBe(true);
+    expect(parsed).toHaveLength(1);
   });
 
   it('should handle no issues found', async () => {
@@ -67,8 +65,10 @@ describe('getPersonWorklogCommand', () => {
 
     await getPersonWorklogCommand('user1', 'january', {});
 
-    expect(ui.ui.stopSpinner).toHaveBeenCalled();
-    expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('No worklogs found for user1'));
+    const output = consoleLogSpy.mock.calls[0][0];
+    const parsed = JSON.parse(output);
+    expect(Array.isArray(parsed)).toBe(true);
+    expect(parsed).toHaveLength(0);
   });
 
   it('should handle no worklogs found after filtering', async () => {
@@ -94,8 +94,10 @@ describe('getPersonWorklogCommand', () => {
 
     await getPersonWorklogCommand('user1', 'january', {});
 
-    expect(ui.ui.stopSpinner).toHaveBeenCalled();
-    expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('No worklogs found for user1 after detailed filtering'));
+    const output = consoleLogSpy.mock.calls[0][0];
+    const parsed = JSON.parse(output);
+    expect(Array.isArray(parsed)).toBe(true);
+    expect(parsed).toHaveLength(0);
   });
 
   it('should handle errors', async () => {
@@ -104,8 +106,6 @@ describe('getPersonWorklogCommand', () => {
     });
 
     await expect(getPersonWorklogCommand('user1', 'invalid', {})).rejects.toThrow('Parse error');
-
-    expect(ui.ui.failSpinner).toHaveBeenCalledWith(expect.stringContaining('Failed to fetch worklogs: Parse error'));
   });
 
   it('should match person by emailAddress', async () => {
@@ -123,15 +123,23 @@ describe('getPersonWorklogCommand', () => {
         id: '1',
         author: { accountId: 'other-id', emailAddress: 'user1@example.com' },
         started: '2023-01-15T10:00:00.000+0000',
-        timeSpentSeconds: 3600
+        timeSpentSeconds: 3600,
+        timeSpent: '1h',
+        comment: '',
+        created: '2023-01-15T10:00:00.000Z',
+        updated: '2023-01-15T10:00:00.000Z',
+        issueKey: 'TEST-1',
+        summary: 'Issue 1'
       }
     ];
     vi.mocked(jiraClient.getIssueWorklogs).mockResolvedValue(mockWorklogs as any);
-    vi.mocked(formatters.formatWorklogs).mockReturnValue('Formatted worklogs');
 
     await getPersonWorklogCommand('user1@example.com', 'january', {});
 
-    expect(consoleLogSpy).toHaveBeenCalledWith('Formatted worklogs');
+    const output = consoleLogSpy.mock.calls[0][0];
+    const parsed = JSON.parse(output);
+    expect(Array.isArray(parsed)).toBe(true);
+    expect(parsed).toHaveLength(1);
   });
 
   it('should handle issues being undefined in response', async () => {
@@ -144,8 +152,10 @@ describe('getPersonWorklogCommand', () => {
 
     await getPersonWorklogCommand('user1', 'january', {});
 
-    expect(ui.ui.stopSpinner).toHaveBeenCalled();
-    expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('No worklogs found for user1'));
+    const output = consoleLogSpy.mock.calls[0][0];
+    const parsed = JSON.parse(output);
+    expect(Array.isArray(parsed)).toBe(true);
+    expect(parsed).toHaveLength(0);
   });
 
   it('should handle missing summary in issue fields', async () => {
@@ -163,19 +173,22 @@ describe('getPersonWorklogCommand', () => {
         id: '1',
         author: { accountId: 'user1', emailAddress: 'user1@example.com' },
         started: '2023-01-15T10:00:00.000+0000',
-        timeSpentSeconds: 3600
+        timeSpentSeconds: 3600,
+        timeSpent: '1h',
+        comment: '',
+        created: '2023-01-15T10:00:00.000Z',
+        updated: '2023-01-15T10:00:00.000Z',
+        issueKey: 'TEST-1',
+        summary: ''
       }
     ];
     vi.mocked(jiraClient.getIssueWorklogs).mockResolvedValue(mockWorklogs as any);
-    vi.mocked(formatters.formatWorklogs).mockReturnValue('Formatted worklogs');
 
     await getPersonWorklogCommand('user1', 'january', {});
 
-    expect(formatters.formatWorklogs).toHaveBeenCalledWith(
-      expect.arrayContaining([
-        expect.objectContaining({ summary: '' })
-      ]),
-      undefined
-    );
+    const output = consoleLogSpy.mock.calls[0][0];
+    const parsed = JSON.parse(output);
+    expect(Array.isArray(parsed)).toBe(true);
+    expect(parsed[0]).toHaveProperty('summary', '');
   });
 });

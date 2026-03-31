@@ -4,16 +4,11 @@ import { createIssueLinkCommand } from '../src/commands/create-issue-link.js';
 import { deleteIssueLinkCommand } from '../src/commands/delete-issue-link.js';
 import { listLinkTypesCommand } from '../src/commands/list-link-types.js';
 import * as jiraClient from '../src/lib/jira-client.js';
-import * as formatters from '../src/lib/formatters.js';
-import * as ui from '../src/lib/ui.js';
 import { CommandError } from '../src/lib/errors.js';
 
 vi.mock('../src/lib/jira-client.js');
-vi.mock('../src/lib/formatters.js');
-vi.mock('../src/lib/ui.js');
 
 const mockJiraClient = jiraClient as vi.Mocked<typeof jiraClient>;
-const mockFormatters = formatters as vi.Mocked<typeof formatters>;
 
 const mockLink1 = {
   id: 'link-1',
@@ -32,17 +27,16 @@ const mockLink2 = {
 const mockLinkType1 = { id: '1', name: 'Blocks', inward: 'is blocked by', outward: 'blocks' };
 const mockLinkType2 = { id: '2', name: 'Relates', inward: 'is related to', outward: 'relates to' };
 
+let consoleLogSpy: any;
+
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.spyOn(console, 'log').mockImplementation(() => {});
-  vi.mocked(ui.ui.startSpinner).mockImplementation(() => {});
-  vi.mocked(ui.ui.succeedSpinner).mockImplementation(() => {});
-  vi.mocked(ui.ui.failSpinner).mockImplementation(() => {});
+  consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
   mockJiraClient.validateIssuePermissions.mockResolvedValue({} as any);
 });
 
 afterEach(() => {
-  vi.restoreAllMocks();
+  consoleLogSpy.mockRestore();
 });
 
 // ---------------------------------------------------------------------------
@@ -52,32 +46,34 @@ afterEach(() => {
 describe('listIssueLinksCommand', () => {
   it('should start spinner, fetch links and display formatted output', async () => {
     mockJiraClient.getIssueLinks.mockResolvedValue([mockLink1, mockLink2]);
-    mockFormatters.formatIssueLinks.mockReturnValue('formatted links');
 
     await listIssueLinksCommand('PROJ-3');
 
-    expect(ui.ui.startSpinner).toHaveBeenCalledWith(expect.stringContaining('PROJ-3'));
     expect(mockJiraClient.getIssueLinks).toHaveBeenCalledWith('PROJ-3');
-    expect(mockFormatters.formatIssueLinks).toHaveBeenCalledWith('PROJ-3', [mockLink1, mockLink2]);
-    expect(console.log).toHaveBeenCalledWith('formatted links');
+    const output = consoleLogSpy.mock.calls[0][0];
+    const parsed = JSON.parse(output);
+    expect(Array.isArray(parsed)).toBe(true);
+    expect(parsed).toHaveLength(2);
   });
 
   it('should succeed spinner on success', async () => {
     mockJiraClient.getIssueLinks.mockResolvedValue([mockLink1]);
-    mockFormatters.formatIssueLinks.mockReturnValue('one link');
 
     await listIssueLinksCommand('PROJ-1');
 
-    expect(ui.ui.succeedSpinner).toHaveBeenCalled();
+    const output = consoleLogSpy.mock.calls[0][0];
+    const parsed = JSON.parse(output);
+    expect(Array.isArray(parsed)).toBe(true);
   });
 
   it('should handle empty links list', async () => {
     mockJiraClient.getIssueLinks.mockResolvedValue([]);
-    mockFormatters.formatIssueLinks.mockReturnValue('No links found');
 
     await listIssueLinksCommand('PROJ-1');
 
-    expect(mockFormatters.formatIssueLinks).toHaveBeenCalledWith('PROJ-1', []);
+    const output = consoleLogSpy.mock.calls[0][0];
+    const parsed = JSON.parse(output);
+    expect(parsed).toHaveLength(0);
   });
 
   it('should throw CommandError with 404 hint when issue not found', async () => {
@@ -119,7 +115,9 @@ describe('createIssueLinkCommand', () => {
 
     expect(mockJiraClient.validateIssuePermissions).toHaveBeenCalledWith('PROJ-1', 'issue.link.create');
     expect(mockJiraClient.createIssueLink).toHaveBeenCalledWith('PROJ-1', 'PROJ-2', 'Blocks');
-    expect(ui.ui.succeedSpinner).toHaveBeenCalled();
+    const output = consoleLogSpy.mock.calls[0][0];
+    const parsed = JSON.parse(output);
+    expect(parsed).toHaveProperty('success', true);
   });
 
   it('should start spinner before creating link', async () => {
@@ -127,7 +125,7 @@ describe('createIssueLinkCommand', () => {
 
     await createIssueLinkCommand('PROJ-1', 'Relates', 'PROJ-2');
 
-    expect(ui.ui.startSpinner).toHaveBeenCalledWith(expect.stringContaining('PROJ-1'));
+    expect(mockJiraClient.createIssueLink).toHaveBeenCalled();
   });
 
   it('should trim whitespace from link type', async () => {
@@ -191,7 +189,6 @@ describe('deleteIssueLinkCommand', () => {
 
     expect(mockJiraClient.getIssueLinks).toHaveBeenCalledWith('PROJ-1');
     expect(mockJiraClient.deleteIssueLink).toHaveBeenCalledWith('link-1');
-    expect(ui.ui.succeedSpinner).toHaveBeenCalled();
   });
 
   it('should match link by outwardIssue key', async () => {
@@ -253,32 +250,34 @@ describe('deleteIssueLinkCommand', () => {
 describe('listLinkTypesCommand', () => {
   it('should fetch link types and display formatted output', async () => {
     mockJiraClient.getAvailableLinkTypes.mockResolvedValue([mockLinkType1, mockLinkType2]);
-    mockFormatters.formatLinkTypes.mockReturnValue('formatted link types');
 
     await listLinkTypesCommand();
 
     expect(mockJiraClient.getAvailableLinkTypes).toHaveBeenCalled();
-    expect(mockFormatters.formatLinkTypes).toHaveBeenCalledWith([mockLinkType1, mockLinkType2]);
-    expect(console.log).toHaveBeenCalledWith('formatted link types');
+    const output = consoleLogSpy.mock.calls[0][0];
+    const parsed = JSON.parse(output);
+    expect(Array.isArray(parsed)).toBe(true);
+    expect(parsed).toHaveLength(2);
   });
 
   it('should start and succeed spinner', async () => {
     mockJiraClient.getAvailableLinkTypes.mockResolvedValue([mockLinkType1]);
-    mockFormatters.formatLinkTypes.mockReturnValue('types');
 
     await listLinkTypesCommand();
 
-    expect(ui.ui.startSpinner).toHaveBeenCalledWith(expect.stringContaining('link type'));
-    expect(ui.ui.succeedSpinner).toHaveBeenCalled();
+    const output = consoleLogSpy.mock.calls[0][0];
+    const parsed = JSON.parse(output);
+    expect(Array.isArray(parsed)).toBe(true);
   });
 
   it('should handle empty link types list', async () => {
     mockJiraClient.getAvailableLinkTypes.mockResolvedValue([]);
-    mockFormatters.formatLinkTypes.mockReturnValue('No link types');
 
     await listLinkTypesCommand();
 
-    expect(mockFormatters.formatLinkTypes).toHaveBeenCalledWith([]);
+    const output = consoleLogSpy.mock.calls[0][0];
+    const parsed = JSON.parse(output);
+    expect(parsed).toHaveLength(0);
   });
 
   it('should throw CommandError on API failure', async () => {

@@ -1,27 +1,14 @@
-import { vi, describe, it, expect, beforeEach, afterEach, beforeAll, afterAll, test } from 'vitest';
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { projectsCommand } from '../src/commands/projects.js';
 import * as jiraClient from '../src/lib/jira-client.js';
 import * as settings from '../src/lib/settings.js';
-import * as formatters from '../src/lib/formatters.js';
 
 // Mock dependencies
 vi.mock('../src/lib/jira-client.js');
 vi.mock('../src/lib/settings.js');
-vi.mock('../src/lib/formatters.js');
-vi.mock('ora', () => {
-  return {
-    default: vi.fn(() => ({
-      start: vi.fn().mockReturnThis(),
-      succeed: vi.fn().mockReturnThis(),
-      fail: vi.fn().mockReturnThis(),
-      stop: vi.fn().mockReturnThis(),
-    })),
-  };
-});
 
 const mockJiraClient = jiraClient as vi.Mocked<typeof jiraClient>;
 const mockSettings = settings as vi.Mocked<typeof settings>;
-const mockFormatters = formatters as vi.Mocked<typeof formatters>;
 
 describe('Projects Command', () => {
   const mockProjects = [
@@ -62,22 +49,28 @@ describe('Projects Command', () => {
     }
   ];
 
+  let consoleLogSpy: any;
+
   beforeEach(() => {
     vi.clearAllMocks();
-    console.log = vi.fn();
-    console.error = vi.fn();
+    consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    consoleLogSpy.mockRestore();
   });
 
   it('should display all projects when "all" is allowed', async () => {
     mockJiraClient.getProjects.mockResolvedValue(mockProjects);
     mockSettings.getAllowedProjects.mockReturnValue(['all']);
-    mockFormatters.formatProjects.mockReturnValue('Formatted projects');
 
     await projectsCommand();
 
     expect(mockJiraClient.getProjects).toHaveBeenCalled();
-    expect(mockFormatters.formatProjects).toHaveBeenCalledWith(mockProjects);
-    expect(console.log).toHaveBeenCalledWith('Formatted projects');
+    const output = consoleLogSpy.mock.calls[0][0];
+    const parsed = JSON.parse(output);
+    expect(parsed).toHaveLength(5);
+    expect(parsed[0]).toHaveProperty('key', 'BP');
   });
 
   it('should filter projects based on allowed list', async () => {
@@ -86,13 +79,15 @@ describe('Projects Command', () => {
     mockSettings.isProjectAllowed.mockImplementation((key: string) =>
       ['BP', 'PM', 'PS'].includes(key)
     );
-    mockFormatters.formatProjects.mockReturnValue('Filtered projects');
 
     await projectsCommand();
 
-    const filteredProjects = mockProjects.filter(p => ['BP', 'PM', 'PS'].includes(p.key));
-    expect(mockFormatters.formatProjects).toHaveBeenCalledWith(filteredProjects);
-    expect(console.log).toHaveBeenCalledWith('Filtered projects');
+    const output = consoleLogSpy.mock.calls[0][0];
+    const parsed = JSON.parse(output);
+    expect(parsed).toHaveLength(3);
+    expect(parsed.map((p: any) => p.key)).toContain('BP');
+    expect(parsed.map((p: any) => p.key)).toContain('PM');
+    expect(parsed.map((p: any) => p.key)).toContain('PS');
   });
 
   it('should display only allowed projects (BP, PM)', async () => {
@@ -101,27 +96,14 @@ describe('Projects Command', () => {
     mockSettings.isProjectAllowed.mockImplementation((key: string) =>
       ['BP', 'PM'].includes(key)
     );
-    mockFormatters.formatProjects.mockReturnValue('BP and PM projects');
 
     await projectsCommand();
 
-    const expectedProjects = [
-      {
-        id: '1001',
-        key: 'BP',
-        name: 'BookingPal',
-        projectTypeKey: 'software',
-        lead: { displayName: 'Pavel Boiko' }
-      },
-      {
-        id: '1002',
-        key: 'PM',
-        name: 'Product management',
-        projectTypeKey: 'software',
-        lead: { displayName: 'Anatolii Fesiuk' }
-      }
-    ];
-    expect(mockFormatters.formatProjects).toHaveBeenCalledWith(expectedProjects);
+    const output = consoleLogSpy.mock.calls[0][0];
+    const parsed = JSON.parse(output);
+    expect(parsed).toHaveLength(2);
+    expect(parsed[0]).toHaveProperty('key', 'BP');
+    expect(parsed[1]).toHaveProperty('key', 'PM');
   });
 
   it('should show warning when no projects match settings', async () => {
@@ -131,9 +113,11 @@ describe('Projects Command', () => {
 
     await projectsCommand();
 
-    expect(mockFormatters.formatProjects).not.toHaveBeenCalled();
-    expect(console.log).toHaveBeenCalledWith(expect.stringContaining('No projects match'));
-    expect(console.log).toHaveBeenCalledWith(expect.stringContaining('XYZ, ABC'));
+    // Returns empty array as JSON
+    const output = consoleLogSpy.mock.calls[0][0];
+    const parsed = JSON.parse(output);
+    expect(Array.isArray(parsed)).toBe(true);
+    expect(parsed).toHaveLength(0);
   });
 
   it('should handle API errors gracefully', async () => {
@@ -187,16 +171,12 @@ describe('Projects Command', () => {
     mockSettings.isProjectAllowed.mockImplementation((key: string) =>
       ['BP', 'PM', 'PS'].includes(key)
     );
-    mockFormatters.formatProjects.mockImplementation((projects) =>
-      `Showing ${projects.length} projects`
-    );
 
     await projectsCommand();
 
-    expect(mockFormatters.formatProjects).toHaveBeenCalledTimes(1);
-    const calledWith = mockFormatters.formatProjects.mock.calls[0][0];
-    expect(calledWith).toHaveLength(3);
-    expect(calledWith.map(p => p.key)).toEqual(['BP', 'PM', 'PS']);
-    expect(console.log).toHaveBeenCalledWith('Showing 3 projects');
+    const output = consoleLogSpy.mock.calls[0][0];
+    const parsed = JSON.parse(output);
+    expect(parsed).toHaveLength(3);
+    expect(parsed.map((p: any) => p.key)).toEqual(['BP', 'PM', 'PS']);
   });
 });

@@ -1,14 +1,9 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { listIssueTypesCommand } from '../src/commands/list-issue-types.js';
 import * as jiraClient from '../src/lib/jira-client.js';
-import * as formatters from '../src/lib/formatters.js';
-import * as ui from '../src/lib/ui.js';
 import * as settings from '../src/lib/settings.js';
-import chalk from 'chalk';
 
 vi.mock('../src/lib/jira-client.js');
-vi.mock('../src/lib/formatters.js');
-vi.mock('../src/lib/ui.js');
 vi.mock('../src/lib/settings.js');
 
 describe('listIssueTypesCommand', () => {
@@ -18,8 +13,6 @@ describe('listIssueTypesCommand', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-    vi.mocked(ui.ui.startSpinner).mockImplementation(() => {});
-    vi.mocked(ui.ui.succeedSpinner).mockImplementation(() => {});
     mockSettings.isProjectAllowed.mockReturnValue(true);
     mockSettings.isCommandAllowed.mockReturnValue(true);
   });
@@ -36,26 +29,25 @@ describe('listIssueTypesCommand', () => {
     ];
 
     vi.mocked(jiraClient.getProjectIssueTypes).mockResolvedValue(mockIssueTypes);
-    vi.mocked(formatters.formatProjectIssueTypes).mockReturnValue('Formatted issue types');
 
     await listIssueTypesCommand('PROJ');
 
-    expect(ui.ui.startSpinner).toHaveBeenCalledWith('Fetching issue types for project PROJ...');
     expect(jiraClient.getProjectIssueTypes).toHaveBeenCalledWith('PROJ');
-    expect(ui.ui.succeedSpinner).toHaveBeenCalledWith(chalk.green('Issue types retrieved'));
-    expect(formatters.formatProjectIssueTypes).toHaveBeenCalledWith('PROJ', mockIssueTypes);
-    expect(consoleLogSpy).toHaveBeenCalledWith('Formatted issue types');
+    const output = consoleLogSpy.mock.calls[0][0];
+    const parsed = JSON.parse(output);
+    expect(parsed).toHaveLength(3);
+    expect(parsed[0]).toHaveProperty('name', 'Task');
   });
 
   it('should handle empty issue types list', async () => {
     vi.mocked(jiraClient.getProjectIssueTypes).mockResolvedValue([]);
-    vi.mocked(formatters.formatProjectIssueTypes).mockReturnValue('No issue types');
 
     await listIssueTypesCommand('EMPTY');
 
     expect(jiraClient.getProjectIssueTypes).toHaveBeenCalledWith('EMPTY');
-    expect(ui.ui.succeedSpinner).toHaveBeenCalledWith(chalk.green('Issue types retrieved'));
-    expect(consoleLogSpy).toHaveBeenCalledWith('No issue types');
+    const output = consoleLogSpy.mock.calls[0][0];
+    const parsed = JSON.parse(output);
+    expect(parsed).toHaveLength(0);
   });
 
   it('should handle errors when fetching issue types', async () => {
@@ -64,7 +56,6 @@ describe('listIssueTypesCommand', () => {
 
     await expect(listIssueTypesCommand('INVALID')).rejects.toThrow('Project not found');
 
-    expect(ui.ui.startSpinner).toHaveBeenCalledWith('Fetching issue types for project INVALID...');
     expect(jiraClient.getProjectIssueTypes).toHaveBeenCalledWith('INVALID');
   });
 });

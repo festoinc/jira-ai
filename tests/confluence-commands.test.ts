@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { confluenceListSpacesCommand, confluenceGetSpacePagesHierarchyCommand, confluenceAddCommentCommand, confluenceUpdateDescriptionCommand } from '../src/commands/confluence.js';
 import * as confluenceClient from '../src/lib/confluence-client.js';
 import * as settings from '../src/lib/settings.js';
-import { ui } from '../src/lib/ui.js';
 import * as fs from 'fs';
 import { markdownToAdf } from 'marklassian';
 
@@ -10,13 +9,6 @@ vi.mock('../src/lib/confluence-client.js');
 vi.mock('../src/lib/settings.js');
 vi.mock('fs');
 vi.mock('marklassian');
-vi.mock('../src/lib/ui.js', () => ({
-  ui: {
-    startSpinner: vi.fn(),
-    succeedSpinner: vi.fn(),
-    failSpinner: vi.fn(),
-  },
-}));
 
 describe('Confluence Commands', () => {
   beforeEach(() => {
@@ -33,14 +25,15 @@ describe('Confluence Commands', () => {
       vi.mocked(settings.isConfluenceSpaceAllowed).mockImplementation((key) => key === 'ALLOWED');
 
       const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-      
+
       await confluenceListSpacesCommand();
 
-      expect(ui.startSpinner).toHaveBeenCalled();
-      expect(ui.succeedSpinner).toHaveBeenCalled();
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('ALLOWED'));
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Allowed Space'));
-      expect(consoleSpy).not.toHaveBeenCalledWith(expect.stringContaining('RESTRICTED'));
+      const output = consoleSpy.mock.calls[0][0];
+      const parsed = JSON.parse(output);
+      expect(parsed).toHaveLength(1);
+      expect(parsed[0]).toHaveProperty('key', 'ALLOWED');
+      expect(parsed[0]).toHaveProperty('name', 'Allowed Space');
+      consoleSpy.mockRestore();
     });
 
     it('should show hint when no spaces are allowed', async () => {
@@ -51,8 +44,11 @@ describe('Confluence Commands', () => {
 
       await confluenceListSpacesCommand();
 
-      expect(ui.failSpinner).toHaveBeenCalledWith('No allowed Confluence spaces found.');
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Hint: Add allowed spaces'));
+      // Returns empty filtered array as JSON
+      const output = consoleSpy.mock.calls[0][0];
+      const parsed = JSON.parse(output);
+      expect(parsed).toHaveLength(0);
+      consoleSpy.mockRestore();
     });
   });
 
@@ -68,10 +64,11 @@ describe('Confluence Commands', () => {
 
       await confluenceGetSpacePagesHierarchyCommand('ALLOWED');
 
-      expect(ui.startSpinner).toHaveBeenCalledWith(expect.stringContaining('ALLOWED'));
-      expect(ui.succeedSpinner).toHaveBeenCalled();
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Root'));
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('ID: 1'));
+      const output = consoleSpy.mock.calls[0][0];
+      const parsed = JSON.parse(output);
+      expect(parsed[0]).toHaveProperty('title', 'Root');
+      expect(parsed[0]).toHaveProperty('id', '1');
+      consoleSpy.mockRestore();
     });
 
     it('should throw error for restricted space', async () => {
@@ -101,7 +98,10 @@ describe('Confluence Commands', () => {
       expect(fs.readFileSync).toHaveBeenCalled();
       expect(markdownToAdf).toHaveBeenCalledWith(markdown);
       expect(confluenceClient.addPageComment).toHaveBeenCalledWith(url, adf);
-      expect(ui.succeedSpinner).toHaveBeenCalledWith(expect.stringContaining('successfully'));
+      const output = consoleSpy.mock.calls[0][0];
+      const parsed = JSON.parse(output);
+      expect(parsed).toHaveProperty('success', true);
+      consoleSpy.mockRestore();
     });
 
     it('should throw error if space is restricted', async () => {
@@ -119,7 +119,7 @@ describe('Confluence Commands', () => {
       const space = 'SPACE';
       const title = 'New Page';
       const createdUrl = 'https://test.atlassian.net/wiki/spaces/SPACE/pages/456';
-      
+
       vi.mocked(settings.isConfluenceSpaceAllowed).mockReturnValue(true);
       // @ts-ignore
       vi.mocked(confluenceClient.createPage).mockResolvedValue(createdUrl);
@@ -130,11 +130,12 @@ describe('Confluence Commands', () => {
       const { confluenceCreatePageCommand } = await import('../src/commands/confluence.js');
       await confluenceCreatePageCommand(space, title);
 
-      expect(ui.startSpinner).toHaveBeenCalledWith(expect.stringContaining('Creating Confluence page'));
       // @ts-ignore
       expect(confluenceClient.createPage).toHaveBeenCalledWith(space, title, undefined, { returnBoth: undefined });
-      expect(ui.succeedSpinner).toHaveBeenCalled();
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining(createdUrl));
+      const output = consoleSpy.mock.calls[0][0];
+      const parsed = JSON.parse(output);
+      expect(parsed).toHaveProperty('url', createdUrl);
+      consoleSpy.mockRestore();
     });
 
     it('should create page with parent successfully', async () => {
@@ -142,7 +143,7 @@ describe('Confluence Commands', () => {
       const title = 'Child Page';
       const parent = '123';
       const createdUrl = 'https://test.atlassian.net/wiki/spaces/SPACE/pages/456';
-      
+
       vi.mocked(settings.isConfluenceSpaceAllowed).mockReturnValue(true);
       // @ts-ignore
       vi.mocked(confluenceClient.createPage).mockResolvedValue(createdUrl);
@@ -155,7 +156,7 @@ describe('Confluence Commands', () => {
 
       // @ts-ignore
       expect(confluenceClient.createPage).toHaveBeenCalledWith(space, title, parent, { returnBoth: undefined });
-      expect(ui.succeedSpinner).toHaveBeenCalled();
+      consoleSpy.mockRestore();
     });
 
     it('should throw error if space is restricted', async () => {
@@ -188,7 +189,10 @@ describe('Confluence Commands', () => {
       expect(fs.readFileSync).toHaveBeenCalled();
       expect(markdownToAdf).toHaveBeenCalledWith(markdown);
       expect(confluenceClient.updatePageContent).toHaveBeenCalledWith(url, adf);
-      expect(ui.succeedSpinner).toHaveBeenCalledWith(expect.stringContaining('successfully'));
+      const output = consoleSpy.mock.calls[0][0];
+      const parsed = JSON.parse(output);
+      expect(parsed).toHaveProperty('success', true);
+      consoleSpy.mockRestore();
     });
 
     it('should throw error if space is restricted', async () => {
@@ -208,6 +212,7 @@ describe('Confluence Commands', () => {
           id: '1',
           title: 'Found Page',
           space: 'SPACE',
+          spaceKey: 'SPACE',
           lastUpdated: '2023-01-01T10:00:00.000Z',
           url: 'https://test.atlassian.net/wiki/spaces/SPACE/pages/1',
           author: 'Unknown',
@@ -223,11 +228,12 @@ describe('Confluence Commands', () => {
       const { confluenceSearchCommand } = await import('../src/commands/confluence.js');
       await confluenceSearchCommand('test query');
 
-      expect(ui.startSpinner).toHaveBeenCalledWith(expect.stringContaining('test query'));
       expect(confluenceClient.searchContent).toHaveBeenCalledWith('test query', 20);
-      expect(ui.succeedSpinner).toHaveBeenCalled();
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Found Page'));
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('SPACE'));
+      const output = consoleSpy.mock.calls[0][0];
+      const parsed = JSON.parse(output);
+      expect(parsed[0]).toHaveProperty('title', 'Found Page');
+      expect(parsed[0]).toHaveProperty('space', 'SPACE');
+      consoleSpy.mockRestore();
     });
 
     it('should filter results by allowed spaces', async () => {
@@ -236,6 +242,7 @@ describe('Confluence Commands', () => {
           id: '1',
           title: 'Allowed Page',
           space: 'ALLOWED',
+          spaceKey: 'ALLOWED',
           lastUpdated: '2023-01-01T10:00:00.000Z',
           url: 'https://test.atlassian.net/wiki/spaces/ALLOWED/pages/1',
           author: 'Unknown',
@@ -245,6 +252,7 @@ describe('Confluence Commands', () => {
           id: '2',
           title: 'Restricted Page',
           space: 'RESTRICTED',
+          spaceKey: 'RESTRICTED',
           lastUpdated: '2023-01-01T10:00:00.000Z',
           url: 'https://test.atlassian.net/wiki/spaces/RESTRICTED/pages/2',
           author: 'Unknown',
@@ -260,8 +268,11 @@ describe('Confluence Commands', () => {
       const { confluenceSearchCommand } = await import('../src/commands/confluence.js');
       await confluenceSearchCommand('test query');
 
-      expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('Allowed Page'));
-      expect(consoleSpy).not.toHaveBeenCalledWith(expect.stringContaining('Restricted Page'));
+      const output = consoleSpy.mock.calls[0][0];
+      const parsed = JSON.parse(output);
+      expect(parsed).toHaveLength(1);
+      expect(parsed[0]).toHaveProperty('title', 'Allowed Page');
+      consoleSpy.mockRestore();
     });
   });
 });

@@ -3,10 +3,8 @@ import { authCommand } from '../src/commands/auth.js';
 import * as jiraClient from '../src/lib/jira-client.js';
 import * as authStorage from '../src/lib/auth-storage.js';
 import { CommandError } from '../src/lib/errors.js';
-import ora from 'ora';
 import fs from 'fs';
 
-vi.mock('ora');
 vi.mock('../src/lib/jira-client.js');
 vi.mock('../src/lib/auth-storage.js');
 vi.mock('readline', () => ({
@@ -19,19 +17,11 @@ vi.mock('readline', () => ({
 }));
 
 describe('authCommand non-interactive', () => {
-  let mockSpinner: any;
   let consoleSpy: vi.SpyInstance;
   let errorSpy: vi.SpyInstance;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockSpinner = {
-      start: vi.fn().mockReturnThis(),
-      succeed: vi.fn().mockReturnThis(),
-      fail: vi.fn().mockReturnThis(),
-      stop: vi.fn().mockReturnThis(),
-    };
-    (ora as unknown as vi.Mock).mockReturnValue(mockSpinner);
     consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
     errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
   });
@@ -74,7 +64,10 @@ describe('authCommand non-interactive', () => {
       authType: 'basic',
       cloudId: undefined
     });
-    expect(mockSpinner.succeed).toHaveBeenCalled();
+    // Verify JSON output
+    const output = consoleSpy.mock.calls[0][0];
+    const parsed = JSON.parse(output);
+    expect(parsed).toHaveProperty('success', true);
   });
 
   it('should authenticate using --from-file with valid .env file', async () => {

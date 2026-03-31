@@ -1,58 +1,40 @@
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { ui } from '../src/lib/ui.js';
-import ora from 'ora';
-
-vi.mock('ora', () => {
-  const start = vi.fn().mockReturnThis();
-  const stop = vi.fn().mockReturnThis();
-  const succeed = vi.fn().mockReturnThis();
-  const fail = vi.fn().mockReturnThis();
-  
-  return {
-    default: vi.fn(() => ({
-      start,
-      stop,
-      succeed,
-      fail,
-    })),
-  };
-});
 
 describe('UI Spinner', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    // no-op spinner - nothing to reset
   });
 
-  it('should start a spinner', () => {
-    ui.startSpinner('Testing...');
-    expect(ora).toHaveBeenCalledWith('Testing...');
-    expect(ui.spinner).toBeDefined();
+  it('should start a spinner (no-op, returns null)', () => {
+    const result = ui.startSpinner('Testing...');
+    expect(result).toBeNull();
+    expect(ui.spinner).toBeNull();
   });
 
-  it('should stop a spinner', () => {
+  it('should stop a spinner (no-op)', () => {
     ui.startSpinner('Testing...');
     ui.stopSpinner();
-    const spinner = ui.spinner;
-    expect(spinner).toBeNull();
+    expect(ui.spinner).toBeNull();
   });
 
-  it('should succeed a spinner', () => {
+  it('should succeed a spinner (no-op)', () => {
     ui.startSpinner('Testing...');
     ui.succeedSpinner('Done!');
     expect(ui.spinner).toBeNull();
   });
 
-  it('should fail a spinner', () => {
+  it('should fail a spinner (no-op)', () => {
     ui.startSpinner('Testing...');
     ui.failSpinner('Error!');
     expect(ui.spinner).toBeNull();
   });
 
-  it('should stop previous spinner if a new one is started', () => {
-    ui.startSpinner('First');
-    const firstSpinner = ui.spinner;
-    ui.startSpinner('Second');
-    expect(firstSpinner?.stop).toHaveBeenCalled();
-    expect(ora).toHaveBeenCalledWith('Second');
+  it('should handle multiple startSpinner calls without throwing', () => {
+    expect(() => {
+      ui.startSpinner('First');
+      ui.startSpinner('Second');
+    }).not.toThrow();
+    expect(ui.spinner).toBeNull();
   });
 });

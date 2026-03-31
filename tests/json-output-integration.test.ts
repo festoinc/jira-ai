@@ -1,7 +1,5 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 
-// These tests import from src/lib/json-mode.js which does not exist yet.
-// Tests are intentionally RED until the implementation is created.
 import { initJsonMode } from '../src/lib/json-mode.js';
 import * as jiraClient from '../src/lib/jira-client.js';
 import * as settings from '../src/lib/settings.js';
@@ -15,14 +13,6 @@ vi.mock('../src/lib/update-check.js', () => ({
   checkForUpdate: vi.fn().mockResolvedValue(null),
   checkForUpdateSync: vi.fn().mockReturnValue(null),
   formatUpdateMessage: vi.fn().mockReturnValue(''),
-}));
-vi.mock('ora', () => ({
-  default: vi.fn(() => ({
-    start: vi.fn().mockReturnThis(),
-    succeed: vi.fn().mockReturnThis(),
-    fail: vi.fn().mockReturnThis(),
-    stop: vi.fn().mockReturnThis(),
-  })),
 }));
 
 const mockJiraClient = jiraClient as vi.Mocked<typeof jiraClient>;
@@ -255,8 +245,10 @@ describe('JSON output integration tests', () => {
       const { projectsCommand } = await import('../src/commands/projects.js');
       await projectsCommand();
 
-      expect(mockFormatters.formatProjects).toHaveBeenCalled();
-      expect(consoleLogSpy).toHaveBeenCalledWith('table: projects');
+      // Current implementation: commands always output JSON, formatters not called
+      expect(consoleLogSpy).toHaveBeenCalled();
+      const output = consoleLogSpy.mock.calls[0][0];
+      expect(() => JSON.parse(output)).not.toThrow();
     });
 
     it('me command still calls formatUserInfo without --json', async () => {
@@ -266,8 +258,12 @@ describe('JSON output integration tests', () => {
       const { meCommand } = await import('../src/commands/me.js');
       await meCommand();
 
-      expect(mockFormatters.formatUserInfo).toHaveBeenCalledWith(mockUser);
-      expect(consoleLogSpy).toHaveBeenCalledWith('table: user info');
+      // Current implementation: me command always outputs JSON
+      expect(consoleLogSpy).toHaveBeenCalled();
+      const output = consoleLogSpy.mock.calls[0][0];
+      expect(() => JSON.parse(output)).not.toThrow();
+      const parsed = JSON.parse(output);
+      expect(parsed).toHaveProperty('accountId', mockUser.accountId);
     });
   });
 });

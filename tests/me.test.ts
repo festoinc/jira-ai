@@ -1,13 +1,8 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { meCommand } from '../src/commands/me.js';
 import * as jiraClient from '../src/lib/jira-client.js';
-import * as formatters from '../src/lib/formatters.js';
-import * as ui from '../src/lib/ui.js';
-import chalk from 'chalk';
 
 vi.mock('../src/lib/jira-client.js');
-vi.mock('../src/lib/formatters.js');
-vi.mock('../src/lib/ui.js');
 
 describe('meCommand', () => {
   let consoleLogSpy: any;
@@ -15,8 +10,6 @@ describe('meCommand', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-    vi.mocked(ui.ui.startSpinner).mockImplementation(() => {});
-    vi.mocked(ui.ui.succeedSpinner).mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -33,15 +26,15 @@ describe('meCommand', () => {
     };
 
     vi.mocked(jiraClient.getCurrentUser).mockResolvedValue(mockUser);
-    vi.mocked(formatters.formatUserInfo).mockReturnValue('Formatted user info');
 
     await meCommand();
 
-    expect(ui.ui.startSpinner).toHaveBeenCalledWith('Fetching user information...');
     expect(jiraClient.getCurrentUser).toHaveBeenCalled();
-    expect(ui.ui.succeedSpinner).toHaveBeenCalledWith(chalk.green('User information retrieved'));
-    expect(formatters.formatUserInfo).toHaveBeenCalledWith(mockUser);
-    expect(consoleLogSpy).toHaveBeenCalledWith('Formatted user info');
+    const output = consoleLogSpy.mock.calls[0][0];
+    const parsed = JSON.parse(output);
+    expect(parsed).toHaveProperty('displayName', 'John Doe');
+    expect(parsed).toHaveProperty('emailAddress', 'john@example.com');
+    expect(parsed).toHaveProperty('accountId', 'abc123');
   });
 
   it('should handle errors when fetching user information', async () => {
@@ -50,7 +43,6 @@ describe('meCommand', () => {
 
     await expect(meCommand()).rejects.toThrow('Unauthorized');
 
-    expect(ui.ui.startSpinner).toHaveBeenCalledWith('Fetching user information...');
     expect(jiraClient.getCurrentUser).toHaveBeenCalled();
   });
 });

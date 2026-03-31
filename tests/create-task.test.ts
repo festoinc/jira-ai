@@ -8,14 +8,7 @@ import * as settings from '../src/lib/settings.js';
 vi.mock('../src/lib/jira-client.js');
 vi.mock('../src/lib/utils.js');
 vi.mock('../src/lib/settings.js');
-vi.mock('ora', () => ({
-  default: vi.fn(() => ({
-    start: vi.fn().mockReturnThis(),
-    succeed: vi.fn().mockReturnThis(),
-    fail: vi.fn().mockReturnThis(),
-    stop: vi.fn().mockReturnThis()
-  }))
-}));
+
 vi.mock('fs', () => ({
   readFileSync: vi.fn().mockReturnValue('# File Description'),
   existsSync: vi.fn().mockReturnValue(true),
@@ -76,7 +69,10 @@ describe('Create Task Command', () => {
         parent: 'TEST-100',
       })
     );
-    expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Parent: TEST-100'));
+    // outputResult outputs JSON; check that parent is in the JSON output
+    const logCall = (console.log as any).mock.calls[0][0];
+    const parsed = JSON.parse(logCall);
+    expect(parsed).toHaveProperty('parent', 'TEST-100');
   });
 
   it('should throw error when title is empty', async () => {

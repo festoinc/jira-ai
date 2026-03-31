@@ -1,60 +1,19 @@
-import ora, { Ora } from 'ora';
-import { isJsonMode } from './json-mode.js';
-
 class UI {
-  private spinnerInstance: Ora | null = null;
+  private spinnerInstance: null = null;
 
-  startSpinner(message: string): Ora | null {
-    if (isJsonMode()) {
-      return null;
-    }
-    if (this.spinnerInstance) {
-      this.spinnerInstance.stop();
-    }
-    this.spinnerInstance = ora(message).start();
-    return this.spinnerInstance;
+  startSpinner(_message: string): null {
+    return null;
   }
 
-  stopSpinner(): void {
-    if (isJsonMode()) {
-      return;
-    }
-    if (this.spinnerInstance) {
-      this.spinnerInstance.stop();
-      this.spinnerInstance = null;
-    }
-  }
+  stopSpinner(): void {}
 
-  succeedSpinner(message?: string): void {
-    if (isJsonMode()) {
-      return;
-    }
-    if (this.spinnerInstance) {
-      this.spinnerInstance.succeed(message);
-      this.spinnerInstance = null;
-    }
-  }
+  succeedSpinner(_message?: string): void {}
 
-  failSpinner(message?: string): void {
-    if (isJsonMode()) {
-      return;
-    }
-    if (this.spinnerInstance) {
-      this.spinnerInstance.fail(message);
-      this.spinnerInstance = null;
-    }
-  }
+  failSpinner(_message?: string): void {}
 
-  updateSpinner(message: string): void {
-    if (isJsonMode()) {
-      return;
-    }
-    if (this.spinnerInstance) {
-      this.spinnerInstance.text = message;
-    }
-  }
+  updateSpinner(_message: string): void {}
 
-  get spinner(): Ora | null {
+  get spinner(): null {
     return this.spinnerInstance;
   }
 }

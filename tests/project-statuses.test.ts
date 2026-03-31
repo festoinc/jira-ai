@@ -1,14 +1,9 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { projectStatusesCommand } from '../src/commands/project-statuses.js';
 import * as jiraClient from '../src/lib/jira-client.js';
-import * as formatters from '../src/lib/formatters.js';
-import * as ui from '../src/lib/ui.js';
 import * as settings from '../src/lib/settings.js';
-import chalk from 'chalk';
 
 vi.mock('../src/lib/jira-client.js');
-vi.mock('../src/lib/formatters.js');
-vi.mock('../src/lib/ui.js');
 vi.mock('../src/lib/settings.js');
 
 describe('projectStatusesCommand', () => {
@@ -18,8 +13,6 @@ describe('projectStatusesCommand', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-    vi.mocked(ui.ui.startSpinner).mockImplementation(() => {});
-    vi.mocked(ui.ui.succeedSpinner).mockImplementation(() => {});
     mockSettings.isProjectAllowed.mockReturnValue(true);
     mockSettings.isCommandAllowed.mockReturnValue(true);
   });
@@ -36,26 +29,25 @@ describe('projectStatusesCommand', () => {
     ];
 
     vi.mocked(jiraClient.getProjectStatuses).mockResolvedValue(mockStatuses);
-    vi.mocked(formatters.formatProjectStatuses).mockReturnValue('Formatted statuses');
 
     await projectStatusesCommand('PROJ');
 
-    expect(ui.ui.startSpinner).toHaveBeenCalledWith('Fetching statuses for project PROJ...');
     expect(jiraClient.getProjectStatuses).toHaveBeenCalledWith('PROJ');
-    expect(ui.ui.succeedSpinner).toHaveBeenCalledWith(chalk.green('Project statuses retrieved'));
-    expect(formatters.formatProjectStatuses).toHaveBeenCalledWith('PROJ', mockStatuses);
-    expect(consoleLogSpy).toHaveBeenCalledWith('Formatted statuses');
+    const output = consoleLogSpy.mock.calls[0][0];
+    const parsed = JSON.parse(output);
+    expect(parsed).toHaveLength(3);
+    expect(parsed[0]).toHaveProperty('name', 'To Do');
   });
 
   it('should handle empty statuses list', async () => {
     vi.mocked(jiraClient.getProjectStatuses).mockResolvedValue([]);
-    vi.mocked(formatters.formatProjectStatuses).mockReturnValue('No statuses');
 
     await projectStatusesCommand('EMPTY');
 
     expect(jiraClient.getProjectStatuses).toHaveBeenCalledWith('EMPTY');
-    expect(ui.ui.succeedSpinner).toHaveBeenCalledWith(chalk.green('Project statuses retrieved'));
-    expect(consoleLogSpy).toHaveBeenCalledWith('No statuses');
+    const output = consoleLogSpy.mock.calls[0][0];
+    const parsed = JSON.parse(output);
+    expect(parsed).toHaveLength(0);
   });
 
   it('should handle errors when fetching statuses', async () => {
@@ -64,7 +56,6 @@ describe('projectStatusesCommand', () => {
 
     await expect(projectStatusesCommand('INVALID')).rejects.toThrow('Project not found');
 
-    expect(ui.ui.startSpinner).toHaveBeenCalledWith('Fetching statuses for project INVALID...');
     expect(jiraClient.getProjectStatuses).toHaveBeenCalledWith('INVALID');
   });
 });

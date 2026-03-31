@@ -6,16 +6,6 @@ import { CommandError } from '../src/lib/errors.js';
 
 // Mock dependencies
 vi.mock('../src/lib/jira-client.js');
-vi.mock('ora', () => {
-  return {
-    default: vi.fn(() => ({
-      start: vi.fn().mockReturnThis(),
-      succeed: vi.fn().mockReturnThis(),
-      fail: vi.fn().mockReturnThis(),
-      stop: vi.fn().mockReturnThis(),
-    })),
-  };
-});
 
 const mockJiraClient = jiraClient as vi.Mocked<typeof jiraClient>;
 
@@ -28,9 +18,10 @@ describe('Label Commands', () => {
     vi.clearAllMocks();
     console.log = vi.fn();
     console.error = vi.fn();
-    
+
     mockJiraClient.addIssueLabels = vi.fn().mockResolvedValue(undefined);
     mockJiraClient.removeIssueLabels = vi.fn().mockResolvedValue(undefined);
+    mockJiraClient.validateIssuePermissions = vi.fn().mockResolvedValue({} as any);
   });
 
   describe('add-label-to-issue', () => {
@@ -41,7 +32,12 @@ describe('Label Commands', () => {
         mockTaskId,
         mockLabelsArray
       );
-      expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Labels: bug, critical'));
+      // outputResult outputs JSON; parse and check labels
+      const logCall = (console.log as any).mock.calls[0][0];
+      const parsed = JSON.parse(logCall);
+      expect(parsed).toHaveProperty('success', true);
+      expect(parsed).toHaveProperty('issueKey', mockTaskId);
+      expect(parsed.labels).toEqual(mockLabelsArray);
     });
 
     it('should throw error when task ID is empty', async () => {
@@ -73,7 +69,11 @@ describe('Label Commands', () => {
         mockTaskId,
         mockLabelsArray
       );
-      expect(console.log).toHaveBeenCalledWith(expect.stringContaining('Labels: bug, critical'));
+      const logCall = (console.log as any).mock.calls[0][0];
+      const parsed = JSON.parse(logCall);
+      expect(parsed).toHaveProperty('success', true);
+      expect(parsed).toHaveProperty('issueKey', mockTaskId);
+      expect(parsed.labels).toEqual(mockLabelsArray);
     });
 
     it('should throw error when task ID is empty', async () => {
