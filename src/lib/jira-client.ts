@@ -178,7 +178,14 @@ export interface TaskDetails {
   parent?: LinkedIssue;
   subtasks: LinkedIssue[];
   history?: HistoryEntry[];
-  watchers?: string[]; // Array of accountIds
+  watchers?: string[];
+  attachments?: Array<{
+    id: string;
+    filename: string;
+    size: number;
+    author: string;
+    created: string;
+  }>;
 }
 
 export interface HistoryOptions {
@@ -332,6 +339,7 @@ export async function getTaskWithDetails(
       'issuetype',
       'priority',
       'resolution',
+      'attachment',
     ],
   });
 
@@ -407,11 +415,16 @@ export async function getTaskWithDetails(
   // Extract watchers
   const watchers: string[] = [];
   if (issue.fields.watches?.isWatching) {
-    // If we only need to know if the current user is watching, isWatching is enough.
-    // But the requirement might mean "any of these roles".
-    // For now, if isWatching is true, we add current user's accountId (placeholder)
-    // Actually, we can fetch watchers detail if needed, but Jira's getIssue returns watches info for current user.
   }
+
+  // Extract attachments
+  const attachments = (issue.fields.attachment || []).map((att: any) => ({
+    id: att.id,
+    filename: att.filename,
+    size: att.size,
+    author: att.author?.displayName || 'Unknown',
+    created: att.created,
+  }));
 
   return {
     id: issue.id || '',
@@ -441,7 +454,8 @@ export async function getTaskWithDetails(
     parent,
     subtasks,
     history,
-    watchers: issue.fields.watches?.isWatching ? ['CURRENT_USER'] : [], // Simple flag for now
+    watchers: issue.fields.watches?.isWatching ? ['CURRENT_USER'] : [],
+    attachments,
   };
 }
 
@@ -1497,7 +1511,7 @@ export async function downloadAttachment(
   const destPath = outputPath || path.join(process.cwd(), safeFilename);
 
   const content = await client.issueAttachments.getAttachmentContent(attachmentId);
-  fs.writeFileSync(destPath, Buffer.from(content as ArrayBuffer));
+  fs.writeFileSync(destPath, Buffer.from(content as unknown as ArrayBuffer));
 
   return destPath;
 }
