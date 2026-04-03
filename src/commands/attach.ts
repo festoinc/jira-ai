@@ -22,7 +22,7 @@ export async function uploadAttachmentCommand(
     throw new CommandError('At least one file path is required');
   }
 
-  await validateIssuePermissions(issueKey, 'issue');
+  await validateIssuePermissions(issueKey, 'issue.attach.upload');
 
   try {
     const attachments = await addIssueAttachment(issueKey, filePaths);
@@ -51,7 +51,7 @@ export async function listAttachmentsCommand(issueKey: string): Promise<void> {
   }
   validateOptions(IssueKeySchema, issueKey);
 
-  await validateIssuePermissions(issueKey, 'issue');
+  await validateIssuePermissions(issueKey, 'issue.attach.list');
 
   try {
     const attachments = await getIssueAttachments(issueKey);
@@ -86,7 +86,7 @@ export async function downloadAttachmentCommand(
     throw new CommandError('Attachment ID is required');
   }
 
-  await validateIssuePermissions(issueKey, 'issue');
+  await validateIssuePermissions(issueKey, 'issue.attach.download');
 
   try {
     const savedPath = await downloadAttachment(issueKey, attachmentId, outputPath);
@@ -120,7 +120,7 @@ export async function deleteAttachmentCommand(
     throw new CommandError('Attachment ID is required');
   }
 
-  await validateIssuePermissions(issueKey, 'issue');
+  await validateIssuePermissions(issueKey, 'issue.attach.delete');
 
   try {
     await deleteAttachment(issueKey, attachmentId);

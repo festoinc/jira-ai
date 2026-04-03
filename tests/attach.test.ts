@@ -54,7 +54,7 @@ describe('uploadAttachmentCommand', () => {
 
     await uploadAttachmentCommand('PROJ-1', ['/tmp/screenshot.png']);
 
-    expect(mockJiraClient.validateIssuePermissions).toHaveBeenCalledWith('PROJ-1', 'issue');
+    expect(mockJiraClient.validateIssuePermissions).toHaveBeenCalledWith('PROJ-1', 'issue.attach.upload');
     expect(mockJiraClient.addIssueAttachment).toHaveBeenCalledWith('PROJ-1', ['/tmp/screenshot.png']);
     const output = consoleLogSpy.mock.calls[0][0];
     const parsed = JSON.parse(output);
@@ -134,7 +134,7 @@ describe('listAttachmentsCommand', () => {
 
     await listAttachmentsCommand('PROJ-1');
 
-    expect(mockJiraClient.validateIssuePermissions).toHaveBeenCalledWith('PROJ-1', 'issue');
+    expect(mockJiraClient.validateIssuePermissions).toHaveBeenCalledWith('PROJ-1', 'issue.attach.list');
     expect(mockJiraClient.getIssueAttachments).toHaveBeenCalledWith('PROJ-1');
     const output = consoleLogSpy.mock.calls[0][0];
     const parsed = JSON.parse(output);
@@ -196,7 +196,7 @@ describe('downloadAttachmentCommand', () => {
 
     await downloadAttachmentCommand('PROJ-1', 'att-001');
 
-    expect(mockJiraClient.validateIssuePermissions).toHaveBeenCalledWith('PROJ-1', 'issue');
+    expect(mockJiraClient.validateIssuePermissions).toHaveBeenCalledWith('PROJ-1', 'issue.attach.download');
     expect(mockJiraClient.downloadAttachment).toHaveBeenCalledWith('PROJ-1', 'att-001', undefined);
     const output = consoleLogSpy.mock.calls[0][0];
     const parsed = JSON.parse(output);
@@ -263,7 +263,7 @@ describe('deleteAttachmentCommand', () => {
 
     await deleteAttachmentCommand('PROJ-1', 'att-001');
 
-    expect(mockJiraClient.validateIssuePermissions).toHaveBeenCalledWith('PROJ-1', 'issue');
+    expect(mockJiraClient.validateIssuePermissions).toHaveBeenCalledWith('PROJ-1', 'issue.attach.delete');
     expect(mockJiraClient.deleteAttachment).toHaveBeenCalledWith('PROJ-1', 'att-001');
     const output = consoleLogSpy.mock.calls[0][0];
     const parsed = JSON.parse(output);

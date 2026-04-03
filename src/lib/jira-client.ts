@@ -1491,9 +1491,10 @@ export async function downloadAttachment(
   });
   const attachments: any[] = issue.fields?.attachment || [];
   const meta = attachments.find((a: any) => a.id === attachmentId);
-  const filename = meta?.filename || attachmentId;
+  const rawFilename = meta?.filename || attachmentId;
+  const safeFilename = path.basename(rawFilename).replace(/\.\./g, '');
 
-  const destPath = outputPath || path.join(process.cwd(), filename);
+  const destPath = outputPath || path.join(process.cwd(), safeFilename);
 
   const content = await client.issueAttachments.getAttachmentContent(attachmentId);
   fs.writeFileSync(destPath, Buffer.from(content as ArrayBuffer));
