@@ -1392,3 +1392,122 @@ export async function getAvailableLinkTypes(): Promise<IssueLinkType[]> {
 }
 
 export const getEpics = listEpics;
+
+// =============================================================================
+// ATTACHMENT FUNCTIONS
+// =============================================================================
+
+export interface AttachmentInfo {
+  id: string;
+  filename: string;
+  mimeType: string;
+  size: number;
+  created: string;
+  author: {
+    displayName: string;
+    emailAddress?: string;
+  };
+  content: string;
+}
+
+/**
+ * Upload one or more files as attachments to a Jira issue
+ */
+export async function addIssueAttachment(
+  issueKey: string,
+  filePaths: string[]
+): Promise<AttachmentInfo[]> {
+  const client = getJiraClient();
+  const fs = await import('fs');
+  const path = await import('path');
+
+  const attachments = filePaths.map((filePath) => ({
+    filename: path.basename(filePath),
+    file: fs.readFileSync(filePath) as Buffer,
+  }));
+
+  const result = await client.issueAttachments.addAttachment({
+    issueIdOrKey: issueKey,
+    attachment: attachments,
+  });
+
+  const items: any[] = Array.isArray(result) ? result : [result];
+  return items.map((att: any) => ({
+    id: att.id || '',
+    filename: att.filename || '',
+    mimeType: att.mimeType || '',
+    size: att.size || 0,
+    created: att.created || '',
+    author: {
+      displayName: att.author?.displayName || '',
+      emailAddress: att.author?.emailAddress,
+    },
+    content: att.content || '',
+  }));
+}
+
+/**
+ * List all attachments for a Jira issue
+ */
+export async function getIssueAttachments(issueKey: string): Promise<AttachmentInfo[]> {
+  const client = getJiraClient();
+  const issue = await client.issues.getIssue({
+    issueIdOrKey: issueKey,
+    fields: ['attachment'],
+  });
+
+  const attachments: any[] = issue.fields?.attachment || [];
+  return attachments.map((att: any) => ({
+    id: att.id || '',
+    filename: att.filename || '',
+    mimeType: att.mimeType || '',
+    size: att.size || 0,
+    created: att.created || '',
+    author: {
+      displayName: att.author?.displayName || '',
+      emailAddress: att.author?.emailAddress,
+    },
+    content: att.content || '',
+  }));
+}
+
+/**
+ * Download an attachment by ID, saving to outputPath (or current dir if not specified)
+ * Returns the path where the file was saved
+ */
+export async function downloadAttachment(
+  issueKey: string,
+  attachmentId: string,
+  outputPath?: string
+): Promise<string> {
+  const client = getJiraClient();
+  const fs = await import('fs');
+  const path = await import('path');
+
+  // Get attachment metadata to find the filename
+  const issue = await client.issues.getIssue({
+    issueIdOrKey: issueKey,
+    fields: ['attachment'],
+  });
+  const attachments: any[] = issue.fields?.attachment || [];
+  const meta = attachments.find((a: any) => a.id === attachmentId);
+  const filename = meta?.filename || attachmentId;
+
+  const destPath = outputPath || path.join(process.cwd(), filename);
+
+  const content = await client.issueAttachments.getAttachmentContent(attachmentId);
+  fs.writeFileSync(destPath, Buffer.from(content as ArrayBuffer));
+
+  return destPath;
+}
+
+/**
+ * Delete an attachment by ID
+ */
+export async function deleteAttachment(
+  issueKey: string,
+  attachmentId: string
+): Promise<void> {
+  const client = getJiraClient();
+  await client.issueAttachments.removeAttachment(attachmentId);
+}

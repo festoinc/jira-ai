@@ -22,6 +22,12 @@ import { listLinkTypesCommand } from './commands/list-link-types.js';
 import { createTaskCommand } from './commands/create-task.js';
 import { transitionCommand, listTransitionsCommand } from './commands/transition.js';
 import { issueAssignCommand } from './commands/issue.js';
+import {
+  uploadAttachmentCommand,
+  listAttachmentsCommand,
+  downloadAttachmentCommand,
+  deleteAttachmentCommand,
+} from './commands/attach.js';
 import { getIssueStatisticsCommand } from './commands/get-issue-statistics.js';
 import { getPersonWorklogCommand } from './commands/get-person-worklog.js';
 import { isCommandAllowed, getAllowedCommands } from './lib/settings.js';
@@ -99,6 +105,8 @@ import {
   SprintIssuesSchema,
   SprintMoveSchema,
   BacklogMoveSchema,
+  AttachUploadSchema,
+  AttachDownloadSchema,
 } from './lib/validation.js';
 import { realpathSync } from 'fs';
 
@@ -379,6 +387,51 @@ issueLink
   .command('types')
   .description('List all available issue link types for the Jira instance.')
   .action(withPermission('issue.link.types', listLinkTypesCommand));
+
+// Issue attach subcommands
+const issueAttach = issue
+  .command('attach')
+  .description('Manage issue attachments');
+
+issueAttach
+  .command('upload <issue-key>')
+  .description('Upload one or more files as attachments to a Jira issue.')
+  .requiredOption('--file <path...>', 'File path(s) to upload (repeatable)')
+  .action(withPermission('issue.attach.upload', (issueKey: string, options: { file: string[] }) => {
+    return uploadAttachmentCommand(issueKey, options.file);
+  }, {
+    schema: AttachUploadSchema,
+    validateArgs: (args) => validateOptions(IssueKeySchema, args[0])
+  }));
+
+issueAttach
+  .command('list <issue-key>')
+  .description('List all attachments for a Jira issue.')
+  .action(withPermission('issue.attach.list', listAttachmentsCommand, {
+    validateArgs: (args) => validateOptions(IssueKeySchema, args[0])
+  }));
+
+issueAttach
+  .command('download <issue-key>')
+  .description('Download an attachment from a Jira issue.')
+  .requiredOption('--id <attachment-id>', 'Attachment ID to download')
+  .option('--output <path>', 'Output file path (defaults to attachment filename in current directory)')
+  .action(withPermission('issue.attach.download', (issueKey: string, options: { id: string; output?: string }) => {
+    return downloadAttachmentCommand(issueKey, options.id, options.output);
+  }, {
+    schema: AttachDownloadSchema,
+    validateArgs: (args) => validateOptions(IssueKeySchema, args[0])
+  }));
+
+issueAttach
+  .command('delete <issue-key>')
+  .description('Delete an attachment from a Jira issue.')
+  .requiredOption('--id <attachment-id>', 'Attachment ID to delete')
+  .action(withPermission('issue.attach.delete', (issueKey: string, options: { id: string }) => {
+    return deleteAttachmentCommand(issueKey, options.id);
+  }, {
+    validateArgs: (args) => validateOptions(IssueKeySchema, args[0])
+  }));
 
 // =============================================================================
 // PROJECT COMMANDS
