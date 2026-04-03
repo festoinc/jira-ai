@@ -299,3 +299,16 @@ export const BacklogMoveSchema = z.object({
   issues: z.array(z.string().trim().min(1)).min(1, 'At least one issue key is required'),
 });
 
+// =============================================================================
+// ATTACHMENT VALIDATION SCHEMAS
+// =============================================================================
+
+export const AttachUploadSchema = z.object({
+  file: z.array(z.string().trim().min(1, 'File path is required')).min(1, 'At least one file path is required'),
+});
+
+export const AttachDownloadSchema = z.object({
+  id: z.string().trim().min(1, 'Attachment ID is required'),
+  output: z.string().trim().optional(),
+});
+

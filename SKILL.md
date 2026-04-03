@@ -51,7 +51,7 @@ Errors are returned as structured JSON to stdout:
 ## Command Overview
 
 ### Issues
-- `issue get <issue-id>`: Retrieve issue details.
+- `issue get <issue-id>`: Retrieve issue details. Response includes an `attachments` array with id, filename, size, author, and created timestamp.
 - `issue create`: Create a new issue. Supports `--title`, `--project`, `--issue-type`, `--parent` (for subtasks), `--priority`, `--description`, `--description-file`, `--labels`, `--component`, `--fix-version`, `--due-date`, `--assignee`, `--custom-field`.
 - `issue search <jql>`: Execute JQL search.
 - `issue transition <issue-id> <status>`: Change issue status. Supports `--resolution <name>`, `--comment <text>`, `--comment-file <path>`, `--assignee <email-or-name>`, `--fix-version <name>`, `--custom-field "Field Name=value"`.
@@ -64,6 +64,10 @@ Errors are returned as structured JSON to stdout:
 - `issue link list <issue-key>`: List all links (inward + outward) for an issue.
 - `issue link create <source-key> <link-type> <target-key>`: Create a link between two issues (e.g., `"Blocks"`, `"Relates"`).
 - `issue link delete <source-key> --target <target-key>`: Delete a link between two issues.
+- `issue attach upload <issue-key> --file <path> [--file <path>]...`: Upload one or more files as attachments. Returns attachment metadata (id, filename, size, mimeType, author, created).
+- `issue attach list <issue-key>`: List all attachments on an issue with metadata (id, filename, size, author, created).
+- `issue attach download <issue-key> --id <attachment-id> [--output <path>]`: Download an attachment by ID. Saves to the specified path, or defaults to the attachment filename in the current directory.
+- `issue attach delete <issue-key> --id <attachment-id>`: Remove an attachment from an issue.
 
 ### Projects & Users
 - `project list`: List accessible projects.
