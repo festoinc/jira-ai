@@ -140,6 +140,8 @@ export const UpdateDescriptionSchema = z.object({
 
 export const RunJqlSchema = z.object({
   limit: NumericStringSchema.optional(),
+  query: z.string().optional(),
+  listQueries: z.boolean().optional(),
 });
 
 export const TimeframeSchema = z.string().regex(/^\d+d$/, 'Timeframe must be in format like "7d" or "30d"');
