@@ -49,6 +49,40 @@ Errors are returned as structured JSON to stdout:
 { "error": true, "message": "Issue not found", "hints": ["Check the issue key"], "exitCode": 1 }
 ```
 
+### Issue Hierarchy Tree
+
+Explore issue hierarchies with the `issue tree` command. It returns a directed graph (nodes + edges) representing the full parent-child hierarchy starting from a given issue:
+
+```bash
+jira-ai issue tree PROJ-10
+```
+
+Include linked issues as leaf nodes:
+
+```bash
+jira-ai issue tree PROJ-10 --links
+```
+
+Filter linked issues by type and limit depth:
+
+```bash
+jira-ai issue tree PROJ-10 --links --types "Blocks,Relates" --depth 2 --max-nodes 100
+```
+
+### Sprint Hierarchy Tree
+
+View all issues in a sprint organized by their hierarchy (epics → stories → subtasks):
+
+```bash
+jira-ai sprint tree 42
+```
+
+Customize traversal depth and node limit:
+
+```bash
+jira-ai sprint tree 42 --depth 4 --max-nodes 500
+```
+
 ### Rich Issue Management
 
 Create issues with detailed field support:

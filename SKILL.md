@@ -64,6 +64,7 @@ Errors are returned as structured JSON to stdout:
 - `issue link list <issue-key>`: List all links (inward + outward) for an issue.
 - `issue link create <source-key> <link-type> <target-key>`: Create a link between two issues (e.g., `"Blocks"`, `"Relates"`).
 - `issue link delete <source-key> --target <target-key>`: Delete a link between two issues.
+- `issue tree <issue-key>`: Show the full issue hierarchy tree rooted at an issue (epic → story → subtasks). Use `--links` to include linked issues as leaf nodes, `--depth N` (default 3) to limit traversal depth, `--max-nodes N` (default 200) to cap nodes, `--types TYPES` to filter link types. Returns `{ root, nodes, edges, depth, truncated, totalNodes }`.
 - `issue attach upload <issue-key> --file <path> [--file <path>]...`: Upload one or more files as attachments. Returns attachment metadata (id, filename, size, mimeType, author, created).
 - `issue attach list <issue-key>`: List all attachments on an issue with metadata (id, filename, size, author, created).
 - `issue attach download <issue-key> --id <attachment-id> [--output <path>]`: Download an attachment by ID. Saves to the specified path, or defaults to the attachment filename in the current directory.
@@ -100,6 +101,7 @@ Errors are returned as structured JSON to stdout:
 - `sprint delete <sprint-id>`: Delete a sprint.
 - `sprint issues <sprint-id>`: List issues in a sprint (`--jql`, `--max`).
 - `sprint move <sprint-id> --issues <keys>`: Move issues to a sprint.
+- `sprint tree <sprint-id>`: Show all issues in a sprint organized by hierarchy (epics → stories → subtasks). Use `--depth N` (default 3) and `--max-nodes N` (default 200). Returns `{ root, nodes, edges, depth, truncated, totalNodes }` with a virtual sprint root node.
 - `backlog move --issues <keys>`: Move issues to the backlog.
 
 ### Saved Queries

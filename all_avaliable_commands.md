@@ -29,6 +29,7 @@
 | `issue assign <issue-id> <account-id>` | Assign or reassign a Jira issue to a user. Use "null" to unassign. |
 | `issue label add <issue-id> <labels>` | Add one or more labels (comma-separated) to a Jira issue. |
 | `issue label remove <issue-id> <labels>` | Remove one or more labels (comma-separated) from a Jira issue. |
+| `issue tree <issue-key>` | Show the full issue hierarchy tree rooted at an issue (epic → story → subtasks). Use `--links` to include linked issues, `--depth N` (default 3) to limit traversal depth, `--max-nodes N` (default 200) to cap total nodes, and `--types TYPES` to filter link types. |
 
 ## Saved Queries
 
@@ -115,6 +116,95 @@ jira-ai issue link delete PROJ-123 --target PROJ-456
 ### Permissions
 
 Issue link commands use hierarchical permission keys. If `issue` is in your `allowed-commands` list, all `issue.link.*` commands are implicitly allowed. You can also use `issue.link` to allow only link commands, or specify individual keys: `issue.link.types`, `issue.link.list`, `issue.link.create`, `issue.link.delete`.
+
+## Tree Commands
+
+### `issue tree`
+
+Show the full issue hierarchy tree rooted at an issue, including subtasks and optionally linked issues.
+
+```bash
+jira-ai issue tree <issue-key> [options]
+```
+
+**Permission:** `issue.tree`
+
+| Flag | Description | Default |
+| :--- | :--- | :--- |
+| `--links` | Include linked issues as leaf nodes connected to the root issue. | `false` |
+| `--depth <N>` | Maximum traversal depth for the hierarchy walk. | `3` |
+| `--max-nodes <N>` | Maximum number of nodes to include in the tree. | `200` |
+| `--types <TYPES>` | Comma-separated link type names to include (requires `--links`). | — |
+| `--compact` | Single-line JSON output (global flag). | `false` |
+
+**Output fields:**
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `root` | `string` | The root issue key. |
+| `nodes` | `TreeNode[]` | Flat list of all nodes in the tree. Each node has `key`, `summary`, `status`, `type`, `priority`, and `assignee`. |
+| `edges` | `TreeEdge[]` | Directed edges between nodes. Each edge has `from`, `to`, and `relation` (`"hierarchy"`, `"subtask"`, or a link type name). |
+| `depth` | `number` | Actual depth traversed (may be less than requested). |
+| `truncated` | `boolean` | `true` if `maxNodes` limit was hit before full traversal. |
+| `totalNodes` | `number` | Total number of nodes in the result. |
+
+#### Examples
+
+Basic hierarchy tree:
+
+```bash
+jira-ai issue tree PROJ-10
+```
+
+Include linked issues:
+
+```bash
+jira-ai issue tree PROJ-10 --links
+```
+
+Filter linked issues by type, limit depth and nodes:
+
+```bash
+jira-ai issue tree PROJ-10 --links --types "Blocks,Relates" --depth 2 --max-nodes 100
+```
+
+Compact output for maximum token efficiency:
+
+```bash
+jira-ai --compact issue tree PROJ-10
+```
+
+### `sprint tree`
+
+Show all issues in a sprint organized by their hierarchy (epics → stories → subtasks).
+
+```bash
+jira-ai sprint tree <sprint-id> [options]
+```
+
+**Permission:** `sprint.tree`
+
+| Flag | Description | Default |
+| :--- | :--- | :--- |
+| `--depth <N>` | Maximum traversal depth for the hierarchy walk. | `3` |
+| `--max-nodes <N>` | Maximum number of nodes to include (the virtual sprint root does not count). | `200` |
+| `--compact` | Single-line JSON output (global flag). | `false` |
+
+The output uses the same `TreeResult` structure as `issue tree`. The root is always a virtual sprint node (e.g., `"sprint-42"`). Issues whose parent is outside the sprint are connected directly to the sprint root.
+
+#### Examples
+
+Full sprint hierarchy:
+
+```bash
+jira-ai sprint tree 42
+```
+
+Increase depth for deeply nested hierarchies:
+
+```bash
+jira-ai sprint tree 42 --depth 5 --max-nodes 500
+```
 
 ## Issue Create Examples
 
@@ -298,6 +388,7 @@ jira-ai project fields PROJ --search "priority"
 | `sprint delete <sprint-id>` | Delete a sprint. |
 | `sprint issues <sprint-id>` | List issues in a sprint. Optional `--jql <query>` and `--max <n>` (default 50). |
 | `sprint move <sprint-id>` | Move issues to a sprint. Requires `--issues <keys>` (max 50). Optional: `--before <key>`, `--after <key>` for ranking. |
+| `sprint tree <sprint-id>` | Show all issues in a sprint organized by hierarchy (epics → stories → subtasks). Use `--depth N` (default 3) to limit traversal depth and `--max-nodes N` (default 200) to cap total nodes. |
 
 ## Backlog Commands (`backlog`)
 
