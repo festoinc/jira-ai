@@ -39,6 +39,7 @@ export async function buildIssueTree(issueKey: string, options: IssueTreeOptions
         priority: null,
         assignee: null,
       });
+      edges.push({ from: parentKey, to: root.key, relation: 'hierarchy' });
     }
   }
 
@@ -71,7 +72,7 @@ export async function buildIssueTree(issueKey: string, options: IssueTreeOptions
     }
 
     const jql = applyGlobalFilters(`parent in (${currentLevel.join(',')})`);
-    const children = await searchIssuesByJql(jql, 1000);
+    const children = await searchIssuesByJql(jql, 1000, ['issuetype', 'parent']);
 
     const nextLevel: string[] = [];
 
@@ -87,7 +88,7 @@ export async function buildIssueTree(issueKey: string, options: IssueTreeOptions
         key: child.key,
         summary: child.summary,
         status: child.status.name,
-        type: (child as any).issuetype?.name || 'Unknown',
+        type: child.issuetype?.name || 'Unknown',
         priority: child.priority?.name || null,
         assignee: child.assignee?.displayName || null,
       });
@@ -97,7 +98,7 @@ export async function buildIssueTree(issueKey: string, options: IssueTreeOptions
       if (currentLevel.length === 1) {
         parentKey = currentLevel[0];
       } else {
-        parentKey = (child as any).parent?.key;
+        parentKey = child.parent?.key;
       }
       if (parentKey) {
         edges.push({ from: parentKey, to: child.key, relation: 'subtask' });
@@ -135,7 +136,7 @@ export async function buildIssueTree(issueKey: string, options: IssueTreeOptions
           key: linkedIssue.key,
           summary: linkedIssue.summary || '',
           status: linkedIssue.status?.name || 'Unknown',
-          type: (linkedIssue as any).issuetype?.name || 'Unknown',
+          type: linkedIssue.issuetype?.name || 'Unknown',
           priority: null,
           assignee: null,
         });
@@ -188,10 +189,21 @@ export async function buildSprintTree(sprintId: string, options: SprintTreeOptio
 
   const visited = new Set<string>([sprintRootKey]);
 
+  // Build parent-to-children index once to avoid O(n^2) inner loop in BFS
+  const parentToChildren = new Map<string, string[]>();
+  for (const issue of issues) {
+    const parentKey = issue.fields.parent?.key;
+    if (parentKey && issueMap.has(parentKey)) {
+      const siblings = parentToChildren.get(parentKey) ?? [];
+      siblings.push(issue.key);
+      parentToChildren.set(parentKey, siblings);
+    }
+  }
+
   // Seed BFS with top-level issues: those whose parent is absent or outside the sprint
   let queue: Array<{ key: string; d: number }> = [];
   for (const issue of issues) {
-    const parentKey = (issue.fields as any).parent?.key;
+    const parentKey = issue.fields.parent?.key;
     if (!parentKey || !issueMap.has(parentKey)) {
       queue.push({ key: issue.key, d: 1 });
     }
@@ -213,7 +225,7 @@ export async function buildSprintTree(sprintId: string, options: SprintTreeOptio
       if (!issue) continue;
 
       visited.add(key);
-      const fields = issue.fields as any;
+      const fields = issue.fields;
       nodes.push({
         key: issue.key,
         summary: fields.summary || '',
@@ -231,11 +243,11 @@ export async function buildSprintTree(sprintId: string, options: SprintTreeOptio
         edges.push({ from: sprintRootKey, to: key, relation: 'hierarchy' });
       }
 
-      // Enqueue children (issues in sprint whose parent is this issue)
-      for (const childIssue of issues) {
-        const childParentKey = (childIssue.fields as any).parent?.key;
-        if (childParentKey === key && !visited.has(childIssue.key)) {
-          next.push({ key: childIssue.key, d: d + 1 });
+      // Enqueue children using the pre-built index
+      const childKeys = parentToChildren.get(key) ?? [];
+      for (const childKey of childKeys) {
+        if (!visited.has(childKey)) {
+          next.push({ key: childKey, d: d + 1 });
         }
       }
     }

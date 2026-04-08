@@ -72,6 +72,8 @@ export interface BoardIssueFields {
   status: { name: string };
   assignee?: { displayName: string } | null;
   priority?: { name: string };
+  issuetype?: { name: string };
+  parent?: { key: string };
 }
 
 export interface BoardIssue {

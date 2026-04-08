@@ -112,12 +112,14 @@ export interface IssueLink {
     key: string;
     summary: string;
     status: { name: string };
+    issuetype?: { name: string };
   };
   outwardIssue?: {
     id: string;
     key: string;
     summary: string;
     status: { name: string };
+    issuetype?: { name: string };
   };
 }
 
@@ -206,6 +208,12 @@ export interface JqlIssue {
   priority: {
     name: string;
   } | null;
+  issuetype?: {
+    name: string;
+  };
+  parent?: {
+    key: string;
+  };
 }
 
 export interface IssueType {
@@ -496,15 +504,16 @@ export async function getProjectStatuses(projectIdOrKey: string): Promise<Status
 /**
  * Search for issues using JQL query
  */
-export async function searchIssuesByJql(jqlQuery: string, maxResults: number): Promise<JqlIssue[]> {
+export async function searchIssuesByJql(jqlQuery: string, maxResults: number, extraFields?: string[]): Promise<JqlIssue[]> {
   const client = getJiraClient();
 
   const filteredJql = applyGlobalFilters(jqlQuery);
+  const fields = ['summary', 'status', 'assignee', 'priority', ...(extraFields ?? [])];
 
   const response = await client.issueSearch.searchForIssuesUsingJqlEnhancedSearch({
     jql: filteredJql,
     maxResults,
-    fields: ['summary', 'status', 'assignee', 'priority'],
+    fields,
   });
 
   return response.issues?.map((issue: any) => ({
@@ -519,6 +528,12 @@ export async function searchIssuesByJql(jqlQuery: string, maxResults: number): P
     priority: issue.fields?.priority ? {
       name: issue.fields.priority.name || 'Unknown',
     } : null,
+    issuetype: issue.fields?.issuetype ? {
+      name: issue.fields.issuetype.name || 'Unknown',
+    } : undefined,
+    parent: issue.fields?.parent ? {
+      key: issue.fields.parent.key || '',
+    } : undefined,
   })) || [];
 }
 
@@ -1342,7 +1357,7 @@ export async function getIssueLinks(issueIdOrKey: string): Promise<IssueLink[]> 
 
   const issue = await client.issues.getIssue({
     issueIdOrKey,
-    fields: ['issuelinks'],
+    fields: ['issuelinks', 'issuetype'],
   });
 
   const raw: any[] = issue.fields?.issuelinks ?? [];
@@ -1361,6 +1376,9 @@ export async function getIssueLinks(issueIdOrKey: string): Promise<IssueLink[]> 
           key: link.inwardIssue.key,
           summary: link.inwardIssue.fields?.summary ?? '',
           status: { name: link.inwardIssue.fields?.status?.name ?? '' },
+          issuetype: link.inwardIssue.fields?.issuetype
+            ? { name: link.inwardIssue.fields.issuetype.name ?? 'Unknown' }
+            : undefined,
         }
       : undefined,
     outwardIssue: link.outwardIssue
@@ -1369,6 +1387,9 @@ export async function getIssueLinks(issueIdOrKey: string): Promise<IssueLink[]> 
           key: link.outwardIssue.key,
           summary: link.outwardIssue.fields?.summary ?? '',
           status: { name: link.outwardIssue.fields?.status?.name ?? '' },
+          issuetype: link.outwardIssue.fields?.issuetype
+            ? { name: link.outwardIssue.fields.issuetype.name ?? 'Unknown' }
+            : undefined,
         }
       : undefined,
   }));

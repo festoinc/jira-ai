@@ -88,7 +88,7 @@ describe('Issue Link Client Functions', () => {
 
       const links = await getIssueLinks('PROJ-3');
 
-      expect(mockGetIssue).toHaveBeenCalledWith({ issueIdOrKey: 'PROJ-3', fields: ['issuelinks'] });
+      expect(mockGetIssue).toHaveBeenCalledWith({ issueIdOrKey: 'PROJ-3', fields: ['issuelinks', 'issuetype'] });
       expect(links).toHaveLength(1);
       expect(links[0].id).toBe('link-1');
       expect(links[0].type.name).toBe('Blocks');

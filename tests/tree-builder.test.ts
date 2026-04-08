@@ -154,7 +154,8 @@ describe('buildIssueTree', () => {
     // Should have been called with a JQL that includes "parent in"
     expect(mockJiraClient.searchIssuesByJql).toHaveBeenCalledWith(
       expect.stringContaining('parent in'),
-      expect.any(Number)
+      expect.any(Number),
+      ['issuetype', 'parent']
     );
   });
 
