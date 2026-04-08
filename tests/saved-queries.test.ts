@@ -107,11 +107,10 @@ describe('runJqlCommand with --query option', () => {
     settingsMod.__resetCache__();
   });
 
-  it('resolves saved query name and executes JQL with global filters', async () => {
+  it('resolves saved query name and passes JQL to searchIssuesByJql', async () => {
     const mockIssues = [{ key: 'PS-1', fields: { summary: 'Bug 1' } }];
     vi.mocked(jiraClient.searchIssuesByJql).mockResolvedValue(mockIssues);
     vi.spyOn(settingsMod, 'getSavedQuery').mockReturnValue('project = PS AND type = Bug AND status != Done');
-    vi.spyOn(settingsMod, 'applyGlobalFilters').mockImplementation((jql) => jql);
 
     await runJqlCommand('', { query: 'production-bugs' });
 
@@ -121,19 +120,16 @@ describe('runJqlCommand with --query option', () => {
     );
   });
 
-  it('applies applyGlobalFilters to saved query JQL', async () => {
+  it('does not double-apply global filters (searchIssuesByJql handles filtering)', async () => {
     const mockIssues: any[] = [];
     vi.mocked(jiraClient.searchIssuesByJql).mockResolvedValue(mockIssues);
     vi.spyOn(settingsMod, 'getSavedQuery').mockReturnValue('type = Bug');
-    vi.spyOn(settingsMod, 'applyGlobalFilters').mockReturnValue('(project = "PS") AND (type = Bug)');
+    const filterSpy = vi.spyOn(settingsMod, 'applyGlobalFilters');
 
     await runJqlCommand('', { query: 'my-bugs' });
 
-    expect(settingsMod.applyGlobalFilters).toHaveBeenCalledWith('type = Bug');
-    expect(jiraClient.searchIssuesByJql).toHaveBeenCalledWith(
-      '(project = "PS") AND (type = Bug)',
-      50
-    );
+    expect(filterSpy).not.toHaveBeenCalled();
+    expect(jiraClient.searchIssuesByJql).toHaveBeenCalledWith('type = Bug', 50);
   });
 
   it('throws error when query name not found', async () => {

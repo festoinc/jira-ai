@@ -1,10 +1,10 @@
 import { searchIssuesByJql } from '../lib/jira-client.js';
 import { outputResult } from '../lib/json-mode.js';
-import { getSavedQuery, listSavedQueries, applyGlobalFilters } from '../lib/settings.js';
+import { getSavedQuery, listSavedQueries } from '../lib/settings.js';
 import { CliError } from '../types/errors.js';
 
 export async function runJqlCommand(
-  jqlQuery: string,
+  jqlQuery: string | undefined,
   options: { limit?: number; query?: string; listQueries?: boolean }
 ): Promise<void> {
   // Handle --list-queries
@@ -28,9 +28,9 @@ export async function runJqlCommand(
       const availableMsg = available ? available : '(none)';
       throw new CliError(`Saved query '${options.query}' not found. Available: ${availableMsg}`);
     }
-    resolvedJql = applyGlobalFilters(savedJql);
+    resolvedJql = savedJql;
   } else {
-    resolvedJql = jqlQuery;
+    resolvedJql = jqlQuery!;
   }
 
   let maxResults = options.limit || 50;
