@@ -19,33 +19,6 @@ An AI-friendly CLI for Jira that prioritizes efficiency and security.
 npm install -g jira-ai
 ```
 
-### Install in Claude code: 
-#### Step 1: Add the Marketplace
-Add this marketplace to your Claude instance:
-```bash
-claude plugin marketplace add festoinc/management-plugins
-```
-
-#### Step 2: Install the Plugin
-```bash
-claude plugin install jira-ai-connector@management-plugins
-```
-
-Will be avalibale automatically as skill
-
-
-### Install in  Gemini CLI
-#### Step 1: Add the Extension
-Add this extension to your Gemini CLI:
-```bash
-gemini extension install https://github.com/festoinc/management-plugins
-```
-
-Will be avalible as slash command 
-```bash
-/work-with-jira
-```
-
 ## Quick Start
 
 Authenticate with credentials (non-interactive — JSON or .env file only):
