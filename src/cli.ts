@@ -22,6 +22,8 @@ import { listLinkTypesCommand } from './commands/list-link-types.js';
 import { createTaskCommand } from './commands/create-task.js';
 import { transitionCommand, listTransitionsCommand } from './commands/transition.js';
 import { issueAssignCommand } from './commands/issue.js';
+import { issueTreeCommand } from './commands/issue-tree.js';
+import { sprintTreeCommand } from './commands/sprint-tree.js';
 import {
   uploadAttachmentCommand,
   listAttachmentsCommand,
@@ -439,6 +441,23 @@ issueAttach
     validateArgs: (args) => validateOptions(IssueKeySchema, args[0])
   }));
 
+issue
+  .command('tree <issue-key>')
+  .description('Show the full issue hierarchy tree rooted at an issue, including subtasks and optionally linked issues.')
+  .option('--links', 'Include linked issues as single-hop leaf nodes')
+  .option('--depth <number>', 'Max traversal depth (default: 3)', '3')
+  .option('--max-nodes <number>', 'Max nodes in tree (default: 200)', '200')
+  .option('--types <types>', 'Comma-separated link types to include (e.g. Blocks,Relates)')
+  .action(withPermission('issue.tree', (issueKey: string, options: any) =>
+    issueTreeCommand(issueKey, {
+      links: options.links || false,
+      depth: options.depth ? Number(options.depth) : undefined,
+      maxNodes: options.maxNodes ? Number(options.maxNodes) : undefined,
+      types: options.types,
+    }),
+    { validateArgs: (args) => validateOptions(IssueKeySchema, args[0]) }
+  ));
+
 // =============================================================================
 // PROJECT COMMANDS
 // =============================================================================
@@ -765,6 +784,18 @@ sprint
   .action(withPermission('sprint.move', (sprintId: string, options: { issues: string[]; before?: string; after?: string }) =>
     sprintMoveCommand(Number(sprintId), options),
     { schema: SprintMoveSchema }
+  ));
+
+sprint
+  .command('tree <sprint-id>')
+  .description('Show the full issue hierarchy tree for a sprint, grouped by epics.')
+  .option('--depth <number>', 'Max traversal depth (default: 3)', '3')
+  .option('--max-nodes <number>', 'Max nodes in tree (default: 200)', '200')
+  .action(withPermission('sprint.tree', (sprintId: string, options: any) =>
+    sprintTreeCommand(sprintId, {
+      depth: options.depth ? Number(options.depth) : undefined,
+      maxNodes: options.maxNodes ? Number(options.maxNodes) : undefined,
+    })
   ));
 
 // =============================================================================
