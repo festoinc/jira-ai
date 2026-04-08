@@ -191,6 +191,43 @@ When `authType` is set to `service_account`, jira-ai automatically:
 
 Existing configurations using standard API tokens are unaffected.
 
+## Saved Queries
+
+Define reusable JQL queries in your `settings.yaml` under the `saved-queries` key to avoid repeating common searches.
+
+### Configuration
+
+Add a `saved-queries` map to your `settings.yaml` — each key is a query name (lowercase alphanumeric with hyphens) and each value is a JQL string:
+
+```yaml
+saved-queries:
+  my-open-bugs: "project = PROJ AND status = Open AND issuetype = Bug"
+  overdue-tasks: "project = PROJ AND duedate < now() AND status != Done"
+  my-assignee: "assignee = currentUser()"
+```
+
+### Usage
+
+Run a saved query by name:
+
+```bash
+jira-ai issue search --query my-open-bugs
+```
+
+List all configured saved queries:
+
+```bash
+jira-ai issue search --list-queries
+```
+
+Combine with result limits:
+
+```bash
+jira-ai issue search --query overdue-tasks --limit 10
+```
+
+Saved queries are mutually exclusive with raw JQL — you cannot provide both a positional JQL argument and `--query` at the same time.
+
 ## Configuration & Restrictions
 
 Tool allows you to have very complex configutations of what Projects/Jira commands/Issue types you would have acess to thought the tool.

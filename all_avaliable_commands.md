@@ -20,7 +20,7 @@
 | :--- | :--- |
 | `issue get <issue-id>` | Retrieve comprehensive issue data including key, summary, status, assignee, reporter, dates, labels, description, and comments. Use `--include-detailed-history` for change logs. |
 | `issue create` | Create a new Jira issue with specified title, project key, and issue type. Supports `--priority`, `--description`, `--description-file`, `--labels`, `--component`, `--fix-version`, `--due-date`, `--assignee`, and `--custom-field` flags. |
-| `issue search <jql-query>` | Execute a JQL search query. Supports limiting results via `--limit` (default 50). |
+| `issue search [jql-query]` | Execute a JQL search query. Supports `--limit <n>` (default 50), `--query <name>` to run a saved query, and `--list-queries` to list all saved queries. |
 | `issue transition <issue-id> <to-status>` | Change the status of a Jira issue using status name or ID. Supports `--resolution <name>`, `--comment <text>`, `--comment-file <path>`, `--assignee <email-or-name>`, `--fix-version <name>`, and `--custom-field "Field Name=value"` flags. |
 | `issue transitions <issue-id>` | List all available transitions for an issue, including which fields are required for each. Supports `--required-only` to filter to transitions with required fields. |
 | `issue update <issue-id>` | Update one or more fields of a Jira issue. Supports `--priority`, `--summary`, `--description`, `--from-file`, `--labels`, `--clear-labels`, `--component`, `--fix-version`, `--due-date`, `--assignee`, and `--custom-field` flags. |
@@ -29,6 +29,52 @@
 | `issue assign <issue-id> <account-id>` | Assign or reassign a Jira issue to a user. Use "null" to unassign. |
 | `issue label add <issue-id> <labels>` | Add one or more labels (comma-separated) to a Jira issue. |
 | `issue label remove <issue-id> <labels>` | Remove one or more labels (comma-separated) from a Jira issue. |
+
+## Saved Queries
+
+Define reusable JQL queries in `settings.yaml` under the `saved-queries` key:
+
+```yaml
+saved-queries:
+  my-open-bugs: "project = PROJ AND status = Open AND issuetype = Bug"
+  overdue-tasks: "project = PROJ AND duedate < now() AND status != Done"
+```
+
+Query names must be lowercase alphanumeric with optional hyphens (e.g., `my-query`). Hyphens cannot appear at the start or end.
+
+### Options
+
+| Flag | Description |
+| :--- | :--- |
+| `--query <name>` | Execute a saved query by name. Mutually exclusive with a positional JQL argument. |
+| `--list-queries` | List all configured saved queries and their JQL definitions. |
+| `--limit <n>` | Maximum number of results (default 50, max 1000). Applies to both raw JQL and saved queries. |
+
+### Examples
+
+Run a saved query:
+
+```bash
+jira-ai issue search --query my-open-bugs
+```
+
+List all saved queries:
+
+```bash
+jira-ai issue search --list-queries
+```
+
+Run a saved query with a result limit:
+
+```bash
+jira-ai issue search --query overdue-tasks --limit 10
+```
+
+Raw JQL still works as before:
+
+```bash
+jira-ai issue search "project = PROJ AND status = Open"
+```
 
 ## Issue Link Commands (`issue link`)
 

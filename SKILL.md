@@ -53,7 +53,7 @@ Errors are returned as structured JSON to stdout:
 ### Issues
 - `issue get <issue-id>`: Retrieve issue details. Response includes an `attachments` array with id, filename, size, author, and created timestamp.
 - `issue create`: Create a new issue. Supports `--title`, `--project`, `--issue-type`, `--parent` (for subtasks), `--priority`, `--description`, `--description-file`, `--labels`, `--component`, `--fix-version`, `--due-date`, `--assignee`, `--custom-field`.
-- `issue search <jql>`: Execute JQL search.
+- `issue search [jql]`: Execute JQL search. Use `--query <name>` to run a saved query, `--list-queries` to list saved queries, `--limit <n>` to cap results.
 - `issue transition <issue-id> <status>`: Change issue status. Supports `--resolution <name>`, `--comment <text>`, `--comment-file <path>`, `--assignee <email-or-name>`, `--fix-version <name>`, `--custom-field "Field Name=value"`.
 - `issue transitions <issue-id>`: List available transitions for an issue, including required fields. Supports `--required-only`.
 - `issue update <issue-id>`: Update one or more fields of an issue. Supports `--priority`, `--summary`, `--description`, `--from-file`, `--labels`, `--clear-labels`, `--component`, `--fix-version`, `--due-date`, `--assignee`, `--custom-field`.
@@ -101,6 +101,18 @@ Errors are returned as structured JSON to stdout:
 - `sprint issues <sprint-id>`: List issues in a sprint (`--jql`, `--max`).
 - `sprint move <sprint-id> --issues <keys>`: Move issues to a sprint.
 - `backlog move --issues <keys>`: Move issues to the backlog.
+
+### Saved Queries
+
+Define reusable JQL queries in `settings.yaml`:
+
+```yaml
+saved-queries:
+  my-open-bugs: "project = PROJ AND status = Open AND issuetype = Bug"
+```
+
+- `issue search --query <name>`: Run a saved query.
+- `issue search --list-queries`: List all saved queries.
 
 ### Confluence
 - `confl get <url>`: Retrieve Confluence page content.

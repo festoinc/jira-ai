@@ -14,3 +14,12 @@ commands:
   - run-jql
   - list-issue-types
   - project-statuses
+
+# Saved Queries: Define reusable JQL queries by name.
+# Keys must be lowercase alphanumeric with optional hyphens (e.g., "my-query").
+# Values are JQL query strings. Saved queries are used with:
+#   jira-ai issue search --query <name>
+#   jira-ai issue search --list-queries
+# saved-queries:
+#   my-open-bugs: "project = PROJ AND status = Open AND issuetype = Bug"
+#   overdue-tasks: "project = PROJ AND duedate < now() AND status != Done"

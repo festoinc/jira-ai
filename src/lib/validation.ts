@@ -140,6 +140,8 @@ export const UpdateDescriptionSchema = z.object({
 
 export const RunJqlSchema = z.object({
   limit: NumericStringSchema.optional(),
+  query: z.string().optional(),
+  listQueries: z.boolean().optional(),
 });
 
 export const TimeframeSchema = z.string().regex(/^\d+d$/, 'Timeframe must be in format like "7d" or "30d"');
@@ -197,10 +199,16 @@ export const OrganizationSettingsSchema = z.object({
   'allowed-confluence-spaces': z.array(z.string()).nullish().transform(val => val || ['all']),
 });
 
+export const SavedQueryNameSchema = z.string().regex(
+  /^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$/,
+  'Query name must be lowercase alphanumeric with hyphens (e.g., "my-query"), cannot start or end with a hyphen'
+);
+
 export const SettingsSchema = z.object({
   defaults: OrganizationSettingsSchema.optional(),
   projects: z.array(ProjectSettingSchema).optional(),
   commands: z.array(z.string()).optional(),
+  savedQueries: z.record(SavedQueryNameSchema, z.string().min(1)).optional(),
 });
 
 // =============================================================================
