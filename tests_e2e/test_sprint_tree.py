@@ -126,6 +126,7 @@ class TestSprintTreeBasic:
             assert "summary" in node
             assert "status" in node
             assert "type" in node
+            assert "priority" in node
 
     def test_tree_edges_have_required_fields(self):
         sprint_id = find_any_sprint_id()
@@ -259,6 +260,19 @@ class TestSprintTreeCompact:
         output = result.stdout.strip()
         assert "  " not in output
         assert "\n" not in output
+
+
+class TestSprintTreeHelp:
+    def test_help_shows_usage(self):
+        result = run_cli("sprint", "tree", "--help")
+        assert result.returncode == 0
+        assert "sprint-id" in result.stdout or "sprint id" in result.stdout.lower()
+
+    def test_help_shows_flags(self):
+        result = run_cli("sprint", "tree", "--help")
+        assert result.returncode == 0
+        assert "--depth" in result.stdout
+        assert "--max-nodes" in result.stdout
 
 
 class TestSprintTreeErrorHandling:
