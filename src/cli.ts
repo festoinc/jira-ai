@@ -222,14 +222,20 @@ issue
   .action(withPermission('issue.create', createTaskCommand, { schema: CreateTaskSchema }));
 
 issue
-  .command('search <jql-query>')
-  .description('Execute a JQL search query. Returns issues with key, summary, status, assignee, and priority.')
+  .command('search [jql-query]')
+  .description('Execute a JQL search query. Provide raw JQL or use --query to reference a saved query.')
   .option('-l, --limit <number>', 'Maximum number of results (default: 50)', '50')
+  .option('--query <name>', 'Use a saved query by name (mutually exclusive with positional JQL)')
+  .option('--list-queries', 'List all available saved queries')
   .action(withPermission('issue.search', runJqlCommand, {
     schema: RunJqlSchema,
     validateArgs: (args) => {
-      if (typeof args[0] !== 'string' || args[0].trim() === '') {
-        throw new CliError('JQL query cannot be empty');
+      const jqlQuery = args[0] as string | undefined;
+      const opts = args[args.length - 2] as any;
+      const hasQuery = opts && opts.query;
+      const hasListQueries = opts && opts.listQueries;
+      if (!hasQuery && !hasListQueries && (typeof jqlQuery !== 'string' || jqlQuery.trim() === '')) {
+        throw new CliError('JQL query cannot be empty. Provide a JQL query, use --query <name>, or use --list-queries.');
       }
     }
   }));

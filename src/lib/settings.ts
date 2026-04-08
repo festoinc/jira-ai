@@ -31,6 +31,18 @@ export interface OrganizationSettings {
 
 export interface Settings {
   defaults?: OrganizationSettings;
+  savedQueries?: Record<string, string>;
+}
+
+export function getSavedQuery(name: string): string | undefined {
+  const settings = loadSettings();
+  return settings.savedQueries?.[name];
+}
+
+export function listSavedQueries(): Array<{ name: string; jql: string }> {
+  const settings = loadSettings();
+  if (!settings.savedQueries) return [];
+  return Object.entries(settings.savedQueries).map(([name, jql]) => ({ name, jql }));
 }
 
 // Mapping from old flat command names to new hierarchical paths
