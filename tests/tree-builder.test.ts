@@ -243,6 +243,26 @@ describe('buildIssueTree', () => {
     });
   });
 
+  it('uses "hierarchy" relation for non-Sub-task children and "subtask" for Sub-task children', async () => {
+    const root = makeIssue('PROJ-10', { type: 'Story', subtaskKeys: ['PROJ-11', 'PROJ-12'] });
+    const story = makeIssue('PROJ-11', { type: 'Story' });
+    const subtask = makeIssue('PROJ-12', { type: 'Sub-task' });
+
+    mockJiraClient.getTaskWithDetails.mockResolvedValue(root as any);
+    mockJiraClient.searchIssuesByJql.mockResolvedValue([story, subtask] as any);
+
+    const result: TreeResult = await buildIssueTree('PROJ-10', {});
+
+    const storyEdge = result.edges.find((e) => e.from === 'PROJ-10' && e.to === 'PROJ-11');
+    const subtaskEdge = result.edges.find((e) => e.from === 'PROJ-10' && e.to === 'PROJ-12');
+
+    expect(storyEdge).toBeDefined();
+    expect(storyEdge?.relation).toBe('hierarchy');
+
+    expect(subtaskEdge).toBeDefined();
+    expect(subtaskEdge?.relation).toBe('subtask');
+  });
+
   it('applies global filters to JQL queries', async () => {
     const root = makeIssue('PROJ-10', { subtaskKeys: ['PROJ-11'] });
     mockJiraClient.getTaskWithDetails.mockResolvedValue(root as any);
@@ -328,6 +348,20 @@ describe('buildSprintTree', () => {
 
     expect(deepKeys).toContain('PROJ-100');
     expect(shallowKeys).not.toContain('PROJ-100');
+  });
+
+  it('returns actual depth reached, not the max depth option', async () => {
+    // Only one level of issues in sprint (no nested children)
+    const issues = [
+      makeBoardIssue('PROJ-1', { type: 'Story' }),
+      makeBoardIssue('PROJ-2', { type: 'Story' }),
+    ];
+    mockAgileClient.getSprintIssues.mockResolvedValue({ total: issues.length, issues } as any);
+
+    // Pass depth: 5 but actual tree is only 1 level deep
+    const result: TreeResult = await buildSprintTree('42', { depth: 5 });
+
+    expect(result.depth).toBe(1);
   });
 
   it('sets truncated:true when --max-nodes is hit', async () => {

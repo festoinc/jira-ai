@@ -101,7 +101,11 @@ export async function buildIssueTree(issueKey: string, options: IssueTreeOptions
         parentKey = child.parent?.key;
       }
       if (parentKey) {
-        edges.push({ from: parentKey, to: child.key, relation: 'subtask' });
+        edges.push({
+          from: parentKey,
+          to: child.key,
+          relation: child.issuetype?.name === 'Sub-task' ? 'subtask' : 'hierarchy',
+        });
       }
 
       nextLevel.push(child.key);
@@ -188,6 +192,7 @@ export async function buildSprintTree(sprintId: string, options: SprintTreeOptio
   }
 
   const visited = new Set<string>([sprintRootKey]);
+  let maxDepth = 0;
 
   // Build parent-to-children index once to avoid O(n^2) inner loop in BFS
   const parentToChildren = new Map<string, string[]>();
@@ -243,6 +248,8 @@ export async function buildSprintTree(sprintId: string, options: SprintTreeOptio
         edges.push({ from: sprintRootKey, to: key, relation: 'hierarchy' });
       }
 
+      if (d > maxDepth) maxDepth = d;
+
       // Enqueue children using the pre-built index
       const childKeys = parentToChildren.get(key) ?? [];
       for (const childKey of childKeys) {
@@ -260,7 +267,7 @@ export async function buildSprintTree(sprintId: string, options: SprintTreeOptio
     root: sprintRootKey,
     nodes,
     edges,
-    depth,
+    depth: maxDepth,
     truncated,
     totalNodes: nodes.length,
   };
