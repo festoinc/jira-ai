@@ -5,6 +5,7 @@
 | Flag | Description |
 | :--- | :--- |
 | `--compact` | Output results as single-line JSON for maximum token efficiency. Works with all commands. |
+| `--dry-run` | Preview write operations without executing them. Supported on `issue create`, `issue update`, and `issue transition`. No Jira API write calls are made. |
 
 ## Top-Level Commands
 
@@ -19,11 +20,11 @@
 | Command | Description |
 | :--- | :--- |
 | `issue get <issue-id>` | Retrieve comprehensive issue data including key, summary, status, assignee, reporter, dates, labels, description, and comments. Use `--include-detailed-history` for change logs. |
-| `issue create` | Create a new Jira issue with specified title, project key, and issue type. Supports `--priority`, `--description`, `--description-file`, `--labels`, `--component`, `--fix-version`, `--due-date`, `--assignee`, and `--custom-field` flags. |
+| `issue create` | Create a new Jira issue with specified title, project key, and issue type. Supports `--priority`, `--description`, `--description-file`, `--labels`, `--component`, `--fix-version`, `--due-date`, `--assignee`, and `--custom-field` flags. Supports `--dry-run` to preview without creating. |
 | `issue search [jql-query]` | Execute a JQL search query. Supports `--limit <n>` (default 50), `--query <name>` to run a saved query, and `--list-queries` to list all saved queries. |
-| `issue transition <issue-id> <to-status>` | Change the status of a Jira issue using status name or ID. Supports `--resolution <name>`, `--comment <text>`, `--comment-file <path>`, `--assignee <email-or-name>`, `--fix-version <name>`, and `--custom-field "Field Name=value"` flags. |
+| `issue transition <issue-id> <to-status>` | Change the status of a Jira issue using status name or ID. Supports `--resolution <name>`, `--comment <text>`, `--comment-file <path>`, `--assignee <email-or-name>`, `--fix-version <name>`, and `--custom-field "Field Name=value"` flags. Supports `--dry-run` to preview without transitioning. |
 | `issue transitions <issue-id>` | List all available transitions for an issue, including which fields are required for each. Supports `--required-only` to filter to transitions with required fields. |
-| `issue update <issue-id>` | Update one or more fields of a Jira issue. Supports `--priority`, `--summary`, `--description`, `--from-file`, `--labels`, `--clear-labels`, `--component`, `--fix-version`, `--due-date`, `--assignee`, and `--custom-field` flags. |
+| `issue update <issue-id>` | Update one or more fields of a Jira issue. Supports `--priority`, `--summary`, `--description`, `--from-file`, `--labels`, `--clear-labels`, `--component`, `--fix-version`, `--due-date`, `--assignee`, and `--custom-field` flags. Supports `--dry-run` to preview without updating. |
 | `issue comment <issue-id>` | Add a new comment to a Jira issue using content from a local Markdown file. |
 | `issue stats <issue-ids>` | Calculate time-based metrics (time logged, estimate, status duration) for one or more issues. |
 | `issue assign <issue-id> <account-id>` | Assign or reassign a Jira issue to a user. Use "null" to unassign. |
@@ -205,6 +206,40 @@ Increase depth for deeply nested hierarchies:
 ```bash
 jira-ai sprint tree 42 --depth 5 --max-nodes 500
 ```
+
+## Dry-Run / Preview Mode
+
+Preview write operations without executing them. Add `--dry-run` to `issue create`, `issue update`, or `issue transition` to see exactly what would change.
+
+```bash
+jira-ai issue update PROJ-123 --priority High --dry-run
+jira-ai issue transition PROJ-123 Done --resolution Fixed --dry-run
+jira-ai issue create --project PROJ --type Bug --title "Fix crash" --dry-run
+```
+
+**Output format:**
+
+```json
+{
+  "dryRun": true,
+  "command": "issue.update",
+  "target": "PROJ-123",
+  "changes": {
+    "priority": { "from": "Medium", "to": "High" }
+  },
+  "preview": { "...": "same output as the real command" },
+  "message": "No changes were made. Remove --dry-run to execute."
+}
+```
+
+- `dryRun`: Always `true` when `--dry-run` is used.
+- `command`: The command that was previewed (e.g., `issue.update`).
+- `target`: The issue key or identifier affected.
+- `changes`: For update/transition commands, shows `{ "field": { "from": "old", "to": "new" } }`. For create commands, shows the full issue that would be created.
+- `preview`: The same output format the real command would produce.
+- `message`: Confirmation that no changes were made.
+
+Phase 1 scope: `issue create`, `issue update`, `issue transition`.
 
 ## Issue Create Examples
 
