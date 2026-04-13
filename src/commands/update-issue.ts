@@ -42,7 +42,7 @@ export async function updateIssueCommand(
   if (isDryRun()) {
     const changes: Record<string, unknown> = {};
     if (options.priority !== undefined) {
-      changes.priority = { from: (currentIssue as any)?.priority?.name, to: options.priority };
+      changes.priority = { from: (currentIssue as any)?.priority, to: options.priority };
     }
     if (options.summary !== undefined) {
       changes.summary = { from: (currentIssue as any)?.summary, to: options.summary };
