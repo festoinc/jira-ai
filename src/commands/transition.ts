@@ -5,6 +5,7 @@ import { outputResult } from '../lib/json-mode.js';
 import { markdownToAdf } from 'marklassian';
 import { FieldResolver } from '../lib/field-resolver.js';
 import { processMentionsInADF } from '../lib/adf-mentions.js';
+import { isDryRun, formatDryRunResult } from '../lib/dry-run.js';
 
 export interface TransitionOptions {
   resolution?: string;
@@ -30,7 +31,7 @@ export async function transitionCommand(
   }
 
   // Check permissions and filters
-  await validateIssuePermissions(taskId, 'transition');
+  const currentIssue = await validateIssuePermissions(taskId, 'transition');
 
   try {
     const transitions = await getIssueTransitions(taskId);
@@ -66,6 +67,16 @@ export async function transitionCommand(
     }
 
     const transition = matchingTransitions[0];
+
+    if (isDryRun()) {
+      formatDryRunResult('issue.transition', taskId, {
+        status: {
+          from: (currentIssue as any)?.status?.name,
+          to: transition.to.name,
+        },
+      });
+      return;
+    }
 
     // Build optional payload if any options were provided
     let payload: TransitionPayload | undefined;

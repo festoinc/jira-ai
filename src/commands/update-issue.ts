@@ -6,6 +6,7 @@ import { CommandError } from '../lib/errors.js';
 import { validateOptions, UpdateIssueSchema, IssueKeySchema } from '../lib/validation.js';
 import { isCommandAllowed, isProjectAllowed } from '../lib/settings.js';
 import { outputResult } from '../lib/json-mode.js';
+import { isDryRun, formatDryRunResult } from '../lib/dry-run.js';
 
 export async function updateIssueCommand(
   issueKey: string,
@@ -36,7 +37,35 @@ export async function updateIssueCommand(
     throw new CommandError(`Command 'update-issue' is not allowed for project ${projectKey}.`);
   }
 
-  await validateIssuePermissions(issueKey, 'update-issue');
+  const currentIssue = await validateIssuePermissions(issueKey, 'update-issue');
+
+  if (isDryRun()) {
+    const changes: Record<string, unknown> = {};
+    if (options.priority !== undefined) {
+      changes.priority = { from: (currentIssue as any)?.priority?.name, to: options.priority };
+    }
+    if (options.summary !== undefined) {
+      changes.summary = { from: (currentIssue as any)?.summary, to: options.summary };
+    }
+    if (options.labels !== undefined || options.clearLabels) {
+      const newLabels = options.clearLabels ? [] : options.labels?.split(',').map(l => l.trim()).filter(Boolean);
+      changes.labels = { from: (currentIssue as any)?.labels, to: newLabels };
+    }
+    if (options.component !== undefined) {
+      changes.components = { from: (currentIssue as any)?.components, to: options.component };
+    }
+    if (options.fixVersion !== undefined) {
+      changes.fixVersions = { from: (currentIssue as any)?.fixVersions, to: options.fixVersion };
+    }
+    if (options.dueDate !== undefined) {
+      changes.dueDate = { from: (currentIssue as any)?.duedate, to: options.dueDate };
+    }
+    if (options.assignee !== undefined) {
+      changes.assignee = { from: (currentIssue as any)?.assignee?.displayName, to: options.assignee };
+    }
+    formatDryRunResult('issue.update', issueKey, changes);
+    return;
+  }
 
   const fields: Record<string, any> = {};
 

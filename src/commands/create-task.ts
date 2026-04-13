@@ -6,6 +6,7 @@ import { CommandError } from '../lib/errors.js';
 import { validateOptions, CreateTaskSchema } from '../lib/validation.js';
 import { isCommandAllowed, isProjectAllowed } from '../lib/settings.js';
 import { outputResult } from '../lib/json-mode.js';
+import { isDryRun, formatDryRunResult } from '../lib/dry-run.js';
 
 export async function createTaskCommand(
   options: {
@@ -100,6 +101,18 @@ export async function createTaskCommand(
       const numValue = Number(rawValue);
       issueFields[fieldId] = isNaN(numValue) ? rawValue : numValue;
     }
+  }
+
+  if (isDryRun()) {
+    const changes: Record<string, unknown> = {
+      project,
+      summary: title,
+      issueType,
+      ...(parent !== undefined ? { parent } : {}),
+      ...issueFields,
+    };
+    formatDryRunResult('issue.create', project, changes);
+    return;
   }
 
   try {
