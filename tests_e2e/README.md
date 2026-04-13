@@ -56,6 +56,7 @@ pytest -v test_issue_tree.py::TestIssueTreeBasic::test_tree_returns_valid_json
 | `test_attachments.py` | Attachment upload/download/delete |
 | `test_saved_queries.py` | Saved JQL queries |
 | `test_rich_issue_create_update.py` | Issue create/update with rich fields |
+| `test_dry_run.py` | Dry-run / preview mode for create, update, transition |
 
 ## .gitignore
 
