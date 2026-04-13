@@ -63,6 +63,18 @@ export async function updateIssueCommand(
     if (options.assignee !== undefined) {
       changes.assignee = { from: (currentIssue as any)?.assignee?.displayName, to: options.assignee };
     }
+    if (options.description !== undefined || options.fromFile !== undefined) {
+      changes.description = { from: '(current)', to: '(updated)' };
+    }
+    if (options.customField && options.customField.length > 0) {
+      for (const cf of options.customField) {
+        const eqIdx = cf.indexOf('=');
+        if (eqIdx === -1) continue;
+        const fieldId = cf.slice(0, eqIdx);
+        const value = cf.slice(eqIdx + 1);
+        changes[fieldId] = { to: value };
+      }
+    }
     formatDryRunResult('issue.update', issueKey, changes);
     return;
   }

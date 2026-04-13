@@ -69,12 +69,31 @@ export async function transitionCommand(
     const transition = matchingTransitions[0];
 
     if (isDryRun()) {
-      formatDryRunResult('issue.transition', taskId, {
+      const changes: Record<string, unknown> = {
         status: {
           from: (currentIssue as any)?.status?.name,
           to: transition.to.name,
         },
-      });
+      };
+      if (options?.resolution !== undefined) {
+        changes.resolution = { to: options.resolution };
+      }
+      if (options?.assignee !== undefined) {
+        changes.assignee = { to: options.assignee };
+      }
+      if (options?.fixVersion !== undefined) {
+        changes.fixVersions = { to: options.fixVersion };
+      }
+      if (options?.customFields && options.customFields.length > 0) {
+        for (const entry of options.customFields) {
+          const eqIdx = entry.indexOf('=');
+          if (eqIdx === -1) continue;
+          const fieldId = entry.slice(0, eqIdx).trim();
+          const value = entry.slice(eqIdx + 1).trim();
+          changes[fieldId] = { to: value };
+        }
+      }
+      formatDryRunResult('issue.transition', taskId, changes);
       return;
     }
 

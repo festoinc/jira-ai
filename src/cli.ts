@@ -120,6 +120,7 @@ program
   .description('CLI tool for interacting with Atlassian Jira')
   .version(getVersion())
   .option('--compact', 'Output as compact JSON')
+  .option('--dry-run', 'Preview changes without executing them')
   .addHelpText('after', () => {
     const latestVersion = checkForUpdateSync();
     if (latestVersion) {
