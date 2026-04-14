@@ -1537,6 +1537,305 @@ export async function downloadAttachment(
   return destPath;
 }
 
+// =============================================================================
+// ISSUE COMMENTS
+// =============================================================================
+
+export interface CommentEntry {
+  id: string;
+  author: {
+    accountId: string;
+    displayName: string;
+    emailAddress?: string;
+  };
+  body: string;
+  created: string;
+  updated: string;
+}
+
+export interface CommentsListResult {
+  issueKey: string;
+  comments: CommentEntry[];
+  total: number;
+  hasMore: boolean;
+}
+
+export interface CommentsListOptions {
+  limit?: number;
+  since?: string;
+  reverse?: boolean;
+}
+
+/**
+ * Get comments for a Jira issue with pagination, since-filter, and ordering
+ */
+export async function getIssueCommentsList(
+  issueKey: string,
+  options: CommentsListOptions = {}
+): Promise<CommentsListResult> {
+  const client = getJiraClient();
+  const { limit = 50, since, reverse = false } = options;
+
+  const maxResults = 100;
+  let startAt = 0;
+  let allComments: CommentEntry[] = [];
+  let total = 0;
+
+  // Paginate through all comments
+  while (true) {
+    const response = await client.issueComments.getComments({
+      issueIdOrKey: issueKey,
+      maxResults,
+      startAt,
+      orderBy: 'created',
+    } as any);
+
+    total = (response as any).total ?? 0;
+    const pageComments: CommentEntry[] = ((response as any).comments || []).map((c: any) => ({
+      id: c.id || '',
+      author: {
+        accountId: c.author?.accountId || '',
+        displayName: c.author?.displayName || 'Unknown',
+        emailAddress: c.author?.emailAddress,
+      },
+      body: convertADFToMarkdown(c.body) || '',
+      created: c.created || '',
+      updated: c.updated || '',
+    }));
+
+    allComments = allComments.concat(pageComments);
+
+    if (allComments.length >= total || pageComments.length < maxResults) {
+      break;
+    }
+    startAt += maxResults;
+  }
+
+  // Apply --since filter
+  if (since) {
+    const sinceDate = new Date(since).getTime();
+    allComments = allComments.filter(c => new Date(c.created).getTime() >= sinceDate);
+  }
+
+  // Apply --reverse (ascending order; default is newest first)
+  if (!reverse) {
+    allComments = allComments.reverse();
+  }
+
+  // Apply --limit
+  const hasMore = allComments.length > limit;
+  const comments = allComments.slice(0, limit);
+
+  return {
+    issueKey,
+    comments,
+    total,
+    hasMore,
+  };
+}
+
+// =============================================================================
+// ISSUE ACTIVITY FEED
+// =============================================================================
+
+export type ActivityType =
+  | 'status_change'
+  | 'field_change'
+  | 'link_added'
+  | 'link_removed'
+  | 'attachment_added'
+  | 'attachment_removed'
+  | 'comment_added'
+  | 'comment_updated';
+
+export interface ActivityAuthor {
+  accountId: string;
+  displayName: string;
+  emailAddress?: string;
+}
+
+export interface ActivityEntry {
+  id: string;
+  type: ActivityType;
+  timestamp: string;
+  author: ActivityAuthor;
+  field?: string;
+  from?: string;
+  to?: string;
+  commentBody?: string;
+}
+
+export interface ActivityFeedResult {
+  issueKey: string;
+  activities: ActivityEntry[];
+  totalChanges: number;
+  hasMore: boolean;
+}
+
+export interface ActivityFeedOptions {
+  since?: string;
+  limit?: number;
+  types?: string;
+  author?: string;
+}
+
+function classifyChangelogItem(field: string): ActivityType {
+  const fieldLower = field.toLowerCase();
+  if (fieldLower === 'status') return 'status_change';
+  if (fieldLower.startsWith('link') || fieldLower === 'issuelinks') {
+    // We use field value to distinguish add vs remove in the caller
+    return 'link_added';
+  }
+  if (fieldLower === 'attachment') return 'attachment_added';
+  return 'field_change';
+}
+
+/**
+ * Get unified activity feed (changelog + comments) for a Jira issue
+ */
+export async function getIssueActivityFeed(
+  issueKey: string,
+  options: ActivityFeedOptions = {}
+): Promise<ActivityFeedResult> {
+  const client = getJiraClient();
+  const { since, limit = 50, types, author } = options;
+
+  const sinceDate = since ? new Date(since).getTime() : null;
+  const typeFilter = types ? new Set(types.split(',').map(t => t.trim())) : null;
+
+  // --- Fetch all changelog entries with pagination ---
+  let changelogStartAt = 0;
+  const changelogMaxResults = 100;
+  let allChangelog: any[] = [];
+
+  while (true) {
+    const response = await client.issues.getChangeLogs({
+      issueIdOrKey: issueKey,
+      maxResults: changelogMaxResults,
+      startAt: changelogStartAt,
+    } as any);
+
+    const values: any[] = (response as any).values || [];
+    allChangelog = allChangelog.concat(values);
+
+    const responseTotal = (response as any).total ?? 0;
+    if (allChangelog.length >= responseTotal || values.length < changelogMaxResults) {
+      break;
+    }
+    changelogStartAt += changelogMaxResults;
+  }
+
+  // --- Fetch all comments with pagination ---
+  let commentStartAt = 0;
+  const commentMaxResults = 100;
+  let allApiComments: any[] = [];
+
+  while (true) {
+    const response = await client.issueComments.getComments({
+      issueIdOrKey: issueKey,
+      maxResults: commentMaxResults,
+      startAt: commentStartAt,
+    } as any);
+
+    const comments: any[] = (response as any).comments || [];
+    allApiComments = allApiComments.concat(comments);
+
+    const responseTotal = (response as any).total ?? 0;
+    if (allApiComments.length >= responseTotal || comments.length < commentMaxResults) {
+      break;
+    }
+    commentStartAt += commentMaxResults;
+  }
+
+  // --- Convert changelog to ActivityEntry list ---
+  const changelogActivities: ActivityEntry[] = [];
+  for (const history of allChangelog) {
+    const historyAuthor: ActivityAuthor = {
+      accountId: history.author?.accountId || '',
+      displayName: history.author?.displayName || 'Unknown',
+      emailAddress: history.author?.emailAddress,
+    };
+
+    for (const item of history.items || []) {
+      const field: string = item.field || '';
+      const fieldLower = field.toLowerCase();
+
+      let type: ActivityType;
+      if (fieldLower === 'status') {
+        type = 'status_change';
+      } else if (fieldLower.startsWith('link') || fieldLower === 'issuelinks') {
+        // Determine add vs remove from to/from strings
+        type = item.to ? 'link_added' : 'link_removed';
+      } else if (fieldLower === 'attachment') {
+        type = item.to ? 'attachment_added' : 'attachment_removed';
+      } else {
+        type = 'field_change';
+      }
+
+      changelogActivities.push({
+        id: `${history.id}-${field}`,
+        type,
+        timestamp: history.created || '',
+        author: historyAuthor,
+        field,
+        from: item.fromString ?? undefined,
+        to: item.toString ?? undefined,
+      });
+    }
+  }
+
+  // --- Convert comments to ActivityEntry list ---
+  const commentActivities: ActivityEntry[] = allApiComments.map((c: any) => {
+    const isUpdated = c.created !== c.updated;
+    return {
+      id: c.id || '',
+      type: isUpdated ? 'comment_updated' : 'comment_added',
+      timestamp: isUpdated ? c.updated : c.created,
+      author: {
+        accountId: c.author?.accountId || '',
+        displayName: c.author?.displayName || 'Unknown',
+        emailAddress: c.author?.emailAddress,
+      },
+      commentBody: convertADFToMarkdown(c.body) || '',
+    };
+  });
+
+  // --- Merge and sort by timestamp descending ---
+  let activities: ActivityEntry[] = [...changelogActivities, ...commentActivities];
+  activities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+  const totalChanges = activities.length;
+
+  // --- Apply filters ---
+  if (sinceDate) {
+    activities = activities.filter(a => new Date(a.timestamp).getTime() >= sinceDate);
+  }
+
+  if (typeFilter) {
+    activities = activities.filter(a => typeFilter.has(a.type));
+  }
+
+  if (author) {
+    const authorLower = author.toLowerCase();
+    activities = activities.filter(a =>
+      a.author.displayName.toLowerCase().includes(authorLower) ||
+      (a.author.emailAddress && a.author.emailAddress.toLowerCase().includes(authorLower)) ||
+      a.author.accountId.toLowerCase().includes(authorLower)
+    );
+  }
+
+  // --- Apply limit ---
+  const hasMore = activities.length > limit;
+  activities = activities.slice(0, limit);
+
+  return {
+    issueKey,
+    activities,
+    totalChanges,
+    hasMore,
+  };
+}
+
 /**
  * Delete an attachment by ID
  */
