@@ -12,6 +12,14 @@ export interface IssueCommentsOptions {
 export async function issueCommentsCommand(options: IssueCommentsOptions): Promise<void> {
   const { issueKey, limit, since, reverse } = options;
 
+  if (since !== undefined && isNaN(new Date(since).getTime())) {
+    throw new CommandError('--since must be a valid ISO 8601 datetime (e.g. 2024-01-01T00:00:00Z)');
+  }
+
+  if (limit !== undefined && (limit < 1 || !Number.isInteger(limit))) {
+    throw new CommandError('--limit must be a positive integer (>= 1)');
+  }
+
   try {
     const result = await getIssueCommentsList(issueKey, { limit, since, reverse });
     outputResult(result);

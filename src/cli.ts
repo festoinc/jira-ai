@@ -332,7 +332,6 @@ issue
   .option('--limit <n>', 'Maximum number of activities to return (default: 50)')
   .option('--types <types>', 'Comma-separated activity types to include (e.g., status_change,comment_added)')
   .option('--author <name-or-email>', 'Filter by author display name, email, or accountId')
-  .option('--compact', 'Output compact JSON')
   .action(withPermission('issue.activity', (issueKey: string, options: any) => {
     return issueActivityCommand({
       issueKey,
@@ -340,7 +339,7 @@ issue
       limit: options.limit ? parseInt(options.limit, 10) : undefined,
       types: options.types,
       author: options.author,
-      compact: options.compact,
+      compact: program.opts().compact || options.compact,
     });
   }, {
     validateArgs: (args) => validateOptions(IssueKeySchema, args[0])

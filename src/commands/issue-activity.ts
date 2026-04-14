@@ -14,6 +14,14 @@ export interface IssueActivityOptions {
 export async function issueActivityCommand(options: IssueActivityOptions): Promise<void> {
   const { issueKey, since, limit, types, author, compact } = options;
 
+  if (since !== undefined && isNaN(new Date(since).getTime())) {
+    throw new CommandError('--since must be a valid ISO 8601 datetime (e.g. 2024-01-01T00:00:00Z)');
+  }
+
+  if (limit !== undefined && (limit < 1 || !Number.isInteger(limit))) {
+    throw new CommandError('--limit must be a positive integer (>= 1)');
+  }
+
   try {
     const result = await getIssueActivityFeed(issueKey, { since, limit, types, author });
     if (compact) {
