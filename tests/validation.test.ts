@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { ProjectKeySchema, IssueKeySchema, FilePathSchema, validateOptions, CreateTaskSchema } from '../src/lib/validation.js';
+import { ProjectKeySchema, IssueKeySchema, FilePathSchema, validateOptions, CreateTaskSchema, CommentsListSchema, ActivityFeedSchema } from '../src/lib/validation.js';
 import * as fs from 'fs';
 import { CliError } from '../src/types/errors.js';
 
@@ -287,5 +287,59 @@ describe('ProjectFieldsSchema (JIR-42)', () => {
   it('should accept empty options (project key validated separately as positional arg)', () => {
     const result = ProjectFieldsSchema.safeParse({});
     expect(result.success).toBe(true);
+  });
+});
+
+describe('CommentsListSchema since validation', () => {
+  it('should accept a valid UTC ISO 8601 datetime', () => {
+    const result = CommentsListSchema.safeParse({ issueKey: 'TEST-1', since: '2024-01-01T00:00:00Z' });
+    expect(result.success).toBe(true);
+  });
+
+  it('should accept a valid ISO 8601 datetime with offset', () => {
+    const result = CommentsListSchema.safeParse({ issueKey: 'TEST-1', since: '2024-06-15T12:30:00+05:30' });
+    expect(result.success).toBe(true);
+  });
+
+  it('should accept omitted since', () => {
+    const result = CommentsListSchema.safeParse({ issueKey: 'TEST-1' });
+    expect(result.success).toBe(true);
+  });
+
+  it('should reject a non-ISO string', () => {
+    const result = CommentsListSchema.safeParse({ issueKey: 'TEST-1', since: 'yesterday' });
+    expect(result.success).toBe(false);
+  });
+
+  it('should reject a date-only string', () => {
+    const result = CommentsListSchema.safeParse({ issueKey: 'TEST-1', since: '2024-01-01' });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe('ActivityFeedSchema since validation', () => {
+  it('should accept a valid UTC ISO 8601 datetime', () => {
+    const result = ActivityFeedSchema.safeParse({ issueKey: 'TEST-1', since: '2024-03-20T08:00:00.000Z' });
+    expect(result.success).toBe(true);
+  });
+
+  it('should accept a valid ISO 8601 datetime with offset', () => {
+    const result = ActivityFeedSchema.safeParse({ issueKey: 'TEST-1', since: '2024-03-20T08:00:00-07:00' });
+    expect(result.success).toBe(true);
+  });
+
+  it('should accept omitted since', () => {
+    const result = ActivityFeedSchema.safeParse({ issueKey: 'TEST-1' });
+    expect(result.success).toBe(true);
+  });
+
+  it('should reject a free-text date string', () => {
+    const result = ActivityFeedSchema.safeParse({ issueKey: 'TEST-1', since: 'last week' });
+    expect(result.success).toBe(false);
+  });
+
+  it('should reject a date-only string', () => {
+    const result = ActivityFeedSchema.safeParse({ issueKey: 'TEST-1', since: '2024-01-15' });
+    expect(result.success).toBe(false);
   });
 });

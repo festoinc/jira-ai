@@ -12,11 +12,19 @@ export interface IssueActivityOptions {
 }
 
 export async function issueActivityCommand(options: IssueActivityOptions): Promise<void> {
-  const { issueKey, since, limit, types, author } = options;
+  const { issueKey, since, limit, types, author, compact } = options;
 
   try {
     const result = await getIssueActivityFeed(issueKey, { since, limit, types, author });
-    outputResult(result);
+    if (compact) {
+      const compactResult = {
+        ...result,
+        activities: result.activities.map(({ commentBody: _omit, ...rest }) => rest),
+      };
+      outputResult(compactResult);
+    } else {
+      outputResult(result);
+    }
   } catch (error: any) {
     if (error instanceof CommandError) throw error;
 

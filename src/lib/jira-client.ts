@@ -1679,17 +1679,6 @@ export interface ActivityFeedOptions {
   author?: string;
 }
 
-function classifyChangelogItem(field: string): ActivityType {
-  const fieldLower = field.toLowerCase();
-  if (fieldLower === 'status') return 'status_change';
-  if (fieldLower.startsWith('link') || fieldLower === 'issuelinks') {
-    // We use field value to distinguish add vs remove in the caller
-    return 'link_added';
-  }
-  if (fieldLower === 'attachment') return 'attachment_added';
-  return 'field_change';
-}
-
 /**
  * Get unified activity feed (changelog + comments) for a Jira issue
  */

@@ -212,6 +212,25 @@ describe('Issue Activity Command', () => {
     expect(parsed.totalChanges).toBe(100);
   });
 
+  it('should omit commentBody from activities when compact=true', async () => {
+    await issueActivityCommand({ issueKey: 'TEST-123', compact: true });
+
+    const logCall = (console.log as any).mock.calls[0][0];
+    const parsed = JSON.parse(logCall);
+    for (const activity of parsed.activities) {
+      expect(activity).not.toHaveProperty('commentBody');
+    }
+  });
+
+  it('should include commentBody when compact is not set', async () => {
+    await issueActivityCommand({ issueKey: 'TEST-123' });
+
+    const logCall = (console.log as any).mock.calls[0][0];
+    const parsed = JSON.parse(logCall);
+    const commentActivity = parsed.activities.find((a: any) => a.type === 'comment_added');
+    expect(commentActivity).toHaveProperty('commentBody');
+  });
+
   it('should detect comment_updated correctly', async () => {
     const updatedCommentResult = {
       issueKey: 'TEST-123',
