@@ -110,6 +110,14 @@ describe('parseDuration', () => {
   it('should parse 2h30m', () => {
     expect(parseDuration('2h30m')).toBe(9000);
   });
+
+  it('should return null for zero-value input "0w"', () => {
+    expect(parseDuration('0w')).toBeNull();
+  });
+
+  it('should return null for zero-value input "0d"', () => {
+    expect(parseDuration('0d')).toBeNull();
+  });
 });
 
 // ============================================================================
@@ -248,6 +256,41 @@ describe('issue worklog add', () => {
       expect.objectContaining({ adjustEstimate: 'manual', newEstimate: '5h' })
     );
   });
+
+  it('should throw CommandError when adjustEstimate is "new" but newEstimate is missing', async () => {
+    const err = await issueWorklogAddCommand({
+      issueKey: 'TEST-123',
+      time: '1h',
+      adjustEstimate: 'new',
+    }).catch(e => e);
+    expect(err).toBeInstanceOf(CommandError);
+    expect(err.message).toContain('--new-estimate is required');
+    expect(mockJiraClient.addWorklogEntry).not.toHaveBeenCalled();
+  });
+
+  it('should throw CommandError when adjustEstimate is "manual" but neither newEstimate nor reduceBy provided', async () => {
+    const err = await issueWorklogAddCommand({
+      issueKey: 'TEST-123',
+      time: '1h',
+      adjustEstimate: 'manual',
+    }).catch(e => e);
+    expect(err).toBeInstanceOf(CommandError);
+    expect(err.message).toContain('--new-estimate or --reduce-by is required');
+    expect(mockJiraClient.addWorklogEntry).not.toHaveBeenCalled();
+  });
+
+  it('should accept adjustEstimate "manual" with reduceBy only', async () => {
+    await issueWorklogAddCommand({
+      issueKey: 'TEST-123',
+      time: '1h',
+      adjustEstimate: 'manual',
+      reduceBy: '30m',
+    });
+    expect(mockJiraClient.addWorklogEntry).toHaveBeenCalledWith(
+      'TEST-123',
+      expect.objectContaining({ adjustEstimate: 'manual', reduceBy: '30m' })
+    );
+  });
 });
 
 // ============================================================================
@@ -312,6 +355,43 @@ describe('issue worklog update', () => {
     await expect(
       issueWorklogUpdateCommand({ issueKey: 'TEST-123', id: 'w1' })
     ).rejects.toThrow(CommandError);
+  });
+
+  it('should succeed with only --started provided', async () => {
+    await issueWorklogUpdateCommand({
+      issueKey: 'TEST-123',
+      id: 'w1',
+      started: '2024-01-05T09:00:00.000+0000',
+    });
+    expect(mockJiraClient.updateWorklogEntry).toHaveBeenCalledWith(
+      'TEST-123',
+      'w1',
+      expect.objectContaining({ started: '2024-01-05T09:00:00.000+0000' })
+    );
+  });
+
+  it('should throw CommandError when adjustEstimate is "new" but newEstimate is missing (update)', async () => {
+    const err = await issueWorklogUpdateCommand({
+      issueKey: 'TEST-123',
+      id: 'w1',
+      time: '1h',
+      adjustEstimate: 'new',
+    }).catch(e => e);
+    expect(err).toBeInstanceOf(CommandError);
+    expect(err.message).toContain('--new-estimate is required');
+    expect(mockJiraClient.updateWorklogEntry).not.toHaveBeenCalled();
+  });
+
+  it('should throw CommandError when adjustEstimate is "manual" but newEstimate is missing (update)', async () => {
+    const err = await issueWorklogUpdateCommand({
+      issueKey: 'TEST-123',
+      id: 'w1',
+      time: '1h',
+      adjustEstimate: 'manual',
+    }).catch(e => e);
+    expect(err).toBeInstanceOf(CommandError);
+    expect(err.message).toContain('--new-estimate is required');
+    expect(mockJiraClient.updateWorklogEntry).not.toHaveBeenCalled();
   });
 
   it('should throw CommandError on 404', async () => {
@@ -383,5 +463,27 @@ describe('issue worklog delete', () => {
       'w1',
       expect.objectContaining({ adjustEstimate: 'leave' })
     );
+  });
+
+  it('should throw CommandError when adjustEstimate is "new" but newEstimate is missing (delete)', async () => {
+    const err = await issueWorklogDeleteCommand({
+      issueKey: 'TEST-123',
+      id: 'w1',
+      adjustEstimate: 'new',
+    }).catch(e => e);
+    expect(err).toBeInstanceOf(CommandError);
+    expect(err.message).toContain('--new-estimate is required');
+    expect(mockJiraClient.deleteWorklogEntry).not.toHaveBeenCalled();
+  });
+
+  it('should throw CommandError when adjustEstimate is "manual" but neither newEstimate nor increaseBy provided (delete)', async () => {
+    const err = await issueWorklogDeleteCommand({
+      issueKey: 'TEST-123',
+      id: 'w1',
+      adjustEstimate: 'manual',
+    }).catch(e => e);
+    expect(err).toBeInstanceOf(CommandError);
+    expect(err.message).toContain('--new-estimate or --increase-by is required');
+    expect(mockJiraClient.deleteWorklogEntry).not.toHaveBeenCalled();
   });
 });

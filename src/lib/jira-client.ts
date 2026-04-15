@@ -1869,38 +1869,67 @@ export interface WorklogDeleteOptions {
   increaseBy?: string;
 }
 
+export interface WorklogListFilterOptions {
+  /** Only return worklogs started at or after this UNIX timestamp (ms) */
+  startedAfter?: number;
+  /** Only return worklogs started before this UNIX timestamp (ms) */
+  startedBefore?: number;
+  /** Filter results to a specific author account ID */
+  authorAccountId?: string;
+}
+
+const WORKLOG_PAGE_SIZE = 5000;
+
 /**
- * List all worklogs for an issue (returns structured result)
+ * List all worklogs for an issue (returns structured result).
+ * Paginates automatically through all pages and supports optional filtering.
  */
 export async function getIssueWorklogsList(
   issueIdOrKey: string,
-  _options: Record<string, unknown> = {}
+  options: WorklogListFilterOptions = {}
 ): Promise<WorklogListResult> {
+  const { startedAfter, startedBefore, authorAccountId } = options;
   const client = getJiraClient();
-  const response = await client.issueWorklogs.getIssueWorklog({
-    issueIdOrKey,
-  });
+  const allWorklogs: Worklog[] = [];
+  let startAt = 0;
 
-  const worklogs: Worklog[] = (response.worklogs || []).map((w: any) => ({
-    id: w.id || '',
-    author: {
-      accountId: w.author?.accountId || '',
-      displayName: w.author?.displayName || 'Unknown',
-      emailAddress: w.author?.emailAddress,
-    },
-    comment: convertADFToMarkdown(w.comment),
-    created: w.created || '',
-    updated: w.updated || '',
-    started: w.started || '',
-    timeSpent: w.timeSpent || '',
-    timeSpentSeconds: w.timeSpentSeconds || 0,
-    issueKey: issueIdOrKey,
-  }));
+  while (true) {
+    const params: any = { issueIdOrKey, startAt, maxResults: WORKLOG_PAGE_SIZE };
+    if (startedAfter !== undefined) params.startedAfter = startedAfter;
+    if (startedBefore !== undefined) params.startedBefore = startedBefore;
+
+    const response = await client.issueWorklogs.getIssueWorklog(params);
+    const page: Worklog[] = (response.worklogs || []).map((w: any) => ({
+      id: w.id || '',
+      author: {
+        accountId: w.author?.accountId || '',
+        displayName: w.author?.displayName || 'Unknown',
+        emailAddress: w.author?.emailAddress,
+      },
+      comment: convertADFToMarkdown(w.comment),
+      created: w.created || '',
+      updated: w.updated || '',
+      started: w.started || '',
+      timeSpent: w.timeSpent || '',
+      timeSpentSeconds: w.timeSpentSeconds || 0,
+      issueKey: issueIdOrKey,
+    }));
+
+    allWorklogs.push(...page);
+
+    const totalOnServer = typeof response.total === 'number' ? response.total : page.length;
+    if (allWorklogs.length >= totalOnServer || page.length < WORKLOG_PAGE_SIZE) break;
+    startAt += page.length;
+  }
+
+  const filtered = authorAccountId
+    ? allWorklogs.filter(w => w.author.accountId === authorAccountId)
+    : allWorklogs;
 
   return {
     issueKey: issueIdOrKey,
-    worklogs,
-    total: worklogs.length,
+    worklogs: filtered,
+    total: filtered.length,
   };
 }
 

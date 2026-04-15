@@ -359,8 +359,16 @@ const worklog = issue
 worklog
   .command('list <issue-id>')
   .description('List all worklogs for a Jira issue.')
-  .action(withPermission('issue.worklog.list', (issueKey: string) => {
-    return issueWorklogListCommand({ issueKey });
+  .option('--started-after <timestamp>', 'Only return worklogs started at or after this UNIX timestamp (ms)')
+  .option('--started-before <timestamp>', 'Only return worklogs started before this UNIX timestamp (ms)')
+  .option('--author-account-id <accountId>', 'Filter by author account ID')
+  .action(withPermission('issue.worklog.list', (issueKey: string, options: any) => {
+    return issueWorklogListCommand({
+      issueKey,
+      startedAfter: options.startedAfter ? parseInt(options.startedAfter, 10) : undefined,
+      startedBefore: options.startedBefore ? parseInt(options.startedBefore, 10) : undefined,
+      authorAccountId: options.authorAccountId,
+    });
   }, {
     validateArgs: (args) => validateOptions(IssueKeySchema, args[0])
   }));

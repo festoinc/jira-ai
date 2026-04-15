@@ -3,6 +3,7 @@ import {
   addWorklogEntry,
   updateWorklogEntry,
   deleteWorklogEntry,
+  type WorklogListFilterOptions,
 } from '../lib/jira-client.js';
 import { CommandError } from '../lib/errors.js';
 import { outputResult } from '../lib/json-mode.js';
@@ -11,6 +12,9 @@ import { parseDuration } from '../lib/utils.js';
 
 export interface WorklogListOptions {
   issueKey: string;
+  startedAfter?: number;
+  startedBefore?: number;
+  authorAccountId?: string;
 }
 
 export interface WorklogAddOptions {
@@ -42,10 +46,15 @@ export interface WorklogDeleteOptions {
 }
 
 export async function issueWorklogListCommand(options: WorklogListOptions): Promise<void> {
-  const { issueKey } = options;
+  const { issueKey, startedAfter, startedBefore, authorAccountId } = options;
+
+  const filterOptions: WorklogListFilterOptions = {};
+  if (startedAfter !== undefined) filterOptions.startedAfter = startedAfter;
+  if (startedBefore !== undefined) filterOptions.startedBefore = startedBefore;
+  if (authorAccountId !== undefined) filterOptions.authorAccountId = authorAccountId;
 
   try {
-    const result = await getIssueWorklogsList(issueKey, {});
+    const result = await getIssueWorklogsList(issueKey, filterOptions);
     outputResult(result);
   } catch (error: any) {
     if (error instanceof CommandError) throw error;
@@ -72,6 +81,17 @@ export async function issueWorklogAddCommand(options: WorklogAddOptions): Promis
       `Invalid duration: "${time}". Use Jira format e.g. 1h, 30m, 1d2h30m, 1w.`,
       { hints: ['Examples: 1h, 30m, 1d, 1w, 1d2h30m'] }
     );
+  }
+
+  if (adjustEstimate === 'new' && !newEstimate) {
+    throw new CommandError('--new-estimate is required when --adjust-estimate is "new"', {
+      hints: ['Example: --adjust-estimate new --new-estimate 5h']
+    });
+  }
+  if (adjustEstimate === 'manual' && !newEstimate && !reduceBy) {
+    throw new CommandError('--new-estimate or --reduce-by is required when --adjust-estimate is "manual"', {
+      hints: ['Example: --adjust-estimate manual --reduce-by 1h']
+    });
   }
 
   if (isDryRun()) {
@@ -128,6 +148,17 @@ export async function issueWorklogUpdateCommand(options: WorklogUpdateOptions): 
     timeSpentSeconds = parsed;
   }
 
+  if (adjustEstimate === 'new' && !newEstimate) {
+    throw new CommandError('--new-estimate is required when --adjust-estimate is "new"', {
+      hints: ['Example: --adjust-estimate new --new-estimate 5h']
+    });
+  }
+  if (adjustEstimate === 'manual' && !newEstimate) {
+    throw new CommandError('--new-estimate is required when --adjust-estimate is "manual"', {
+      hints: ['Example: --adjust-estimate manual --new-estimate 5h']
+    });
+  }
+
   if (isDryRun()) {
     formatDryRunResult(
       'issue worklog update',
@@ -164,6 +195,17 @@ export async function issueWorklogUpdateCommand(options: WorklogUpdateOptions): 
 
 export async function issueWorklogDeleteCommand(options: WorklogDeleteOptions): Promise<void> {
   const { issueKey, id, adjustEstimate, newEstimate, increaseBy } = options;
+
+  if (adjustEstimate === 'new' && !newEstimate) {
+    throw new CommandError('--new-estimate is required when --adjust-estimate is "new"', {
+      hints: ['Example: --adjust-estimate new --new-estimate 5h']
+    });
+  }
+  if (adjustEstimate === 'manual' && !newEstimate && !increaseBy) {
+    throw new CommandError('--new-estimate or --increase-by is required when --adjust-estimate is "manual"', {
+      hints: ['Example: --adjust-estimate manual --increase-by 1h']
+    });
+  }
 
   if (isDryRun()) {
     formatDryRunResult(

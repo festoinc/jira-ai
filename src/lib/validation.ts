@@ -350,6 +350,9 @@ export const DurationSchema = z
 
 export const WorklogListSchema = z.object({
   issueKey: z.string().trim().min(1, 'Issue key is required').pipe(IssueKeySchema),
+  startedAfter: z.number().int().positive().optional(),
+  startedBefore: z.number().int().positive().optional(),
+  authorAccountId: z.string().optional(),
 });
 
 export const WorklogAddSchema = z.object({
