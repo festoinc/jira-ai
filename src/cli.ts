@@ -73,6 +73,12 @@ import {
 import { backlogMoveCommand } from './commands/backlog.js';
 import { issueCommentsCommand } from './commands/issue-comments.js';
 import { issueActivityCommand } from './commands/issue-activity.js';
+import {
+  issueWorklogListCommand,
+  issueWorklogAddCommand,
+  issueWorklogUpdateCommand,
+  issueWorklogDeleteCommand,
+} from './commands/issue-worklog.js';
 import { aboutCommand } from './commands/about.js';
 import { authCommand } from './commands/auth.js';
 import { settingsCommand } from './commands/settings.js';
@@ -340,6 +346,85 @@ issue
       types: options.types,
       author: options.author,
       compact: program.opts().compact || options.compact,
+    });
+  }, {
+    validateArgs: (args) => validateOptions(IssueKeySchema, args[0])
+  }));
+
+// Issue worklog subcommands
+const worklog = issue
+  .command('worklog')
+  .description('Manage worklogs for a Jira issue');
+
+worklog
+  .command('list <issue-id>')
+  .description('List all worklogs for a Jira issue.')
+  .action(withPermission('issue.worklog.list', (issueKey: string) => {
+    return issueWorklogListCommand({ issueKey });
+  }, {
+    validateArgs: (args) => validateOptions(IssueKeySchema, args[0])
+  }));
+
+worklog
+  .command('add <issue-id>')
+  .description('Log time against a Jira issue.')
+  .requiredOption('--time <duration>', 'Time to log (e.g. 1h, 30m, 1d2h30m, 1w)')
+  .option('--comment <text>', 'Optional comment for this worklog entry')
+  .option('--started <datetime>', 'When the work started (ISO 8601, defaults to now)')
+  .option('--adjust-estimate <method>', 'Estimate adjustment: auto, new, leave, manual')
+  .option('--new-estimate <duration>', 'New remaining estimate (use with --adjust-estimate new or manual)')
+  .option('--reduce-by <duration>', 'Reduce remaining estimate by this amount (use with --adjust-estimate manual)')
+  .action(withPermission('issue.worklog.add', (issueKey: string, options: any) => {
+    return issueWorklogAddCommand({
+      issueKey,
+      time: options.time,
+      comment: options.comment,
+      started: options.started,
+      adjustEstimate: options.adjustEstimate,
+      newEstimate: options.newEstimate,
+      reduceBy: options.reduceBy,
+    });
+  }, {
+    validateArgs: (args) => validateOptions(IssueKeySchema, args[0])
+  }));
+
+worklog
+  .command('update <issue-id>')
+  .description('Update an existing worklog entry.')
+  .requiredOption('--id <worklog-id>', 'ID of the worklog to update')
+  .option('--time <duration>', 'New time spent (e.g. 1h, 30m, 1d)')
+  .option('--comment <text>', 'New comment for this worklog')
+  .option('--started <datetime>', 'New start time (ISO 8601)')
+  .option('--adjust-estimate <method>', 'Estimate adjustment: auto, new, leave, manual')
+  .option('--new-estimate <duration>', 'New remaining estimate')
+  .action(withPermission('issue.worklog.update', (issueKey: string, options: any) => {
+    return issueWorklogUpdateCommand({
+      issueKey,
+      id: options.id,
+      time: options.time,
+      comment: options.comment,
+      started: options.started,
+      adjustEstimate: options.adjustEstimate,
+      newEstimate: options.newEstimate,
+    });
+  }, {
+    validateArgs: (args) => validateOptions(IssueKeySchema, args[0])
+  }));
+
+worklog
+  .command('delete <issue-id>')
+  .description('Delete a worklog entry from a Jira issue.')
+  .requiredOption('--id <worklog-id>', 'ID of the worklog to delete')
+  .option('--adjust-estimate <method>', 'Estimate adjustment: auto, new, leave, manual')
+  .option('--new-estimate <duration>', 'New remaining estimate (use with --adjust-estimate new)')
+  .option('--increase-by <duration>', 'Increase remaining estimate by this amount')
+  .action(withPermission('issue.worklog.delete', (issueKey: string, options: any) => {
+    return issueWorklogDeleteCommand({
+      issueKey,
+      id: options.id,
+      adjustEstimate: options.adjustEstimate,
+      newEstimate: options.newEstimate,
+      increaseBy: options.increaseBy,
     });
   }, {
     validateArgs: (args) => validateOptions(IssueKeySchema, args[0])

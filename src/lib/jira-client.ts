@@ -1835,3 +1835,178 @@ export async function deleteAttachment(
   const client = getJiraClient();
   await client.issueAttachments.removeAttachment(attachmentId);
 }
+
+// =============================================================================
+// WORKLOG CRUD
+// =============================================================================
+
+export interface WorklogListResult {
+  issueKey: string;
+  worklogs: Worklog[];
+  total: number;
+}
+
+export interface WorklogAddOptions {
+  timeSpentSeconds: number;
+  comment?: string;
+  started?: string;
+  adjustEstimate?: 'auto' | 'new' | 'leave' | 'manual';
+  newEstimate?: string;
+  reduceBy?: string;
+}
+
+export interface WorklogUpdateOptions {
+  timeSpentSeconds?: number;
+  comment?: string;
+  started?: string;
+  adjustEstimate?: 'auto' | 'new' | 'leave' | 'manual';
+  newEstimate?: string;
+}
+
+export interface WorklogDeleteOptions {
+  adjustEstimate?: 'auto' | 'new' | 'leave' | 'manual';
+  newEstimate?: string;
+  increaseBy?: string;
+}
+
+/**
+ * List all worklogs for an issue (returns structured result)
+ */
+export async function getIssueWorklogsList(
+  issueIdOrKey: string,
+  _options: Record<string, unknown> = {}
+): Promise<WorklogListResult> {
+  const client = getJiraClient();
+  const response = await client.issueWorklogs.getIssueWorklog({
+    issueIdOrKey,
+  });
+
+  const worklogs: Worklog[] = (response.worklogs || []).map((w: any) => ({
+    id: w.id || '',
+    author: {
+      accountId: w.author?.accountId || '',
+      displayName: w.author?.displayName || 'Unknown',
+      emailAddress: w.author?.emailAddress,
+    },
+    comment: convertADFToMarkdown(w.comment),
+    created: w.created || '',
+    updated: w.updated || '',
+    started: w.started || '',
+    timeSpent: w.timeSpent || '',
+    timeSpentSeconds: w.timeSpentSeconds || 0,
+    issueKey: issueIdOrKey,
+  }));
+
+  return {
+    issueKey: issueIdOrKey,
+    worklogs,
+    total: worklogs.length,
+  };
+}
+
+/**
+ * Add a worklog entry to an issue
+ */
+export async function addWorklogEntry(
+  issueIdOrKey: string,
+  options: WorklogAddOptions
+): Promise<Worklog> {
+  const client = getJiraClient();
+  const { timeSpentSeconds, comment, started, adjustEstimate, newEstimate, reduceBy } = options;
+
+  const params: any = {
+    issueIdOrKey,
+    requestBody: {
+      timeSpentSeconds,
+      comment: comment ? comment : undefined,
+      started: started || new Date().toISOString().replace('Z', '+0000'),
+    },
+  };
+
+  if (adjustEstimate) params.adjustEstimate = adjustEstimate;
+  if (newEstimate) params.newEstimate = newEstimate;
+  if (reduceBy) params.reduceBy = reduceBy;
+
+  const w = await client.issueWorklogs.addWorklog(params);
+
+  return {
+    id: w.id || '',
+    author: {
+      accountId: (w as any).author?.accountId || '',
+      displayName: (w as any).author?.displayName || 'Unknown',
+      emailAddress: (w as any).author?.emailAddress,
+    },
+    comment: convertADFToMarkdown((w as any).comment),
+    created: (w as any).created || '',
+    updated: (w as any).updated || '',
+    started: (w as any).started || '',
+    timeSpent: (w as any).timeSpent || '',
+    timeSpentSeconds: (w as any).timeSpentSeconds || 0,
+    issueKey: issueIdOrKey,
+  };
+}
+
+/**
+ * Update an existing worklog entry
+ */
+export async function updateWorklogEntry(
+  issueIdOrKey: string,
+  worklogId: string,
+  options: WorklogUpdateOptions
+): Promise<Worklog> {
+  const client = getJiraClient();
+  const { timeSpentSeconds, comment, started, adjustEstimate, newEstimate } = options;
+
+  const params: any = {
+    issueIdOrKey,
+    id: worklogId,
+    requestBody: {} as any,
+  };
+
+  if (timeSpentSeconds !== undefined) params.requestBody.timeSpentSeconds = timeSpentSeconds;
+  if (comment !== undefined) params.requestBody.comment = comment;
+  if (started !== undefined) params.requestBody.started = started;
+  if (adjustEstimate) params.adjustEstimate = adjustEstimate;
+  if (newEstimate) params.newEstimate = newEstimate;
+
+  const w = await client.issueWorklogs.updateWorklog(params);
+
+  return {
+    id: (w as any).id || worklogId,
+    author: {
+      accountId: (w as any).author?.accountId || '',
+      displayName: (w as any).author?.displayName || 'Unknown',
+      emailAddress: (w as any).author?.emailAddress,
+    },
+    comment: convertADFToMarkdown((w as any).comment),
+    created: (w as any).created || '',
+    updated: (w as any).updated || '',
+    started: (w as any).started || '',
+    timeSpent: (w as any).timeSpent || '',
+    timeSpentSeconds: (w as any).timeSpentSeconds || 0,
+    issueKey: issueIdOrKey,
+  };
+}
+
+/**
+ * Delete a worklog entry
+ */
+export async function deleteWorklogEntry(
+  issueIdOrKey: string,
+  worklogId: string,
+  options: WorklogDeleteOptions = {}
+): Promise<void> {
+  const client = getJiraClient();
+  const { adjustEstimate, newEstimate, increaseBy } = options;
+
+  const params: any = {
+    issueIdOrKey,
+    id: worklogId,
+  };
+
+  if (adjustEstimate) params.adjustEstimate = adjustEstimate;
+  if (newEstimate) params.newEstimate = newEstimate;
+  if (increaseBy) params.increaseBy = increaseBy;
+
+  await client.issueWorklogs.deleteWorklog(params);
+}

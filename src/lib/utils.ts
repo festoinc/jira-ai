@@ -186,3 +186,28 @@ export function parseTimeframe(timeframe: string): { startDate: Date; endDate: D
 export function formatDateForJql(date: Date): string {
   return date.toISOString().split('T')[0];
 }
+
+/**
+ * Parse a Jira-style duration string into total seconds.
+ * Supports: 1w, 2d, 3h, 30m and combinations like 1d2h30m.
+ * Conversion: 1w = 5d, 1d = 8h.
+ * Returns null for invalid input.
+ */
+export function parseDuration(duration: string): number | null {
+  const match = duration.match(/^(?:(\d+)w)?(?:(\d+)d)?(?:(\d+)h)?(?:(\d+)m)?$/);
+  if (!match || match[0] === '') return null;
+
+  const weeks = parseInt(match[1] || '0', 10);
+  const days = parseInt(match[2] || '0', 10);
+  const hours = parseInt(match[3] || '0', 10);
+  const minutes = parseInt(match[4] || '0', 10);
+
+  const totalSeconds =
+    weeks * 5 * 8 * 3600 +
+    days * 8 * 3600 +
+    hours * 3600 +
+    minutes * 60;
+
+  if (totalSeconds === 0) return null;
+  return totalSeconds;
+}
