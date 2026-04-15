@@ -30,6 +30,8 @@
 | `issue label add <issue-id> <labels>` | Add one or more labels (comma-separated) to a Jira issue. |
 | `issue label remove <issue-id> <labels>` | Remove one or more labels (comma-separated) from a Jira issue. |
 | `issue tree <issue-key>` | Show the full issue hierarchy tree rooted at an issue (epic → story → subtasks). Use `--links` to include linked issues, `--depth N` (default 3) to limit traversal depth, `--max-nodes N` (default 200) to cap total nodes, and `--types TYPES` to filter link types. |
+| `issue activity <issue-key>` | Show a unified activity feed (changelog + comments) for an issue. Supports `--since <ISO-timestamp>`, `--limit <n>` (default 50), `--types <types>` (comma-separated activity types), `--author <name-or-email>`, and `--compact`. |
+| `issue comments <issue-key>` | List comments on an issue. Supports `--limit <n>` (default 50), `--since <ISO-timestamp>`, and `--reverse` (oldest first; default is newest first). |
 
 ## Saved Queries
 

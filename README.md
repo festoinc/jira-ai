@@ -147,6 +147,40 @@ jira-ai issue transitions PROJ-123
 
 When a transition fails due to missing required fields, the error message lists what is needed and suggests running `issue transitions <key>` to discover them.
 
+### Activity Feed & Comments
+
+View a unified activity feed combining changelog entries and comments for an issue:
+
+```bash
+jira-ai issue activity PROJ-123
+```
+
+Filter by time, activity type, or author:
+
+```bash
+jira-ai issue activity PROJ-123 --since 2026-01-01T00:00:00Z --types status_change,comment_added --author "Jane Smith"
+```
+
+Use `--compact` to strip comment bodies for maximum token efficiency:
+
+```bash
+jira-ai issue activity PROJ-123 --compact
+```
+
+List comments on an issue:
+
+```bash
+jira-ai issue comments PROJ-123
+```
+
+Use `--reverse` for chronological (oldest-first) order, or `--since` to filter by time:
+
+```bash
+jira-ai issue comments PROJ-123 --since 2026-01-01T00:00:00Z --reverse --limit 20
+```
+
+**Activity types:** `status_change`, `field_change`, `comment_added`, `comment_updated`, `attachment_added`, `attachment_removed`, `link_added`, `link_removed`
+
 ## Service Account Authentication
 
 Atlassian service accounts use scoped API tokens that must authenticate through the `api.atlassian.com` gateway rather than direct site URLs.

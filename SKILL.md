@@ -69,6 +69,8 @@ Errors are returned as structured JSON to stdout:
 - `issue attach list <issue-key>`: List all attachments on an issue with metadata (id, filename, size, author, created).
 - `issue attach download <issue-key> --id <attachment-id> [--output <path>]`: Download an attachment by ID. Saves to the specified path, or defaults to the attachment filename in the current directory.
 - `issue attach delete <issue-key> --id <attachment-id>`: Remove an attachment from an issue.
+- `issue activity <issue-key>`: Show a unified activity feed (changelog + comments) for an issue. Use `--since <ISO-timestamp>` to filter by time, `--limit <n>` (default 50) to cap results, `--types <types>` (comma-separated: `status_change`, `field_change`, `comment_added`, `comment_updated`, `attachment_added`, `attachment_removed`, `link_added`, `link_removed`) to filter by activity type, `--author <name-or-email>` to filter by author, and `--compact` to strip comment bodies for efficiency. Returns `{ issueKey, activities, totalChanges, hasMore }`.
+- `issue comments <issue-key>`: List comments on an issue. Use `--limit <n>` (default 50) to cap results, `--since <ISO-timestamp>` to filter by time, and `--reverse` for chronological (oldest-first) order (default is newest first). Returns `{ issueKey, comments, total, hasMore }`.
 
 ### Projects & Users
 - `project list`: List accessible projects.
