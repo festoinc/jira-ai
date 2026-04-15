@@ -1,4 +1,5 @@
 import { Version3Client } from 'jira.js';
+import { markdownToAdf } from 'marklassian';
 import { calculateStatusStatistics, convertADFToMarkdown } from './utils.js';
 import { loadCredentials } from './auth-storage.js';
 import {
@@ -1945,11 +1946,9 @@ export async function addWorklogEntry(
 
   const params: any = {
     issueIdOrKey,
-    requestBody: {
-      timeSpentSeconds,
-      comment: comment ? comment : undefined,
-      started: started || new Date().toISOString().replace('Z', '+0000'),
-    },
+    timeSpentSeconds,
+    comment: comment ? markdownToAdf(comment) : undefined,
+    started: started || new Date().toISOString().replace('Z', '+0000'),
   };
 
   if (adjustEstimate) params.adjustEstimate = adjustEstimate;
@@ -1989,12 +1988,11 @@ export async function updateWorklogEntry(
   const params: any = {
     issueIdOrKey,
     id: worklogId,
-    requestBody: {} as any,
   };
 
-  if (timeSpentSeconds !== undefined) params.requestBody.timeSpentSeconds = timeSpentSeconds;
-  if (comment !== undefined) params.requestBody.comment = comment;
-  if (started !== undefined) params.requestBody.started = started;
+  if (timeSpentSeconds !== undefined) params.timeSpentSeconds = timeSpentSeconds;
+  if (comment !== undefined) params.comment = markdownToAdf(comment);
+  if (started !== undefined) params.started = started;
   if (adjustEstimate) params.adjustEstimate = adjustEstimate;
   if (newEstimate) params.newEstimate = newEstimate;
 
