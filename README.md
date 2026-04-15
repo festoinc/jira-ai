@@ -49,6 +49,33 @@ Errors are returned as structured JSON to stdout:
 { "error": true, "message": "Issue not found", "hints": ["Check the issue key"], "exitCode": 1 }
 ```
 
+### Dry-Run / Preview Mode
+
+Preview write operations without executing them. The `--dry-run` flag is available on `issue create`, `issue update`, and `issue transition`. No Jira API write calls are made — output is purely a preview.
+
+```bash
+jira-ai issue update PROJ-123 --priority High --dry-run
+jira-ai issue transition PROJ-123 Done --resolution Fixed --dry-run
+jira-ai issue create --project PROJ --type Bug --title "Fix crash" --dry-run
+```
+
+Dry-run output follows a consistent JSON structure:
+
+```json
+{
+  "dryRun": true,
+  "command": "issue.update",
+  "target": "PROJ-123",
+  "changes": {
+    "priority": { "from": "Medium", "to": "High" }
+  },
+  "preview": { "...": "same output as the real command" },
+  "message": "No changes were made. Remove --dry-run to execute."
+}
+```
+
+The `preview` field contains the same output the real command would produce, so AI agents can process it identically. Phase 1 supports `issue create`, `issue update`, and `issue transition` only.
+
 ### Issue Hierarchy Tree
 
 Explore issue hierarchies with the `issue tree` command. It returns a directed graph (nodes + edges) representing the full parent-child hierarchy starting from a given issue:

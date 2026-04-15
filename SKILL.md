@@ -48,15 +48,29 @@ Errors are returned as structured JSON to stdout:
 { "error": true, "message": "Issue not found", "hints": ["Check the issue key"], "exitCode": 1 }
 ```
 
+## Dry-Run / Preview Mode
+
+Preview write operations without executing them. Add `--dry-run` to `issue create`, `issue update`, or `issue transition` to see exactly what would change — no Jira API write calls are made.
+
+```bash
+jira-ai issue update PROJ-123 --priority High --dry-run
+jira-ai issue transition PROJ-123 Done --resolution Fixed --dry-run
+jira-ai issue create --project PROJ --type Bug --title "Fix crash" --dry-run
+```
+
+Output includes `dryRun: true`, the `command`, `target`, `changes` (before/after values), a `preview` (same format as the real command), and a `message` confirming no changes were made.
+
+Phase 1 scope: `issue create`, `issue update`, `issue transition`.
+
 ## Command Overview
 
 ### Issues
 - `issue get <issue-id>`: Retrieve issue details. Response includes an `attachments` array with id, filename, size, author, and created timestamp.
-- `issue create`: Create a new issue. Supports `--title`, `--project`, `--issue-type`, `--parent` (for subtasks), `--priority`, `--description`, `--description-file`, `--labels`, `--component`, `--fix-version`, `--due-date`, `--assignee`, `--custom-field`.
+- `issue create`: Create a new issue. Supports `--title`, `--project`, `--issue-type`, `--parent` (for subtasks), `--priority`, `--description`, `--description-file`, `--labels`, `--component`, `--fix-version`, `--due-date`, `--assignee`, `--custom-field`. Supports `--dry-run` to preview without creating.
 - `issue search [jql]`: Execute JQL search. Use `--query <name>` to run a saved query, `--list-queries` to list saved queries, `--limit <n>` to cap results.
-- `issue transition <issue-id> <status>`: Change issue status. Supports `--resolution <name>`, `--comment <text>`, `--comment-file <path>`, `--assignee <email-or-name>`, `--fix-version <name>`, `--custom-field "Field Name=value"`.
+- `issue transition <issue-id> <status>`: Change issue status. Supports `--resolution <name>`, `--comment <text>`, `--comment-file <path>`, `--assignee <email-or-name>`, `--fix-version <name>`, `--custom-field "Field Name=value"`. Supports `--dry-run` to preview without transitioning.
 - `issue transitions <issue-id>`: List available transitions for an issue, including required fields. Supports `--required-only`.
-- `issue update <issue-id>`: Update one or more fields of an issue. Supports `--priority`, `--summary`, `--description`, `--from-file`, `--labels`, `--clear-labels`, `--component`, `--fix-version`, `--due-date`, `--assignee`, `--custom-field`.
+- `issue update <issue-id>`: Update one or more fields of an issue. Supports `--priority`, `--summary`, `--description`, `--from-file`, `--labels`, `--clear-labels`, `--component`, `--fix-version`, `--due-date`, `--assignee`, `--custom-field`. Supports `--dry-run` to preview without updating.
 - `issue comment <issue-id>`: Add comment from Markdown file.
 - `issue assign <issue-id> <account-id>`: Assign issue.
 - `issue label <add|remove> <issue-id> <labels>`: Manage labels.
