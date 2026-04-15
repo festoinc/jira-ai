@@ -320,3 +320,23 @@ export const AttachDownloadSchema = z.object({
   output: z.string().trim().optional(),
 });
 
+// =============================================================================
+// ISSUE COMMENTS / ACTIVITY SCHEMAS
+// =============================================================================
+
+export const CommentsListSchema = z.object({
+  issueKey: z.string().trim().min(1, 'Issue key is required').pipe(IssueKeySchema),
+  limit: z.number().int().positive().optional(),
+  since: z.string().datetime({ offset: true, message: 'since must be a valid ISO 8601 datetime (e.g. 2024-01-01T00:00:00Z)' }).optional(),
+  reverse: z.boolean().optional(),
+});
+
+export const ActivityFeedSchema = z.object({
+  issueKey: z.string().trim().min(1, 'Issue key is required').pipe(IssueKeySchema),
+  since: z.string().datetime({ offset: true, message: 'since must be a valid ISO 8601 datetime (e.g. 2024-01-01T00:00:00Z)' }).optional(),
+  limit: z.number().int().positive().optional(),
+  types: z.string().optional(),
+  author: z.string().optional(),
+  compact: z.boolean().optional(),
+});
+

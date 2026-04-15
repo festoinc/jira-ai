@@ -71,6 +71,8 @@ import {
   sprintMoveCommand,
 } from './commands/sprint.js';
 import { backlogMoveCommand } from './commands/backlog.js';
+import { issueCommentsCommand } from './commands/issue-comments.js';
+import { issueActivityCommand } from './commands/issue-activity.js';
 import { aboutCommand } from './commands/about.js';
 import { authCommand } from './commands/auth.js';
 import { settingsCommand } from './commands/settings.js';
@@ -109,6 +111,8 @@ import {
   BacklogMoveSchema,
   AttachUploadSchema,
   AttachDownloadSchema,
+  CommentsListSchema,
+  ActivityFeedSchema,
 } from './lib/validation.js';
 import { realpathSync } from 'fs';
 
@@ -301,6 +305,43 @@ issue
     return addCommentCommand({ filePath: options.fromFile, issueKey });
   }, {
     schema: UpdateDescriptionSchema,
+    validateArgs: (args) => validateOptions(IssueKeySchema, args[0])
+  }));
+
+issue
+  .command('comments <issue-id>')
+  .description('List comments on a Jira issue.')
+  .option('--limit <n>', 'Maximum number of comments to return (default: 50)')
+  .option('--since <iso>', 'Only include comments created on or after this ISO timestamp')
+  .option('--reverse', 'Return comments in chronological order (oldest first)')
+  .action(withPermission('issue.comments', (issueKey: string, options: any) => {
+    return issueCommentsCommand({
+      issueKey,
+      limit: options.limit ? parseInt(options.limit, 10) : undefined,
+      since: options.since,
+      reverse: options.reverse,
+    });
+  }, {
+    validateArgs: (args) => validateOptions(IssueKeySchema, args[0])
+  }));
+
+issue
+  .command('activity <issue-id>')
+  .description('Show a unified activity feed (changelog + comments) for a Jira issue.')
+  .option('--since <iso>', 'Only include activities on or after this ISO timestamp')
+  .option('--limit <n>', 'Maximum number of activities to return (default: 50)')
+  .option('--types <types>', 'Comma-separated activity types to include (e.g., status_change,comment_added)')
+  .option('--author <name-or-email>', 'Filter by author display name, email, or accountId')
+  .action(withPermission('issue.activity', (issueKey: string, options: any) => {
+    return issueActivityCommand({
+      issueKey,
+      since: options.since,
+      limit: options.limit ? parseInt(options.limit, 10) : undefined,
+      types: options.types,
+      author: options.author,
+      compact: program.opts().compact || options.compact,
+    });
+  }, {
     validateArgs: (args) => validateOptions(IssueKeySchema, args[0])
   }));
 
