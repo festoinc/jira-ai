@@ -57,6 +57,10 @@ pytest -v test_issue_tree.py::TestIssueTreeBasic::test_tree_returns_valid_json
 | `test_saved_queries.py` | Saved JQL queries |
 | `test_rich_issue_create_update.py` | Issue create/update with rich fields |
 | `test_dry_run.py` | Dry-run / preview mode for create, update, transition |
+| `test_presets.py` | Predefined config presets (read-only, standard, my-tasks, yolo) |
+| `test_global_participation_filter.py` | globalParticipationFilter JQL injection and per-issue gating |
+| `test_validate_mutual_exclusion.py` | --validate mutual exclusion with preset flags |
+| `test_preset_regression.py` | Regression: search/issue operations work with presets |
 
 ## .gitignore
 
