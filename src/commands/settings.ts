@@ -26,9 +26,9 @@ export interface SettingsOptions {
 
 export async function settingsCommand(options: SettingsOptions): Promise<void> {
   const presetFlags = [options.preset, options.listPresets, options.detectPreset].filter(Boolean).length;
-  const exclusiveFlags = presetFlags + (options.reset ? 1 : 0) + (options.apply ? 1 : 0);
+  const exclusiveFlags = presetFlags + (options.reset ? 1 : 0) + (options.apply ? 1 : 0) + (options.validate ? 1 : 0);
   if (exclusiveFlags > 1) {
-    throw new CommandError('--preset, --list-presets, --detect-preset, --reset, and --apply are mutually exclusive');
+    throw new CommandError('--preset, --list-presets, --detect-preset, --reset, --apply, and --validate are mutually exclusive');
   }
 
   if (options.listPresets) {
