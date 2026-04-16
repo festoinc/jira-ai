@@ -959,12 +959,19 @@ program
   .option('--apply <path>', 'Validate and apply settings from a YAML file')
   .option('--validate <path>', 'Perform schema and deep validation of a settings YAML file')
   .option('--reset', 'Revert settings to default')
+  .option('--preset <name>', 'Apply a predefined configuration preset (read-only, standard, my-tasks, yolo)')
+  .option('--list-presets', 'List all available predefined presets with their details')
+  .option('--detect-preset', 'Detect which preset (if any) matches current settings')
   .addHelpText('after', `
 Examples:
   $ jira-ai settings
   $ jira-ai settings --validate my-settings.yaml
   $ jira-ai settings --apply my-settings.yaml
   $ jira-ai settings --reset
+  $ jira-ai settings --preset read-only
+  $ jira-ai settings --preset standard
+  $ jira-ai settings --list-presets
+  $ jira-ai settings --detect-preset
 
 Settings File Structure:
   defaults:

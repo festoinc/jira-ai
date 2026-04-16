@@ -197,6 +197,12 @@ export const OrganizationSettingsSchema = z.object({
   'allowed-jira-projects': z.array(ProjectSettingSchema).nullish().transform(val => val || ['all']),
   'allowed-commands': z.array(z.string()).nullish().transform(val => val || DEFAULT_ALLOWED_COMMANDS),
   'allowed-confluence-spaces': z.array(z.string()).nullish().transform(val => val || ['all']),
+  globalParticipationFilter: z.object({
+    was_assignee: z.boolean().optional(),
+    was_reporter: z.boolean().optional(),
+    was_commenter: z.boolean().optional(),
+    is_watcher: z.boolean().optional(),
+  }).optional(),
 });
 
 export const SavedQueryNameSchema = z.string().regex(

@@ -29,8 +29,12 @@ export interface OrganizationSettings {
   'allowed-confluence-spaces': string[];
 }
 
+export interface OrganizationSettingsWithGlobalFilter extends OrganizationSettings {
+  globalParticipationFilter?: ProjectFilters['participated'];
+}
+
 export interface Settings {
-  defaults?: OrganizationSettings;
+  defaults?: OrganizationSettingsWithGlobalFilter;
   savedQueries?: Record<string, string>;
 }
 
@@ -202,7 +206,7 @@ export function saveSettings(settings: Settings): void {
   }
 }
 
-function getEffectiveSettings(): OrganizationSettings | null {
+function getEffectiveSettings(): OrganizationSettingsWithGlobalFilter | null {
   const settings = loadSettings();
   return settings.defaults || null;
 }
@@ -310,12 +314,38 @@ export function getAllowedConfluenceSpaces(): string[] {
   return settings ? settings['allowed-confluence-spaces'] : ['all'];
 }
 
+function buildParticipationJql(filter: NonNullable<ProjectFilters['participated']>): string {
+  const parts: string[] = [];
+  if (filter.was_assignee) parts.push('assignee was currentUser()');
+  if (filter.was_reporter) parts.push('reporter = currentUser()');
+  if (filter.was_commenter) parts.push('issue in issueHistory()');
+  if (filter.is_watcher) parts.push('issue in watchedIssues()');
+  return parts.join(' OR ');
+}
+
 export function applyGlobalFilters(jql: string): string {
   const settings = getEffectiveSettings();
   if (!settings) return jql;
-  
+
   const allAllowed = settings['allowed-jira-projects'].some(p => p === 'all');
   if (allAllowed) {
+    // When globalParticipationFilter is set, inject participation-based JQL so
+    // issue.search is restricted to issues the user participated in (not just individual
+    // issue actions which validateIssueAgainstFilters already gates).
+    if (settings.globalParticipationFilter) {
+      const participationJql = buildParticipationJql(settings.globalParticipationFilter);
+      if (participationJql) {
+        let filterPart = jql;
+        let orderByPart = '';
+        const orderByMatch = jql.match(/(.*)\bORDER BY\b(.*)/i);
+        if (orderByMatch) {
+          filterPart = orderByMatch[1].trim();
+          orderByPart = ` ORDER BY ${orderByMatch[2].trim()}`;
+        }
+        const filterJql = filterPart.trim() ? ` AND (${filterPart})` : '';
+        return `(${participationJql})${filterJql}${orderByPart}`;
+      }
+    }
     return jql;
   }
 
@@ -367,7 +397,19 @@ export function validateIssueAgainstFilters(issue: any, currentUserId: string): 
     return false;
   }
 
-  if (typeof project === 'string') return true;
+  if (typeof project === 'string') {
+    // Apply global participation filter when project is 'all' and globalParticipationFilter is set
+    if (project === 'all' && settings!.globalParticipationFilter) {
+      const participated = settings!.globalParticipationFilter;
+      let hasParticipated = false;
+      if (participated.was_assignee && issue.assignee?.accountId === currentUserId) hasParticipated = true;
+      if (participated.was_reporter && issue.reporter?.accountId === currentUserId) hasParticipated = true;
+      if (participated.was_commenter && issue.comments?.some((c: any) => c.author?.accountId === currentUserId)) hasParticipated = true;
+      if (participated.is_watcher && issue.watchers?.includes('CURRENT_USER')) hasParticipated = true;
+      return hasParticipated;
+    }
+    return true;
+  }
 
   if (project.filters?.participated) {
     const { participated } = project.filters;

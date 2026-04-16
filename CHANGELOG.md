@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-04-16
+
+### Added
+
+- **Configuration Presets** — Predefined permission presets for quick setup without manual `settings.yaml` editing.
+  - `settings --preset <name>` — Apply a preset (`read-only`, `standard`, `my-tasks`, `yolo`).
+  - `settings --list-presets` — List all available presets with full configuration details.
+  - `settings --detect-preset` — Detect which preset matches current settings, with closest-match suggestions for custom configurations.
+  - `read-only` — Read-only access to issues, projects, users, Confluence, epics, boards, and sprints.
+  - `standard` — Common productive actions (CRUD, transitions, comments, labels, links, attachments, worklogs) without destructive operations.
+  - `my-tasks` — Full command access with a `globalParticipationFilter` restricting issue visibility to those where the user participated (assignee, reporter, commenter, or watcher).
+  - `yolo` — Unrestricted access across all commands, projects, and Confluence spaces.
+
 ## [1.6.0] - 2026-04-16
 
 ### Added

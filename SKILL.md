@@ -29,6 +29,19 @@ jira-ai auth --from-file path/to/.env
 jira-ai settings --help
 ```
 
+### Presets
+
+Apply predefined permission presets instead of manually configuring settings:
+
+- `jira-ai settings --preset read-only` — AI can only observe; no create, update, delete, or transition operations.
+- `jira-ai settings --preset standard` — AI can perform common productive actions but not destructive operations.
+- `jira-ai settings --preset my-tasks` — Full command access but restricted to issues where the current user participated (assignee, reporter, commenter, or watcher). Sets a `globalParticipationFilter` that gates both searches and direct issue access.
+- `jira-ai settings --preset yolo` — Unrestricted access. The name explicitly signals risk.
+- `jira-ai settings --list-presets` — List all presets with their full configuration details.
+- `jira-ai settings --detect-preset` — Detect which preset matches your current settings.
+
+After applying a preset, customize further by editing `~/.jira-ai/settings.yaml`. Saved queries are preserved.
+
 ## JSON Output
 
 All commands always output structured JSON. Use global flags to control formatting:

@@ -246,5 +246,20 @@ describe('Settings Command', () => {
       await expect(settingsCommand({ reset: true }))
         .rejects.toThrow('Reset failed');
     });
+
+    it('should throw when --validate and --apply are both set', async () => {
+      await expect(settingsCommand({ validate: 'file.yaml', apply: 'file.yaml' }))
+        .rejects.toThrow('--preset, --list-presets, --detect-preset, --reset, --apply, and --validate are mutually exclusive');
+    });
+
+    it('should throw when --validate and --reset are both set', async () => {
+      await expect(settingsCommand({ validate: 'file.yaml', reset: true }))
+        .rejects.toThrow('--preset, --list-presets, --detect-preset, --reset, --apply, and --validate are mutually exclusive');
+    });
+
+    it('should throw when --validate and --preset are both set', async () => {
+      await expect(settingsCommand({ validate: 'file.yaml', preset: 'standard' }))
+        .rejects.toThrow('--preset, --list-presets, --detect-preset, --reset, --apply, and --validate are mutually exclusive');
+    });
   });
 });
