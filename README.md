@@ -412,6 +412,30 @@ jira-ai settings --detect-preset
 
 If your settings don't match any preset exactly, `--detect-preset` reports `custom` and shows the closest match with a diff of added/removed commands.
 
+Reset settings to defaults:
+
+```bash
+jira-ai settings --reset
+```
+
+Validate a settings file without applying it:
+
+```bash
+jira-ai settings --validate my-settings.yaml
+```
+
+Apply a settings file:
+
+```bash
+jira-ai settings --apply my-settings.yaml
+```
+
+View current settings:
+
+```bash
+jira-ai settings
+```
+
 After applying a preset, you can further customize permissions by editing `~/.jira-ai/settings.yaml`. Saved queries are preserved when switching presets.
 
 ### globalParticipationFilter

@@ -12,7 +12,7 @@
 | Command | Description |
 | :--- | :--- |
 | `auth` | Set up Jira authentication credentials via `--from-json` or `.env` file via `--from-file`. |
-| `settings` | View, validate (`--validate <file>`), or apply (`--apply <file>`) configuration settings. |
+| `settings` | View current settings, validate (`--validate <file>`), apply (`--apply <file>`), or reset (`--reset`) configuration. Apply presets with `--preset <name>`, list with `--list-presets`, detect current with `--detect-preset`. All flags are mutually exclusive. |
 | `about` | Show version information. |
 
 ## Issue Commands (`issue`)
