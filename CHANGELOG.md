@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [1.7.1] - 2026-04-16
+
+### Documentation
+
+- Extended presets documentation with `--reset`, `--apply`, `--validate`, and `view-current-settings` command details (JIR-182).
+- Updated README and SKILL.md with comprehensive preset configuration documentation including usage examples (JIR-181, step 11).
+
 ## [1.7.0] - 2026-04-16
 
 ### Added
