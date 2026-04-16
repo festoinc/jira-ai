@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-04-16
+
 ### Added
 
 - **Activity Feed & Change Tracking** — New `issue activity` and `issue comments` commands for monitoring issue changes.
