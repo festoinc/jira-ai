@@ -5,7 +5,8 @@ import {
   saveSettings,
   Settings,
   DEFAULT_SETTINGS,
-  migrateSettings
+  migrateSettings,
+  __resetCache__,
 } from '../lib/settings.js';
 import { SettingsSchema } from '../lib/validation.js';
 import { getProjects } from '../lib/jira-client.js';
@@ -44,6 +45,7 @@ export async function settingsCommand(options: SettingsOptions): Promise<void> {
 
   if (options.preset) {
     const preset = getPreset(options.preset);
+    __resetCache__();
     const current = loadSettings();
     const newSettings: Settings = {
       defaults: { ...preset.defaults, ...(preset.globalParticipationFilter ? { globalParticipationFilter: preset.globalParticipationFilter } : {}) },

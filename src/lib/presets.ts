@@ -1,4 +1,4 @@
-import { OrganizationSettings, ProjectFilters } from './settings.js';
+import { OrganizationSettings, OrganizationSettingsWithGlobalFilter, ProjectFilters } from './settings.js';
 
 export interface PresetDefinition {
   description: string;
@@ -161,20 +161,28 @@ export function listPresets(): Record<string, {
   'allowed-commands': string[];
   'allowed-jira-projects': string[];
   'allowed-confluence-spaces': string[];
+  globalParticipationFilter?: ProjectFilters['participated'];
 }> {
-  const result: Record<string, any> = {};
+  const result: Record<string, {
+    description: string;
+    'allowed-commands': string[];
+    'allowed-jira-projects': string[];
+    'allowed-confluence-spaces': string[];
+    globalParticipationFilter?: ProjectFilters['participated'];
+  }> = {};
   for (const [name, preset] of Object.entries(PRESETS)) {
     result[name] = {
       description: preset.description,
       'allowed-commands': preset.defaults['allowed-commands'],
       'allowed-jira-projects': preset.defaults['allowed-jira-projects'] as string[],
       'allowed-confluence-spaces': preset.defaults['allowed-confluence-spaces'],
+      ...(preset.globalParticipationFilter !== undefined && { globalParticipationFilter: preset.globalParticipationFilter }),
     };
   }
   return result;
 }
 
-export function detectPreset(settings: OrganizationSettings): {
+export function detectPreset(settings: OrganizationSettingsWithGlobalFilter): {
   current: string;
   description: string;
   closestMatch?: string;
@@ -184,7 +192,7 @@ export function detectPreset(settings: OrganizationSettings): {
   };
 } {
   for (const [name, preset] of Object.entries(PRESETS)) {
-    if (settingsMatchPreset(settings, preset.defaults)) {
+    if (settingsMatchPreset(settings, preset.defaults, preset.globalParticipationFilter)) {
       return {
         current: name,
         description: `Your settings match the '${name}' preset.`,
@@ -225,7 +233,11 @@ export function detectPreset(settings: OrganizationSettings): {
   };
 }
 
-function settingsMatchPreset(settings: OrganizationSettings, presetDefaults: OrganizationSettings): boolean {
+function settingsMatchPreset(
+  settings: OrganizationSettingsWithGlobalFilter,
+  presetDefaults: OrganizationSettings,
+  presetGlobalFilter?: ProjectFilters['participated'],
+): boolean {
   const settingsCmds = [...settings['allowed-commands']].sort();
   const presetCmds = [...presetDefaults['allowed-commands']].sort();
   if (JSON.stringify(settingsCmds) !== JSON.stringify(presetCmds)) return false;
@@ -237,6 +249,8 @@ function settingsMatchPreset(settings: OrganizationSettings, presetDefaults: Org
   const settingsSpaces = [...settings['allowed-confluence-spaces']].sort();
   const presetSpaces = [...presetDefaults['allowed-confluence-spaces']].sort();
   if (JSON.stringify(settingsSpaces) !== JSON.stringify(presetSpaces)) return false;
+
+  if (JSON.stringify(settings.globalParticipationFilter ?? null) !== JSON.stringify(presetGlobalFilter ?? null)) return false;
 
   return true;
 }

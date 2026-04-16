@@ -108,6 +108,21 @@ describe('Presets', () => {
         expect(entry).toHaveProperty('allowed-confluence-spaces');
       }
     });
+
+    it('my-tasks entry should include globalParticipationFilter', async () => {
+      const { listPresets } = await import('../src/lib/presets.js');
+      const result = listPresets();
+      expect(result['my-tasks']).toHaveProperty('globalParticipationFilter');
+      expect(result['my-tasks'].globalParticipationFilter?.was_assignee).toBe(true);
+    });
+
+    it('presets without globalParticipationFilter should not include the field', async () => {
+      const { listPresets } = await import('../src/lib/presets.js');
+      const result = listPresets();
+      expect(result['read-only']).not.toHaveProperty('globalParticipationFilter');
+      expect(result['standard']).not.toHaveProperty('globalParticipationFilter');
+      expect(result['yolo']).not.toHaveProperty('globalParticipationFilter');
+    });
   });
 
   describe('detectPreset()', () => {
@@ -146,6 +161,38 @@ describe('Presets', () => {
       const result = detectPreset(customSettings);
       expect(result.current).toBe('custom');
       expect(result).toHaveProperty('description');
+    });
+
+    it('should not match my-tasks when globalParticipationFilter is absent', async () => {
+      const { detectPreset, PRESETS } = await import('../src/lib/presets.js');
+      // Use my-tasks commands but omit globalParticipationFilter
+      const settingsWithoutFilter = {
+        ...PRESETS['my-tasks'].defaults,
+        // no globalParticipationFilter
+      };
+      const result = detectPreset(settingsWithoutFilter);
+      expect(result.current).not.toBe('my-tasks');
+    });
+
+    it('should match my-tasks when globalParticipationFilter is present and correct', async () => {
+      const { detectPreset, PRESETS } = await import('../src/lib/presets.js');
+      const preset = PRESETS['my-tasks'];
+      const settings = {
+        ...preset.defaults,
+        globalParticipationFilter: preset.globalParticipationFilter,
+      };
+      const result = detectPreset(settings);
+      expect(result.current).toBe('my-tasks');
+    });
+
+    it('should not match my-tasks when globalParticipationFilter differs from preset', async () => {
+      const { detectPreset, PRESETS } = await import('../src/lib/presets.js');
+      const settings = {
+        ...PRESETS['my-tasks'].defaults,
+        globalParticipationFilter: { was_assignee: true, was_reporter: false, was_commenter: false, is_watcher: false },
+      };
+      const result = detectPreset(settings);
+      expect(result.current).not.toBe('my-tasks');
     });
   });
 
