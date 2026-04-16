@@ -5,7 +5,7 @@
 | Flag | Description |
 | :--- | :--- |
 | `--compact` | Output results as single-line JSON for maximum token efficiency. Works with all commands. |
-| `--dry-run` | Preview write operations without executing them. Supported on `issue create`, `issue update`, and `issue transition`. No Jira API write calls are made. |
+| `--dry-run` | Preview write operations without executing them. Supported on `issue create`, `issue update`, `issue transition`, and `issue worklog add/update/delete`. No Jira API write calls are made. |
 
 ## Top-Level Commands
 
@@ -33,6 +33,141 @@
 | `issue tree <issue-key>` | Show the full issue hierarchy tree rooted at an issue (epic → story → subtasks). Use `--links` to include linked issues, `--depth N` (default 3) to limit traversal depth, `--max-nodes N` (default 200) to cap total nodes, and `--types TYPES` to filter link types. |
 | `issue activity <issue-key>` | Show a unified activity feed (changelog + comments) for an issue. Supports `--since <ISO-timestamp>`, `--limit <n>` (default 50), `--types <types>` (comma-separated activity types), `--author <name-or-email>`, and `--compact`. |
 | `issue comments <issue-key>` | List comments on an issue. Supports `--limit <n>` (default 50), `--since <ISO-timestamp>`, and `--reverse` (oldest first; default is newest first). |
+
+## Issue Worklog Commands (`issue worklog`)
+
+| Command | Description | Permission |
+| :--- | :--- | :--- |
+| `issue worklog list <issue-id>` | List all worklogs for a Jira issue. | `issue.worklog.list` |
+| `issue worklog add <issue-id>` | Log time against a Jira issue. Requires `--time <duration>`. | `issue.worklog.add` |
+| `issue worklog update <issue-id>` | Update an existing worklog entry. Requires `--id <worklog-id>`. | `issue.worklog.update` |
+| `issue worklog delete <issue-id>` | Delete a worklog entry. Requires `--id <worklog-id>`. | `issue.worklog.delete` |
+
+### Options
+
+#### `issue worklog list`
+
+| Flag | Description |
+| :--- | :--- |
+| `--started-after <timestamp>` | Only return worklogs started at or after this UNIX timestamp (milliseconds). |
+| `--started-before <timestamp>` | Only return worklogs started before this UNIX timestamp (milliseconds). |
+| `--author-account-id <accountId>` | Filter by author account ID. |
+
+#### `issue worklog add`
+
+| Flag | Required | Description |
+| :--- | :--- | :--- |
+| `--time <duration>` | Yes | Time spent (e.g., `1h`, `30m`, `1d2h30m`, `1w`). |
+| `--comment <text>` | No | Comment for this worklog entry. |
+| `--started <datetime>` | No | When work started (ISO 8601). Defaults to now. Timezone offsets are automatically normalized. |
+| `--adjust-estimate <method>` | No | How to adjust the remaining estimate: `auto`, `new`, `leave`, `manual`. |
+| `--new-estimate <duration>` | No | New remaining estimate (use with `--adjust-estimate new` or `manual`). |
+| `--reduce-by <duration>` | No | Reduce remaining estimate by this amount (use with `--adjust-estimate manual`). |
+
+#### `issue worklog update`
+
+| Flag | Required | Description |
+| :--- | :--- | :--- |
+| `--id <worklog-id>` | Yes | ID of the worklog to update. |
+| `--time <duration>` | No | New time spent. |
+| `--comment <text>` | No | New comment. |
+| `--started <datetime>` | No | New start time (ISO 8601). Timezone offsets are automatically normalized. |
+| `--adjust-estimate <method>` | No | How to adjust the remaining estimate: `auto`, `new`, `leave`, `manual`. |
+| `--new-estimate <duration>` | No | New remaining estimate (use with `--adjust-estimate new` or `manual`). |
+
+At least one of `--time`, `--comment`, or `--started` must be provided.
+
+#### `issue worklog delete`
+
+| Flag | Required | Description |
+| :--- | :--- | :--- |
+| `--id <worklog-id>` | Yes | ID of the worklog to delete. |
+| `--adjust-estimate <method>` | No | How to adjust the remaining estimate: `auto`, `new`, `leave`, `manual`. |
+| `--new-estimate <duration>` | No | New remaining estimate (use with `--adjust-estimate new` or `manual`). |
+| `--increase-by <duration>` | No | Increase remaining estimate by this amount (use with `--adjust-estimate manual`). |
+
+### Duration Format
+
+Time values use Jira-style duration notation. Components can be combined in any order:
+
+| Component | Meaning | Conversion |
+| :--- | :--- | :--- |
+| `1w` | 1 week | 5 working days (40 hours) |
+| `1d` | 1 day | 8 hours |
+| `1h` | 1 hour | 60 minutes |
+| `1m` | 1 minute | 60 seconds |
+
+Examples: `30m`, `2h`, `1d`, `1w`, `1d2h30m`, `2w1d3h15m`.
+
+### Timezone Handling
+
+The `--started` flag accepts ISO 8601 timestamps with any standard timezone format. Timestamps are automatically normalized to Jira's required format (`yyyy-MM-dd'T'HH:mm:ss.SSS±HHMM`):
+
+- `2026-04-15T07:00:00Z` → `2026-04-15T07:00:00.000+0000`
+- `2026-04-15T10:00:00+03:00` → `2026-04-15T10:00:00.000+0300`
+- `2026-04-15T07:00:00-05:30` → `2026-04-15T07:00:00.000-0530`
+
+When omitted, `--started` defaults to the current time in UTC.
+
+### Examples
+
+Log 2 hours of work:
+
+```bash
+jira-ai issue worklog add PROJ-123 --time 2h
+```
+
+Log time with a comment and custom start time:
+
+```bash
+jira-ai issue worklog add PROJ-123 --time 1d2h30m --comment "Backend refactor" --started "2026-04-15T09:00:00+02:00"
+```
+
+Log time and auto-adjust remaining estimate:
+
+```bash
+jira-ai issue worklog add PROJ-123 --time 3h --adjust-estimate auto
+```
+
+Log time and set a new remaining estimate:
+
+```bash
+jira-ai issue worklog add PROJ-123 --time 4h --adjust-estimate new --new-estimate 2d
+```
+
+List all worklogs for an issue:
+
+```bash
+jira-ai issue worklog list PROJ-123
+```
+
+Filter worklogs by time range:
+
+```bash
+jira-ai issue worklog list PROJ-123 --started-after 1713139200000 --started-before 1715731200000
+```
+
+Update a worklog's comment and time:
+
+```bash
+jira-ai issue worklog update PROJ-123 --id 12345 --time 3h --comment "Updated after code review"
+```
+
+Delete a worklog:
+
+```bash
+jira-ai issue worklog delete PROJ-123 --id 12345
+```
+
+Preview a worklog add without executing:
+
+```bash
+jira-ai issue worklog add PROJ-123 --time 2h --dry-run
+```
+
+### Permissions
+
+Issue worklog commands use hierarchical permission keys. If `issue` is in your `allowed-commands` list, all `issue.worklog.*` commands are implicitly allowed. You can also use `issue.worklog` to allow only worklog commands, or specify individual keys: `issue.worklog.list`, `issue.worklog.add`, `issue.worklog.update`, `issue.worklog.delete`.
 
 ## Saved Queries
 
@@ -211,12 +346,13 @@ jira-ai sprint tree 42 --depth 5 --max-nodes 500
 
 ## Dry-Run / Preview Mode
 
-Preview write operations without executing them. Add `--dry-run` to `issue create`, `issue update`, or `issue transition` to see exactly what would change.
+Preview write operations without executing them. Add `--dry-run` to `issue create`, `issue update`, `issue transition`, or `issue worklog add/update/delete` to see exactly what would change.
 
 ```bash
 jira-ai issue update PROJ-123 --priority High --dry-run
 jira-ai issue transition PROJ-123 Done --resolution Fixed --dry-run
 jira-ai issue create --project PROJ --type Bug --title "Fix crash" --dry-run
+jira-ai issue worklog add PROJ-123 --time 2h --comment "Debugging" --dry-run
 ```
 
 **Output format:**
@@ -241,7 +377,7 @@ jira-ai issue create --project PROJ --type Bug --title "Fix crash" --dry-run
 - `preview`: The same output format the real command would produce.
 - `message`: Confirmation that no changes were made.
 
-Phase 1 scope: `issue create`, `issue update`, `issue transition`.
+Phase 1 scope: `issue create`, `issue update`, `issue transition`. Worklog dry-run: `issue worklog add`, `issue worklog update`, `issue worklog delete`.
 
 ## Issue Create Examples
 
@@ -387,7 +523,7 @@ jira-ai project fields PROJ --search "priority"
 | :--- | :--- |
 | `user me` | Show profile details for the currently authenticated user. |
 | `user search [project-key]` | Search and list users within the organization or a specific project. |
-| `user worklog <person> <timeframe>` | Retrieve worklogs for a user over a timeframe (e.g., `7d`, `2w`). |
+| `user worklog <person> <timeframe>` | Retrieve worklogs for a user over a timeframe (e.g., `7d`, `30d`). Supports `--group-by-issue` to group results by issue. |
 
 ## Epic Commands (`epic`)
 

@@ -340,3 +340,46 @@ export const ActivityFeedSchema = z.object({
   compact: z.boolean().optional(),
 });
 
+// =============================================================================
+// WORKLOG SCHEMAS
+// =============================================================================
+
+export const DurationSchema = z
+  .string()
+  .regex(/^(?:(\d+)w)?(?:(\d+)d)?(?:(\d+)h)?(?:(\d+)m)?$/, 'Duration must be in Jira format: e.g. 1h, 30m, 1d2h30m, 1w');
+
+export const WorklogListSchema = z.object({
+  issueKey: z.string().trim().min(1, 'Issue key is required').pipe(IssueKeySchema),
+  startedAfter: z.number().int().positive().optional(),
+  startedBefore: z.number().int().positive().optional(),
+  authorAccountId: z.string().optional(),
+});
+
+export const WorklogAddSchema = z.object({
+  issueKey: z.string().trim().min(1, 'Issue key is required').pipe(IssueKeySchema),
+  time: DurationSchema,
+  comment: z.string().optional(),
+  started: z.string().optional(),
+  adjustEstimate: z.enum(['auto', 'new', 'leave', 'manual']).optional(),
+  newEstimate: z.string().optional(),
+  reduceBy: z.string().optional(),
+});
+
+export const WorklogUpdateSchema = z.object({
+  issueKey: z.string().trim().min(1, 'Issue key is required').pipe(IssueKeySchema),
+  id: z.string().min(1, 'Worklog ID is required'),
+  time: DurationSchema.optional(),
+  comment: z.string().optional(),
+  started: z.string().optional(),
+  adjustEstimate: z.enum(['auto', 'new', 'leave', 'manual']).optional(),
+  newEstimate: z.string().optional(),
+});
+
+export const WorklogDeleteSchema = z.object({
+  issueKey: z.string().trim().min(1, 'Issue key is required').pipe(IssueKeySchema),
+  id: z.string().min(1, 'Worklog ID is required'),
+  adjustEstimate: z.enum(['auto', 'new', 'leave', 'manual']).optional(),
+  newEstimate: z.string().optional(),
+  increaseBy: z.string().optional(),
+});
+

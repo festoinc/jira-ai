@@ -51,12 +51,13 @@ Errors are returned as structured JSON to stdout:
 
 ### Dry-Run / Preview Mode
 
-Preview write operations without executing them. The `--dry-run` flag is available on `issue create`, `issue update`, and `issue transition`. No Jira API write calls are made — output is purely a preview.
+Preview write operations without executing them. The `--dry-run` flag is available on `issue create`, `issue update`, `issue transition`, and `issue worklog add/update/delete`. No Jira API write calls are made — output is purely a preview.
 
 ```bash
 jira-ai issue update PROJ-123 --priority High --dry-run
 jira-ai issue transition PROJ-123 Done --resolution Fixed --dry-run
 jira-ai issue create --project PROJ --type Bug --title "Fix crash" --dry-run
+jira-ai issue worklog add PROJ-123 --time 2h --comment "Debugging" --dry-run
 ```
 
 Dry-run output follows a consistent JSON structure:
@@ -74,7 +75,7 @@ Dry-run output follows a consistent JSON structure:
 }
 ```
 
-The `preview` field contains the same output the real command would produce, so AI agents can process it identically. Phase 1 supports `issue create`, `issue update`, and `issue transition` only.
+The `preview` field contains the same output the real command would produce, so AI agents can process it identically. Phase 1 supports `issue create`, `issue update`, and `issue transition`. Worklog dry-run: `issue worklog add`, `issue worklog update`, `issue worklog delete`.
 
 ### Issue Hierarchy Tree
 
@@ -207,6 +208,60 @@ jira-ai issue comments PROJ-123 --since 2026-01-01T00:00:00Z --reverse --limit 2
 ```
 
 **Activity types:** `status_change`, `field_change`, `comment_added`, `comment_updated`, `attachment_added`, `attachment_removed`, `link_added`, `link_removed`
+
+### Worklog Management
+
+Log time against issues with full CRUD support:
+
+```bash
+jira-ai issue worklog add PROJ-123 --time 2h
+```
+
+Add a comment and specify when the work started:
+
+```bash
+jira-ai issue worklog add PROJ-123 --time 1d2h30m --comment "Backend refactor" --started "2026-04-15T09:00:00+02:00"
+```
+
+The `--started` flag accepts any standard ISO 8601 timestamp. Timezone offsets are automatically normalized to Jira's required format (`yyyy-MM-dd'T'HH:mm:ss.SSS±HHMM`):
+
+- `2026-04-15T07:00:00Z` → `2026-04-15T07:00:00.000+0000`
+- `2026-04-15T10:00:00+03:00` → `2026-04-15T10:00:00.000+0300`
+- `2026-04-15T07:00:00-05:30` → `2026-04-15T07:00:00.000-0530`
+
+When omitted, `--started` defaults to the current time.
+
+Log time with estimate adjustment:
+
+```bash
+jira-ai issue worklog add PROJ-123 --time 4h --adjust-estimate new --new-estimate 2d
+```
+
+List worklogs for an issue:
+
+```bash
+jira-ai issue worklog list PROJ-123
+```
+
+Filter by time range:
+
+```bash
+jira-ai issue worklog list PROJ-123 --started-after 1713139200000 --started-before 1715731200000
+```
+
+Update an existing worklog:
+
+```bash
+jira-ai issue worklog update PROJ-123 --id 12345 --time 3h --comment "Updated after review"
+```
+
+Delete a worklog:
+
+```bash
+jira-ai issue worklog delete PROJ-123 --id 12345
+```
+
+Duration format uses Jira-style notation: `1w` (5 working days), `1d` (8 hours), `1h`, `30m`, or combinations like `1d2h30m`.
 
 ## Service Account Authentication
 

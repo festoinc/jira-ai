@@ -1,6 +1,6 @@
 {
   "name": "jira-ai",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "description": "AI friendly Jira CLI to save context",
   "type": "module",
   "main": "dist/cli.js",
@@ -53,7 +53,7 @@
     "confluence.js": "^2.1.0",
     "dotenv": "^17.2.3",
     "html-entities": "^2.6.0",
-"jira.js": "^5.2.2",
+    "jira.js": "^5.2.2",
     "js-yaml": "^4.1.1",
     "marklassian": "^1.0.0",
     "zod": "^4.3.5"

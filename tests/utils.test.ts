@@ -1,14 +1,15 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { 
-  validateEnvVars, 
-  formatTimestamp, 
-  truncate, 
-  convertADFToMarkdown, 
-  calculateStatusStatistics, 
-  formatDuration, 
-  parseTimeframe, 
+import {
+  validateEnvVars,
+  formatTimestamp,
+  truncate,
+  convertADFToMarkdown,
+  calculateStatusStatistics,
+  formatDuration,
+  parseTimeframe,
   formatDateForJql,
-  getVersion
+  getVersion,
+  normalizeJiraTimestamp
 } from '../src/lib/utils.js';
 import * as authStorage from '../src/lib/auth-storage.js';
 import { CommandError } from '../src/lib/errors.js';
@@ -259,6 +260,33 @@ describe('Utils Module', () => {
     it('should format date correctly', () => {
       const date = new Date('2023-01-15T12:00:00Z');
       expect(formatDateForJql(date)).toBe('2023-01-15');
+    });
+  });
+
+  describe('normalizeJiraTimestamp', () => {
+    it('should replace Z suffix with +0000', () => {
+      expect(normalizeJiraTimestamp('2026-04-15T07:00:00.000Z')).toBe('2026-04-15T07:00:00.000+0000');
+    });
+
+    it('should remove colon from positive timezone offset', () => {
+      expect(normalizeJiraTimestamp('2026-04-15T10:00:00+03:00')).toBe('2026-04-15T10:00:00.000+0300');
+    });
+
+    it('should remove colon from negative timezone offset', () => {
+      expect(normalizeJiraTimestamp('2026-04-15T10:00:00-05:30')).toBe('2026-04-15T10:00:00.000-0530');
+    });
+
+    it('should leave already-valid format unchanged', () => {
+      expect(normalizeJiraTimestamp('2026-04-15T07:00:00.000+0000')).toBe('2026-04-15T07:00:00.000+0000');
+      expect(normalizeJiraTimestamp('2026-04-15T07:00:00.000+0300')).toBe('2026-04-15T07:00:00.000+0300');
+    });
+
+    it('should add .000 milliseconds when missing (Z suffix)', () => {
+      expect(normalizeJiraTimestamp('2026-04-15T07:00:00Z')).toBe('2026-04-15T07:00:00.000+0000');
+    });
+
+    it('should add .000 milliseconds when missing (no-colon offset)', () => {
+      expect(normalizeJiraTimestamp('2026-04-15T07:00:00+0000')).toBe('2026-04-15T07:00:00.000+0000');
     });
   });
 });

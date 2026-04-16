@@ -186,3 +186,46 @@ export function parseTimeframe(timeframe: string): { startDate: Date; endDate: D
 export function formatDateForJql(date: Date): string {
   return date.toISOString().split('T')[0];
 }
+
+/**
+ * Normalize an ISO-8601 timestamp to the format Jira accepts: yyyy-MM-dd'T'HH:mm:ss.SSSZ
+ * - No colon in timezone offset, no Z suffix, milliseconds always present.
+ * - "2026-04-15T07:00:00.000Z"     → "2026-04-15T07:00:00.000+0000"
+ * - "2026-04-15T10:00:00+03:00"    → "2026-04-15T10:00:00.000+0300"
+ * - "2026-04-15T07:00:00Z"         → "2026-04-15T07:00:00.000+0000"
+ * - "2026-04-15T07:00:00.000+0000" → unchanged
+ */
+export function normalizeJiraTimestamp(timestamp: string): string {
+  // Replace Z suffix with +0000
+  let normalized = timestamp.replace(/Z$/, '+0000');
+  // Remove colon from timezone offset: +HH:MM → +HHMM or -HH:MM → -HHMM
+  normalized = normalized.replace(/([+-])(\d{2}):(\d{2})$/, '$1$2$3');
+  // Add .000 milliseconds if missing (before the timezone offset)
+  normalized = normalized.replace(/(\d{2}:\d{2}:\d{2})([+-]\d{4})$/, '$1.000$2');
+  return normalized;
+}
+
+/**
+ * Parse a Jira-style duration string into total seconds.
+ * Supports: 1w, 2d, 3h, 30m and combinations like 1d2h30m.
+ * Conversion: 1w = 5d, 1d = 8h.
+ * Returns null for invalid input.
+ */
+export function parseDuration(duration: string): number | null {
+  const match = duration.match(/^(?:(\d+)w)?(?:(\d+)d)?(?:(\d+)h)?(?:(\d+)m)?$/);
+  if (!match || match[0] === '') return null;
+
+  const weeks = parseInt(match[1] || '0', 10);
+  const days = parseInt(match[2] || '0', 10);
+  const hours = parseInt(match[3] || '0', 10);
+  const minutes = parseInt(match[4] || '0', 10);
+
+  const totalSeconds =
+    weeks * 5 * 8 * 3600 +
+    days * 8 * 3600 +
+    hours * 3600 +
+    minutes * 60;
+
+  if (totalSeconds === 0) return null;
+  return totalSeconds;
+}
