@@ -29,8 +29,12 @@ export interface OrganizationSettings {
   'allowed-confluence-spaces': string[];
 }
 
+export interface OrganizationSettingsWithGlobalFilter extends OrganizationSettings {
+  globalParticipationFilter?: ProjectFilters['participated'];
+}
+
 export interface Settings {
-  defaults?: OrganizationSettings;
+  defaults?: OrganizationSettingsWithGlobalFilter;
   savedQueries?: Record<string, string>;
 }
 
@@ -202,7 +206,7 @@ export function saveSettings(settings: Settings): void {
   }
 }
 
-function getEffectiveSettings(): OrganizationSettings | null {
+function getEffectiveSettings(): OrganizationSettingsWithGlobalFilter | null {
   const settings = loadSettings();
   return settings.defaults || null;
 }
@@ -367,7 +371,19 @@ export function validateIssueAgainstFilters(issue: any, currentUserId: string): 
     return false;
   }
 
-  if (typeof project === 'string') return true;
+  if (typeof project === 'string') {
+    // Apply global participation filter when project is 'all' and globalParticipationFilter is set
+    if (project === 'all' && settings!.globalParticipationFilter) {
+      const participated = settings!.globalParticipationFilter;
+      let hasParticipated = false;
+      if (participated.was_assignee && issue.assignee?.accountId === currentUserId) hasParticipated = true;
+      if (participated.was_reporter && issue.reporter?.accountId === currentUserId) hasParticipated = true;
+      if (participated.was_commenter && issue.comments?.some((c: any) => c.author?.accountId === currentUserId)) hasParticipated = true;
+      if (participated.is_watcher && issue.watchers?.includes('CURRENT_USER')) hasParticipated = true;
+      return hasParticipated;
+    }
+    return true;
+  }
 
   if (project.filters?.participated) {
     const { participated } = project.filters;

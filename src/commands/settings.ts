@@ -12,14 +12,48 @@ import { getProjects } from '../lib/jira-client.js';
 import { CommandError } from '../lib/errors.js';
 import { validateEnvVars } from '../lib/utils.js';
 import { outputResult } from '../lib/json-mode.js';
+import { getPreset, listPresets, detectPreset } from '../lib/presets.js';
 
 export interface SettingsOptions {
   apply?: string;
   validate?: string;
   reset?: boolean;
+  preset?: string;
+  listPresets?: boolean;
+  detectPreset?: boolean;
 }
 
 export async function settingsCommand(options: SettingsOptions): Promise<void> {
+  const presetFlags = [options.preset, options.listPresets, options.detectPreset].filter(Boolean).length;
+  const exclusiveFlags = presetFlags + (options.reset ? 1 : 0) + (options.apply ? 1 : 0);
+  if (exclusiveFlags > 1) {
+    throw new CommandError('--preset, --list-presets, --detect-preset, --reset, and --apply are mutually exclusive');
+  }
+
+  if (options.listPresets) {
+    outputResult({ presets: listPresets() });
+    return;
+  }
+
+  if (options.detectPreset) {
+    const settings = loadSettings();
+    const defaults = settings.defaults || DEFAULT_SETTINGS.defaults!;
+    outputResult(detectPreset(defaults));
+    return;
+  }
+
+  if (options.preset) {
+    const preset = getPreset(options.preset);
+    const current = loadSettings();
+    const newSettings: Settings = {
+      defaults: { ...preset.defaults, ...(preset.globalParticipationFilter ? { globalParticipationFilter: preset.globalParticipationFilter } : {}) },
+      savedQueries: current.savedQueries,
+    };
+    saveSettings(newSettings);
+    outputResult({ success: true, preset: options.preset, message: `Preset applied. Edit ~/.jira-ai/settings.yaml to customize.` });
+    return;
+  }
+
   if (options.reset) {
     try {
       saveSettings(DEFAULT_SETTINGS);
