@@ -188,6 +188,20 @@ export function formatDateForJql(date: Date): string {
 }
 
 /**
+ * Normalize an ISO-8601 timestamp to the format Jira accepts: no colon in timezone offset, no Z suffix.
+ * - "2026-04-15T07:00:00.000Z"     → "2026-04-15T07:00:00.000+0000"
+ * - "2026-04-15T10:00:00+03:00"    → "2026-04-15T10:00:00+0300"
+ * - "2026-04-15T07:00:00.000+0000" → unchanged
+ */
+export function normalizeJiraTimestamp(timestamp: string): string {
+  // Replace Z suffix with +0000
+  let normalized = timestamp.replace(/Z$/, '+0000');
+  // Remove colon from timezone offset: +HH:MM → +HHMM or -HH:MM → -HHMM
+  normalized = normalized.replace(/([+-])(\d{2}):(\d{2})$/, '$1$2$3');
+  return normalized;
+}
+
+/**
  * Parse a Jira-style duration string into total seconds.
  * Supports: 1w, 2d, 3h, 30m and combinations like 1d2h30m.
  * Conversion: 1w = 5d, 1d = 8h.

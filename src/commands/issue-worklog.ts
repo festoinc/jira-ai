@@ -8,7 +8,7 @@ import {
 import { CommandError } from '../lib/errors.js';
 import { outputResult } from '../lib/json-mode.js';
 import { isDryRun, formatDryRunResult } from '../lib/dry-run.js';
-import { parseDuration } from '../lib/utils.js';
+import { parseDuration, normalizeJiraTimestamp } from '../lib/utils.js';
 
 export interface WorklogListOptions {
   issueKey: string;
@@ -107,7 +107,7 @@ export async function issueWorklogAddCommand(options: WorklogAddOptions): Promis
     const result = await addWorklogEntry(issueKey, {
       timeSpentSeconds,
       comment,
-      started,
+      started: started !== undefined ? normalizeJiraTimestamp(started) : undefined,
       adjustEstimate,
       newEstimate,
       reduceBy,
@@ -172,7 +172,7 @@ export async function issueWorklogUpdateCommand(options: WorklogUpdateOptions): 
     const result = await updateWorklogEntry(issueKey, id, {
       timeSpentSeconds,
       comment,
-      started,
+      started: started !== undefined ? normalizeJiraTimestamp(started) : undefined,
       adjustEstimate,
       newEstimate,
     });
