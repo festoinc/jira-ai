@@ -378,7 +378,7 @@ worklog
   .description('Log time against a Jira issue.')
   .requiredOption('--time <duration>', 'Time to log (e.g. 1h, 30m, 1d2h30m, 1w)')
   .option('--comment <text>', 'Optional comment for this worklog entry')
-  .option('--started <datetime>', 'When the work started (ISO 8601, defaults to now)')
+  .option('--started <datetime>', 'When the work started (ISO 8601, defaults to now). Timezone offsets are auto-normalized.')
   .option('--adjust-estimate <method>', 'Estimate adjustment: auto, new, leave, manual')
   .option('--new-estimate <duration>', 'New remaining estimate (use with --adjust-estimate new or manual)')
   .option('--reduce-by <duration>', 'Reduce remaining estimate by this amount (use with --adjust-estimate manual)')
@@ -402,7 +402,7 @@ worklog
   .requiredOption('--id <worklog-id>', 'ID of the worklog to update')
   .option('--time <duration>', 'New time spent (e.g. 1h, 30m, 1d)')
   .option('--comment <text>', 'New comment for this worklog')
-  .option('--started <datetime>', 'New start time (ISO 8601)')
+  .option('--started <datetime>', 'New start time (ISO 8601). Timezone offsets are auto-normalized.')
   .option('--adjust-estimate <method>', 'Estimate adjustment: auto, new, leave, manual')
   .option('--new-estimate <duration>', 'New remaining estimate')
   .action(withPermission('issue.worklog.update', (issueKey: string, options: any) => {
