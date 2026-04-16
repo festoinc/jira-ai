@@ -365,6 +365,77 @@ jira-ai issue search --query overdue-tasks --limit 10
 
 Saved queries are mutually exclusive with raw JQL — you cannot provide both a positional JQL argument and `--query` at the same time.
 
+## Presets
+
+Predefined configuration presets let you quickly set up permission levels without manually editing `settings.yaml`. Presets configure `allowed-commands`, `allowed-jira-projects`, and `allowed-confluence-spaces` in one step.
+
+The `--preset`, `--list-presets`, `--detect-preset`, `--apply`, `--validate`, and `--reset` flags are mutually exclusive — only one can be used at a time.
+
+### Available Presets
+
+| Preset | Description |
+| :--- | :--- |
+| `read-only` | AI can only observe. No create, update, delete, or transition operations. |
+| `standard` | AI can perform common productive actions but cannot do destructive operations (delete, sprint management). |
+| `my-tasks` | AI has full command access but is restricted to issues where the current user participated (assignee, reporter, commenter, or watcher). |
+| `yolo` | Unrestricted access. The AI can do everything. The name explicitly signals risk. |
+
+#### What each preset allows
+
+- **`read-only`** — `issue get/search/stats/comments/activity/tree/worklog.list/link.list/link.types/attach/list`, `project list/statuses/types/fields`, `user me/search/worklog`, `confl get/spaces/pages/search`, `epic list/get/issues/progress`, `board list/get/config/issues`, `sprint list/get/issues/tree`
+- **`standard`** — Everything in `read-only`, plus `issue create/update/transition/comment/assign/label.add/label.remove/link.create/attach.upload/attach.download/worklog.add/worklog.update`, `confl create/comment/update`, `epic create/update/link/unlink`, `sprint update`
+- **`my-tasks`** — All commands across all domains (`issue`, `project`, `user`, `confl`, `epic`, `board`, `sprint`, `backlog`), but issue visibility is filtered to those where the user participated (see [globalParticipationFilter](#globalparticipationfilter) below)
+- **`yolo`** — All commands, all projects, all Confluence spaces. No restrictions.
+
+### Usage
+
+Apply a preset:
+
+```bash
+jira-ai settings --preset read-only
+jira-ai settings --preset standard
+jira-ai settings --preset my-tasks
+jira-ai settings --preset yolo
+```
+
+List all available presets with their full configuration details:
+
+```bash
+jira-ai settings --list-presets
+```
+
+Detect which preset (if any) your current settings match:
+
+```bash
+jira-ai settings --detect-preset
+```
+
+If your settings don't match any preset exactly, `--detect-preset` reports `custom` and shows the closest match with a diff of added/removed commands.
+
+After applying a preset, you can further customize permissions by editing `~/.jira-ai/settings.yaml`. Saved queries are preserved when switching presets.
+
+### globalParticipationFilter
+
+The `my-tasks` preset sets a `globalParticipationFilter` in `settings.yaml` that restricts which issues the AI can see and interact with. Only issues where the current user matches at least one participation criterion are accessible:
+
+```yaml
+defaults:
+  globalParticipationFilter:
+    was_assignee: true
+    was_reporter: true
+    was_commenter: true
+    is_watcher: true
+```
+
+| Field | JQL equivalent | Meaning |
+| :--- | :--- | :--- |
+| `was_assignee` | `assignee was currentUser()` | User was ever assigned to the issue |
+| `was_reporter` | `reporter = currentUser()` | User is the issue reporter |
+| `was_commenter` | `issue in issueHistory()` | User commented on the issue |
+| `is_watcher` | `issue in watchedIssues()` | User is watching the issue |
+
+The filter applies to both search queries (JQL is automatically wrapped) and direct issue access (per-issue validation). You can customize the filter after applying a preset by editing `~/.jira-ai/settings.yaml` — set individual fields to `false` to relax that criterion.
+
 ## Configuration & Restrictions
 
 Tool allows you to have very complex configutations of what Projects/Jira commands/Issue types you would have acess to thought the tool.
