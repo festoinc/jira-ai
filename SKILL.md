@@ -38,9 +38,13 @@ Apply predefined permission presets instead of manually configuring settings:
 - `jira-ai settings --preset my-tasks` — Full command access but restricted to issues where the current user participated (assignee, reporter, commenter, or watcher). Sets a `globalParticipationFilter` that gates both searches and direct issue access.
 - `jira-ai settings --preset yolo` — Unrestricted access. The name explicitly signals risk.
 - `jira-ai settings --list-presets` — List all presets with their full configuration details.
-- `jira-ai settings --detect-preset` — Detect which preset matches your current settings.
+- `jira-ai settings --detect-preset` — Detect which preset matches your current settings. Reports `custom` with closest-match diff if no exact match.
+- `jira-ai settings --reset` — Revert settings to defaults.
+- `jira-ai settings --validate <file>` — Validate a settings YAML file (schema + deep validation) without applying it.
+- `jira-ai settings --apply <file>` — Validate and apply settings from a YAML file.
+- `jira-ai settings` — View current settings.
 
-After applying a preset, customize further by editing `~/.jira-ai/settings.yaml`. Saved queries are preserved.
+All settings flags are mutually exclusive. After applying a preset, customize further by editing `~/.jira-ai/settings.yaml`. Saved queries are preserved.
 
 ## JSON Output
 

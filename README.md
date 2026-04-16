@@ -439,10 +439,34 @@ The filter applies to both search queries (JQL is automatically wrapped) and dir
 ## Configuration & Restrictions
 
 Tool allows you to have very complex configutations of what Projects/Jira commands/Issue types you would have acess to thought the tool.
-Use this command to start setup: 
+
+### Quick setup with presets
+
+The fastest way to configure permissions is with a preset (see [Presets](#presets) above):
+
+```bash
+jira-ai settings --preset standard
+```
+
+### Manual setup
+
+Use this command to start setup:
 
 ```bash
 jira-ai settings --help
+```
+
+You can also validate or apply settings from a YAML file:
+
+```bash
+jira-ai settings --validate my-settings.yaml
+jira-ai settings --apply my-settings.yaml
+```
+
+To revert to default settings:
+
+```bash
+jira-ai settings --reset
 ```
 
 All avalible commands: [https://github.com/festoinc/jira-ai/blob/main/all_avaliable_commands.md](https://github.com/festoinc/jira-ai/blob/main/all_avaliable_commands.md)
