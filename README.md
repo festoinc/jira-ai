@@ -231,10 +231,16 @@ The `--started` flag accepts any standard ISO 8601 timestamp. Timezone offsets a
 
 When omitted, `--started` defaults to the current time.
 
-Log time with estimate adjustment:
+Log time with estimate adjustment (`--adjust-estimate` accepts `auto`, `new`, `leave`, or `manual`):
 
 ```bash
 jira-ai issue worklog add PROJ-123 --time 4h --adjust-estimate new --new-estimate 2d
+```
+
+Use `--reduce-by` with `--adjust-estimate manual` to decrease the remaining estimate:
+
+```bash
+jira-ai issue worklog add PROJ-123 --time 3h --adjust-estimate manual --reduce-by 2h
 ```
 
 List worklogs for an issue:
@@ -243,10 +249,11 @@ List worklogs for an issue:
 jira-ai issue worklog list PROJ-123
 ```
 
-Filter by time range:
+Filter by time range or author:
 
 ```bash
 jira-ai issue worklog list PROJ-123 --started-after 1713139200000 --started-before 1715731200000
+jira-ai issue worklog list PROJ-123 --author-account-id 557058:abc123-def456-ghi789
 ```
 
 Update an existing worklog:
@@ -255,10 +262,17 @@ Update an existing worklog:
 jira-ai issue worklog update PROJ-123 --id 12345 --time 3h --comment "Updated after review"
 ```
 
-Delete a worklog:
+Delete a worklog (use `--increase-by` with `--adjust-estimate manual` to restore estimate):
 
 ```bash
 jira-ai issue worklog delete PROJ-123 --id 12345
+jira-ai issue worklog delete PROJ-123 --id 12345 --adjust-estimate manual --increase-by 2h
+```
+
+Preview any write operation with `--dry-run`:
+
+```bash
+jira-ai issue worklog add PROJ-123 --time 2h --dry-run
 ```
 
 Duration format uses Jira-style notation: `1w` (5 working days), `1d` (8 hours), `1h`, `30m`, or combinations like `1d2h30m`.

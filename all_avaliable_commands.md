@@ -86,6 +86,8 @@ At least one of `--time`, `--comment`, or `--started` must be provided.
 | `--new-estimate <duration>` | No | New remaining estimate (use with `--adjust-estimate new` or `manual`). |
 | `--increase-by <duration>` | No | Increase remaining estimate by this amount (use with `--adjust-estimate manual`). |
 
+All write commands (`add`, `update`, `delete`) support `--dry-run` to preview changes without executing.
+
 ### Duration Format
 
 Time values use Jira-style duration notation. Components can be combined in any order:
