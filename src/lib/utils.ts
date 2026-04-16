@@ -188,9 +188,11 @@ export function formatDateForJql(date: Date): string {
 }
 
 /**
- * Normalize an ISO-8601 timestamp to the format Jira accepts: no colon in timezone offset, no Z suffix.
+ * Normalize an ISO-8601 timestamp to the format Jira accepts: yyyy-MM-dd'T'HH:mm:ss.SSSZ
+ * - No colon in timezone offset, no Z suffix, milliseconds always present.
  * - "2026-04-15T07:00:00.000Z"     → "2026-04-15T07:00:00.000+0000"
- * - "2026-04-15T10:00:00+03:00"    → "2026-04-15T10:00:00+0300"
+ * - "2026-04-15T10:00:00+03:00"    → "2026-04-15T10:00:00.000+0300"
+ * - "2026-04-15T07:00:00Z"         → "2026-04-15T07:00:00.000+0000"
  * - "2026-04-15T07:00:00.000+0000" → unchanged
  */
 export function normalizeJiraTimestamp(timestamp: string): string {
@@ -198,6 +200,8 @@ export function normalizeJiraTimestamp(timestamp: string): string {
   let normalized = timestamp.replace(/Z$/, '+0000');
   // Remove colon from timezone offset: +HH:MM → +HHMM or -HH:MM → -HHMM
   normalized = normalized.replace(/([+-])(\d{2}):(\d{2})$/, '$1$2$3');
+  // Add .000 milliseconds if missing (before the timezone offset)
+  normalized = normalized.replace(/(\d{2}:\d{2}:\d{2})([+-]\d{4})$/, '$1.000$2');
   return normalized;
 }
 

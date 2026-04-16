@@ -269,16 +269,24 @@ describe('Utils Module', () => {
     });
 
     it('should remove colon from positive timezone offset', () => {
-      expect(normalizeJiraTimestamp('2026-04-15T10:00:00+03:00')).toBe('2026-04-15T10:00:00+0300');
+      expect(normalizeJiraTimestamp('2026-04-15T10:00:00+03:00')).toBe('2026-04-15T10:00:00.000+0300');
     });
 
     it('should remove colon from negative timezone offset', () => {
-      expect(normalizeJiraTimestamp('2026-04-15T10:00:00-05:30')).toBe('2026-04-15T10:00:00-0530');
+      expect(normalizeJiraTimestamp('2026-04-15T10:00:00-05:30')).toBe('2026-04-15T10:00:00.000-0530');
     });
 
     it('should leave already-valid format unchanged', () => {
       expect(normalizeJiraTimestamp('2026-04-15T07:00:00.000+0000')).toBe('2026-04-15T07:00:00.000+0000');
       expect(normalizeJiraTimestamp('2026-04-15T07:00:00.000+0300')).toBe('2026-04-15T07:00:00.000+0300');
+    });
+
+    it('should add .000 milliseconds when missing (Z suffix)', () => {
+      expect(normalizeJiraTimestamp('2026-04-15T07:00:00Z')).toBe('2026-04-15T07:00:00.000+0000');
+    });
+
+    it('should add .000 milliseconds when missing (no-colon offset)', () => {
+      expect(normalizeJiraTimestamp('2026-04-15T07:00:00+0000')).toBe('2026-04-15T07:00:00.000+0000');
     });
   });
 });
