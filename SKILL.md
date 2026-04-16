@@ -50,17 +50,18 @@ Errors are returned as structured JSON to stdout:
 
 ## Dry-Run / Preview Mode
 
-Preview write operations without executing them. Add `--dry-run` to `issue create`, `issue update`, or `issue transition` to see exactly what would change — no Jira API write calls are made.
+Preview write operations without executing them. Add `--dry-run` to `issue create`, `issue update`, `issue transition`, or `issue worklog add/update/delete` to see exactly what would change — no Jira API write calls are made.
 
 ```bash
 jira-ai issue update PROJ-123 --priority High --dry-run
 jira-ai issue transition PROJ-123 Done --resolution Fixed --dry-run
 jira-ai issue create --project PROJ --type Bug --title "Fix crash" --dry-run
+jira-ai issue worklog add PROJ-123 --time 2h --dry-run
 ```
 
 Output includes `dryRun: true`, the `command`, `target`, `changes` (before/after values), a `preview` (same format as the real command), and a `message` confirming no changes were made.
 
-Phase 1 scope: `issue create`, `issue update`, `issue transition`.
+Phase 1 scope: `issue create`, `issue update`, `issue transition`. Worklog dry-run: `issue worklog add`, `issue worklog update`, `issue worklog delete`.
 
 ## Command Overview
 
@@ -85,12 +86,16 @@ Phase 1 scope: `issue create`, `issue update`, `issue transition`.
 - `issue attach delete <issue-key> --id <attachment-id>`: Remove an attachment from an issue.
 - `issue activity <issue-key>`: Show a unified activity feed (changelog + comments) for an issue. Use `--since <ISO-timestamp>` to filter by time, `--limit <n>` (default 50) to cap results, `--types <types>` (comma-separated: `status_change`, `field_change`, `comment_added`, `comment_updated`, `attachment_added`, `attachment_removed`, `link_added`, `link_removed`) to filter by activity type, `--author <name-or-email>` to filter by author, and `--compact` to strip comment bodies for efficiency. Returns `{ issueKey, activities, totalChanges, hasMore }`.
 - `issue comments <issue-key>`: List comments on an issue. Use `--limit <n>` (default 50) to cap results, `--since <ISO-timestamp>` to filter by time, and `--reverse` for chronological (oldest-first) order (default is newest first). Returns `{ issueKey, comments, total, hasMore }`.
+- `issue worklog list <issue-id>`: List all worklogs for an issue. Use `--started-after <timestamp>` and `--started-before <timestamp>` (UNIX ms) to filter by time range, `--author-account-id <accountId>` to filter by author.
+- `issue worklog add <issue-id>`: Log time against an issue. Requires `--time <duration>` (e.g., `1h`, `30m`, `1d2h30m`, `1w`). Optional: `--comment <text>`, `--started <ISO-datetime>` (defaults to now, timezone offsets auto-normalized), `--adjust-estimate <auto|new|leave|manual>`, `--new-estimate <duration>`, `--reduce-by <duration>`. Supports `--dry-run`.
+- `issue worklog update <issue-id>`: Update an existing worklog. Requires `--id <worklog-id>` and at least one of `--time`, `--comment`, `--started`. Optional: `--adjust-estimate`, `--new-estimate`. Supports `--dry-run`.
+- `issue worklog delete <issue-id>`: Delete a worklog entry. Requires `--id <worklog-id>`. Optional: `--adjust-estimate`, `--new-estimate`, `--increase-by <duration>`. Supports `--dry-run`.
 
 ### Projects & Users
 - `project list`: List accessible projects.
 - `project fields <project-key>`: Discover available fields including custom fields. Use `--type <issue-type>` to filter by issue type, `--custom` for custom fields only, `--search <term>` to search by name.
 - `user search [project-key]`: Find users.
-- `user worklog <user> <timeframe>`: Get worklogs.
+- `user worklog <user> <timeframe>`: Retrieve worklogs for a user over a timeframe (e.g., `7d`, `30d`). Use `--group-by-issue` to group results by issue.
 
 ### Epics
 - `epic list <project-key>`: List epics in a project (`--done` to include completed, `--max <n>` to limit).
