@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+## [1.8.1] - 2026-04-21
+
+### Fixed
+
+- Filtered out anonymized `***` accountIds in `searchUsers` so that `resolveUserByName` falls back to raw display-name strings instead of producing empty JQL queries (JIR-194).
+
+## [1.8.0] - 2026-04-21
+
 ### Added
 
 - **User Activity** — New `user activity <person> <timeframe>` command to retrieve a user's activity across all issues (comments, status changes, field changes, links, attachments).
