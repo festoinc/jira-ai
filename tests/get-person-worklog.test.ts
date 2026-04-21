@@ -192,3 +192,70 @@ describe('getPersonWorklogCommand', () => {
     expect(parsed[0]).toHaveProperty('summary', '');
   });
 });
+
+describe('getPersonWorklogCommand --project', () => {
+  let consoleLogSpy: any;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    consoleLogSpy.mockRestore();
+  });
+
+  it('includes project filter in JQL when --project is provided', async () => {
+    const startDate = new Date('2023-01-01T00:00:00Z');
+    const endDate = new Date('2023-01-31T23:59:59Z');
+    vi.mocked(utils.parseTimeframe).mockReturnValue({ startDate, endDate });
+    vi.mocked(utils.formatDateForJql).mockReturnValue('2023-01-01');
+    vi.mocked(jiraClient.searchIssuesByJql).mockResolvedValue([]);
+
+    await getPersonWorklogCommand('user1', 'january', { project: 'MYPROJ' });
+
+    const jqlArg = vi.mocked(jiraClient.searchIssuesByJql).mock.calls[0][0];
+    expect(jqlArg).toContain('MYPROJ');
+  });
+
+  it('resolves user display name when project is provided', async () => {
+    const startDate = new Date('2023-01-01T00:00:00Z');
+    const endDate = new Date('2023-01-31T23:59:59Z');
+    vi.mocked(utils.parseTimeframe).mockReturnValue({ startDate, endDate });
+    vi.mocked(utils.formatDateForJql).mockReturnValue('2023-01-01');
+    vi.mocked(jiraClient.resolveUserByName).mockResolvedValue('resolved-acc');
+    vi.mocked(jiraClient.searchIssuesByJql).mockResolvedValue([]);
+
+    await getPersonWorklogCommand('John Doe', 'january', { project: 'MYPROJ' });
+
+    expect(jiraClient.resolveUserByName).toHaveBeenCalledWith('John Doe');
+  });
+
+  it('falls back to raw string when resolveUserByName returns null', async () => {
+    const startDate = new Date('2023-01-01T00:00:00Z');
+    const endDate = new Date('2023-01-31T23:59:59Z');
+    vi.mocked(utils.parseTimeframe).mockReturnValue({ startDate, endDate });
+    vi.mocked(utils.formatDateForJql).mockReturnValue('2023-01-01');
+    vi.mocked(jiraClient.resolveUserByName).mockResolvedValue(null);
+    vi.mocked(jiraClient.searchIssuesByJql).mockResolvedValue([]);
+
+    await getPersonWorklogCommand('unknown-user', 'january', { project: 'MYPROJ' });
+
+    const jqlArg = vi.mocked(jiraClient.searchIssuesByJql).mock.calls[0][0];
+    expect(jqlArg).toContain('unknown-user');
+  });
+
+  it('works without --project just like before', async () => {
+    const startDate = new Date('2023-01-01T00:00:00Z');
+    const endDate = new Date('2023-01-31T23:59:59Z');
+    vi.mocked(utils.parseTimeframe).mockReturnValue({ startDate, endDate });
+    vi.mocked(utils.formatDateForJql).mockReturnValue('2023-01-01');
+    vi.mocked(jiraClient.searchIssuesByJql).mockResolvedValue([]);
+
+    await getPersonWorklogCommand('user1', 'january', {});
+
+    const jqlArg = vi.mocked(jiraClient.searchIssuesByJql).mock.calls[0][0];
+    // No project filter
+    expect(jqlArg).not.toContain('project =');
+  });
+});

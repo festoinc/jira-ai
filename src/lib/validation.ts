@@ -142,11 +142,20 @@ export const RunJqlSchema = z.object({
   limit: NumericStringSchema.optional(),
   query: z.string().optional(),
   listQueries: z.boolean().optional(),
+  commentAuthor: z.string().optional(),
 });
 
 export const TimeframeSchema = z.string().regex(/^\d+d$/, 'Timeframe must be in format like "7d" or "30d"');
 
 export const GetPersonWorklogSchema = z.object({
+  groupByIssue: z.boolean().optional(),
+  project: z.string().optional(),
+});
+
+export const UserActivitySchema = z.object({
+  project: z.string().optional(),
+  types: z.string().optional(),
+  limit: NumericStringSchema.optional(),
   groupByIssue: z.boolean().optional(),
 });
 
