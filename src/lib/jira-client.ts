@@ -889,7 +889,7 @@ export async function searchUsers(query: string): Promise<UserInfo[]> {
   });
 
   return users
-    .filter((user: any) => user.active && user.accountType === 'atlassian')
+    .filter((user: any) => user.active && user.accountType === 'atlassian' && user.accountId && user.accountId !== '***')
     .map((user: any) => ({
       accountId: user.accountId || '',
       displayName: user.displayName || '',

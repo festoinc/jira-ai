@@ -858,6 +858,19 @@ describe('Jira Client', () => {
       expect(result).toHaveLength(1);
       expect(result[0].displayName).toBe('User 1');
     });
+
+    it('should filter out anonymized users with accountId "***"', async () => {
+      const mockUsers = [
+        { accountId: '***', displayName: 'Anonymized User', active: true, accountType: 'atlassian' },
+        { accountId: 'real-id', displayName: 'Real User', active: true, accountType: 'atlassian' },
+      ];
+      mockFindUsers.mockResolvedValue(mockUsers as any);
+
+      const result = await searchUsers('User');
+
+      expect(result).toHaveLength(1);
+      expect(result[0].accountId).toBe('real-id');
+    });
   });
 
   describe('resolveUserByName', () => {
@@ -889,6 +902,17 @@ describe('Jira Client', () => {
       mockFindUsers.mockResolvedValue([] as any);
 
       const result = await resolveUserByName('Unknown User');
+
+      expect(result).toBeNull();
+    });
+
+    it('should return null when only anonymized users with accountId "***" are returned', async () => {
+      const mockUsers = [
+        { accountId: '***', displayName: 'Anonymized User', active: true, accountType: 'atlassian' },
+      ];
+      mockFindUsers.mockResolvedValue(mockUsers as any);
+
+      const result = await resolveUserByName('Anonymized User');
 
       expect(result).toBeNull();
     });
