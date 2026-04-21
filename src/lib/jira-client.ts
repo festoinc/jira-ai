@@ -2037,3 +2037,75 @@ export async function deleteWorklogEntry(
 
   await client.issueWorklogs.deleteWorklog(params);
 }
+
+// =============================================================================
+// USER ACTIVITY
+// =============================================================================
+
+export interface UserActivityEntry extends ActivityEntry {
+  issueKey: string;
+  issueSummary: string;
+}
+
+export interface UserActivityGrouped {
+  issueKey: string;
+  summary: string;
+  activities: ActivityEntry[];
+}
+
+/**
+ * Build JQL to find issues where the given user has had activity in the timeframe.
+ * Uses commentAuthor for comment-based search (valid JQL field).
+ */
+export function buildUserActivityJql(
+  accountId: string,
+  startJql: string,
+  endJql: string,
+  projectKey?: string
+): string {
+  const projectClause = projectKey ? ` AND project = "${projectKey}"` : '';
+
+  return (
+    `(` +
+    `worklogAuthor = "${accountId}" AND worklogDate >= "${startJql}" AND worklogDate <= "${endJql}"` +
+    ` OR commentAuthor = "${accountId}" AND updated >= "${startJql}" AND updated <= "${endJql}"` +
+    ` OR assignee = "${accountId}" AND updated >= "${startJql}" AND updated <= "${endJql}"` +
+    `)` +
+    projectClause
+  );
+}
+
+/**
+ * Fetch activity for a user across issues, using batch parallelism of 5 concurrent requests.
+ * Skips issues that fail (partial failure tolerance).
+ */
+export async function getUserActivity(
+  accountId: string,
+  issues: JqlIssue[],
+  feedOptions: ActivityFeedOptions
+): Promise<{ entries: UserActivityEntry[]; skipped: number }> {
+  const BATCH_SIZE = 5;
+  let skipped = 0;
+  const allEntries: UserActivityEntry[] = [];
+
+  for (let i = 0; i < issues.length; i += BATCH_SIZE) {
+    const batch = issues.slice(i, i + BATCH_SIZE);
+    const results = await Promise.allSettled(
+      batch.map((issue) => getIssueActivityFeed(issue.key, feedOptions))
+    );
+
+    for (let j = 0; j < results.length; j++) {
+      const result = results[j];
+      const issue = batch[j];
+      if (result.status === 'fulfilled') {
+        for (const entry of result.value.activities) {
+          allEntries.push({ ...entry, issueKey: issue.key, issueSummary: issue.summary });
+        }
+      } else {
+        skipped++;
+      }
+    }
+  }
+
+  return { entries: allEntries, skipped };
+}

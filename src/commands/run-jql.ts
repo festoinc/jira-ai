@@ -1,11 +1,11 @@
-import { searchIssuesByJql } from '../lib/jira-client.js';
+import { searchIssuesByJql, resolveUserByName } from '../lib/jira-client.js';
 import { outputResult } from '../lib/json-mode.js';
 import { getSavedQuery, listSavedQueries } from '../lib/settings.js';
 import { CliError } from '../types/errors.js';
 
 export async function runJqlCommand(
   jqlQuery: string | undefined,
-  options: { limit?: number; query?: string; listQueries?: boolean }
+  options: { limit?: number; query?: string; listQueries?: boolean; commentAuthor?: string }
 ): Promise<void> {
   // Handle --list-queries
   if (options.listQueries) {
@@ -30,7 +30,20 @@ export async function runJqlCommand(
     }
     resolvedJql = savedJql;
   } else {
-    resolvedJql = jqlQuery!;
+    if (!jqlQuery || jqlQuery.trim() === '') {
+      throw new CliError('A JQL query is required. Provide a JQL string or use --query <name>.');
+    }
+    resolvedJql = jqlQuery;
+  }
+
+  // Append commentAuthor filter if provided (not mutually exclusive with other options)
+  if (options.commentAuthor) {
+    const accountId = (await resolveUserByName(options.commentAuthor)) ?? options.commentAuthor;
+    if (resolvedJql && resolvedJql.trim() !== '') {
+      resolvedJql = `(${resolvedJql}) AND commentAuthor = "${accountId}"`;
+    } else {
+      resolvedJql = `commentAuthor = "${accountId}"`;
+    }
   }
 
   let maxResults = options.limit || 50;

@@ -1,10 +1,11 @@
-import { searchIssuesByJql, getIssueWorklogs, WorklogWithIssue } from '../lib/jira-client.js';
+import { searchIssuesByJql, getIssueWorklogs, WorklogWithIssue, resolveUserByName } from '../lib/jira-client.js';
 import { parseTimeframe, formatDateForJql } from '../lib/utils.js';
 import { CommandError } from '../lib/errors.js';
 import { outputResult } from '../lib/json-mode.js';
 
 export interface GetPersonWorklogOptions {
   groupByIssue?: boolean;
+  project?: string;
 }
 
 export async function getPersonWorklogCommand(
@@ -17,9 +18,14 @@ export async function getPersonWorklogCommand(
     const startJql = formatDateForJql(startDate);
     const endJql = formatDateForJql(endDate);
 
+    // Resolve person to accountId for consistent JQL and in-memory filtering
+    const resolved = await resolveUserByName(person);
+    const worklogAuthor = resolved ?? person;
+
     // 1. Search for issues where the person has tracked time in the timeframe
     // We use a broader search first to find relevant issues
-    const jql = `worklogAuthor = "${person}" AND worklogDate >= "${startJql}" AND worklogDate <= "${endJql}"`;
+    const projectClause = options.project ? ` AND project = "${options.project}"` : '';
+    const jql = `worklogAuthor = "${worklogAuthor}" AND worklogDate >= "${startJql}" AND worklogDate <= "${endJql}"${projectClause}`;
 
     const issues = await searchIssuesByJql(jql, 100);
 
@@ -35,7 +41,7 @@ export async function getPersonWorklogCommand(
       const worklogs = await getIssueWorklogs(issue.key);
       
       const filteredWorklogs = worklogs.filter(w => {
-        const matchesPerson = w.author.accountId === person || w.author.emailAddress === person;
+        const matchesPerson = w.author.accountId === worklogAuthor || w.author.emailAddress === worklogAuthor;
         const worklogDate = new Date(w.started);
         const matchesDate = worklogDate >= startDate && worklogDate <= endDate;
         return matchesPerson && matchesDate;

@@ -33,8 +33,8 @@ jira-ai settings --help
 
 Apply predefined permission presets instead of manually configuring settings:
 
-- `jira-ai settings --preset read-only` — AI can only observe; no create, update, delete, or transition operations.
-- `jira-ai settings --preset standard` — AI can perform common productive actions but not destructive operations.
+- `jira-ai settings --preset read-only` — AI can only observe; no create, update, delete, or transition operations. Includes `user.activity` for read-only user activity monitoring.
+- `jira-ai settings --preset standard` — AI can perform common productive actions but not destructive operations. Includes `user.activity` for team management.
 - `jira-ai settings --preset my-tasks` — Full command access but restricted to issues where the current user participated (assignee, reporter, commenter, or watcher). Sets a `globalParticipationFilter` that gates both searches and direct issue access.
 - `jira-ai settings --preset yolo` — Unrestricted access. The name explicitly signals risk.
 - `jira-ai settings --list-presets` — List all presets with their full configuration details.
@@ -85,7 +85,7 @@ Phase 1 scope: `issue create`, `issue update`, `issue transition`. Worklog dry-r
 ### Issues
 - `issue get <issue-id>`: Retrieve issue details. Response includes an `attachments` array with id, filename, size, author, and created timestamp.
 - `issue create`: Create a new issue. Supports `--title`, `--project`, `--issue-type`, `--parent` (for subtasks), `--priority`, `--description`, `--description-file`, `--labels`, `--component`, `--fix-version`, `--due-date`, `--assignee`, `--custom-field`. Supports `--dry-run` to preview without creating.
-- `issue search [jql]`: Execute JQL search. Use `--query <name>` to run a saved query, `--list-queries` to list saved queries, `--limit <n>` to cap results.
+- `issue search [jql]`: Execute JQL search. Use `--query <name>` to run a saved query, `--list-queries` to list saved queries, `--limit <n>` to cap results, `--comment-author <name>` to filter by comment author (display name or account ID; works with both positional JQL and `--query`).
 - `issue transition <issue-id> <status>`: Change issue status. Supports `--resolution <name>`, `--comment <text>`, `--comment-file <path>`, `--assignee <email-or-name>`, `--fix-version <name>`, `--custom-field "Field Name=value"`. Supports `--dry-run` to preview without transitioning.
 - `issue transitions <issue-id>`: List available transitions for an issue, including required fields. Supports `--required-only`.
 - `issue update <issue-id>`: Update one or more fields of an issue. Supports `--priority`, `--summary`, `--description`, `--from-file`, `--labels`, `--clear-labels`, `--component`, `--fix-version`, `--due-date`, `--assignee`, `--custom-field`. Supports `--dry-run` to preview without updating.
@@ -112,7 +112,8 @@ Phase 1 scope: `issue create`, `issue update`, `issue transition`. Worklog dry-r
 - `project list`: List accessible projects.
 - `project fields <project-key>`: Discover available fields including custom fields. Use `--type <issue-type>` to filter by issue type, `--custom` for custom fields only, `--search <term>` to search by name.
 - `user search [project-key]`: Find users.
-- `user worklog <user> <timeframe>`: Retrieve worklogs for a user over a timeframe (e.g., `7d`, `30d`). Use `--group-by-issue` to group results by issue.
+- `user worklog <user> <timeframe>`: Retrieve worklogs for a user over a timeframe (e.g., `7d`, `30d`). Use `--group-by-issue` to group results by issue, `--project <key>` to restrict to a specific project.
+- `user activity <user> <timeframe>`: Retrieve a user's activity across all issues (comments, status changes, field changes, links, attachments). Use `--project <key>` to restrict to a project, `--types <types>` to filter activity types (comma-separated: `comment_added`, `comment_updated`, `status_change`, `field_change`, `link_added`, `link_removed`, `attachment_added`, `attachment_removed`), `--limit <n>` to cap results, `--group-by-issue` to group by issue instead of timeline, and `--compact` to strip comment bodies. Returns `{ user, timeframe, project, activities, total, hasMore, issueCount }` in timeline mode or `{ issues, ... }` in group-by-issue mode. Requires `user.activity` permission.
 
 ### Epics
 - `epic list <project-key>`: List epics in a project (`--done` to include completed, `--max <n>` to limit).

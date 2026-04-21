@@ -32,6 +32,7 @@ import {
 } from './commands/attach.js';
 import { getIssueStatisticsCommand } from './commands/get-issue-statistics.js';
 import { getPersonWorklogCommand } from './commands/get-person-worklog.js';
+import { userActivityCommand } from './commands/user-activity.js';
 import { isCommandAllowed, getAllowedCommands } from './lib/settings.js';
 import {
   confluenceGetPageCommand,
@@ -96,6 +97,7 @@ import {
   ConfluenceAddCommentSchema,
   RunJqlSchema,
   GetPersonWorklogSchema,
+  UserActivitySchema,
   GetIssueStatisticsSchema,
   EpicListSchema,
   EpicCreateSchema,
@@ -240,6 +242,7 @@ issue
   .option('-l, --limit <number>', 'Maximum number of results (default: 50)', '50')
   .option('--query <name>', 'Use a saved query by name (mutually exclusive with positional JQL)')
   .option('--list-queries', 'List all available saved queries')
+  .option('--comment-author <name>', 'Filter to issues commented on by this user (display name or account ID)')
   .action(withPermission('issue.search', runJqlCommand, {
     schema: RunJqlSchema,
     validateArgs: (args) => {
@@ -247,8 +250,9 @@ issue
       const opts = args[args.length - 2] as any;
       const hasQuery = opts && opts.query;
       const hasListQueries = opts && opts.listQueries;
-      if (!hasQuery && !hasListQueries && (typeof jqlQuery !== 'string' || jqlQuery.trim() === '')) {
-        throw new CliError('JQL query cannot be empty. Provide a JQL query, use --query <name>, or use --list-queries.');
+      const hasCommentAuthor = opts && opts.commentAuthor;
+      if (!hasQuery && !hasListQueries && !hasCommentAuthor && (typeof jqlQuery !== 'string' || jqlQuery.trim() === '')) {
+        throw new CliError('JQL query cannot be empty. Provide a JQL query, use --query <name>, --comment-author <name>, or use --list-queries.');
       }
     }
   }));
@@ -659,8 +663,23 @@ user
   .command('worklog <person> <timeframe>')
   .description('Retrieve worklogs for a user over a timeframe (e.g., "7d", "2w").')
   .option('--group-by-issue', 'Group the output by issue')
+  .option('--project <key>', 'Filter worklogs to a specific project key')
   .action(withPermission('user.worklog', getPersonWorklogCommand, {
     schema: GetPersonWorklogSchema,
+    validateArgs: (args) => {
+      validateOptions(TimeframeSchema, args[1]);
+    }
+  }));
+
+user
+  .command('activity <person> <timeframe>')
+  .description('Show activity (comments, status changes, field changes) for a user over a timeframe.')
+  .option('--project <key>', 'Filter to a specific project key')
+  .option('--types <types>', 'Comma-separated activity types to include (e.g., "comment_added,status_change")')
+  .option('--limit <number>', 'Maximum number of activity entries to return')
+  .option('--group-by-issue', 'Group activities by issue')
+  .action(withPermission('user.activity', userActivityCommand, {
+    schema: UserActivitySchema,
     validateArgs: (args) => {
       validateOptions(TimeframeSchema, args[1]);
     }
@@ -985,7 +1004,7 @@ Settings File Structure:
 Command Groups (use in allowed-commands):
   issue       - get, create, search, transition, update, comment, stats, assign, label
   project     - list, statuses, types
-  user        - me, search, worklog
+  user        - me, search, worklog, activity
   epic        - list, get, create, update, issues, link, unlink, progress
   confl       - get, spaces, pages, create, comment, update
   board       - list, get, config, issues, rank

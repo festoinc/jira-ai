@@ -209,6 +209,46 @@ jira-ai issue comments PROJ-123 --since 2026-01-01T00:00:00Z --reverse --limit 2
 
 **Activity types:** `status_change`, `field_change`, `comment_added`, `comment_updated`, `attachment_added`, `attachment_removed`, `link_added`, `link_removed`
 
+### User Activity
+
+Retrieve a user's activity across all issues in a timeframe — comments, status changes, field changes, and more:
+
+```bash
+jira-ai user activity "Jane Smith" 7d
+```
+
+Filter by project:
+
+```bash
+jira-ai user activity "Jane Smith" 7d --project PS
+```
+
+Filter by activity type:
+
+```bash
+jira-ai user activity "Jane Smith" 7d --types comment_added,status_change
+```
+
+Group results by issue instead of a flat timeline:
+
+```bash
+jira-ai user activity "Jane Smith" 14d --project PS --group-by-issue
+```
+
+Use `--compact` to strip comment bodies for token efficiency:
+
+```bash
+jira-ai --compact user activity "Jane Smith" 30d --types comment_added
+```
+
+Set a result limit:
+
+```bash
+jira-ai user activity "Jane Smith" 7d --limit 100
+```
+
+**Permission:** `user.activity` — must be explicitly granted (not covered by `user.worklog`).
+
 ### Worklog Management
 
 Log time against issues with full CRUD support:
@@ -276,6 +316,42 @@ jira-ai issue worklog add PROJ-123 --time 2h --dry-run
 ```
 
 Duration format uses Jira-style notation: `1w` (5 working days), `1d` (8 hours), `1h`, `30m`, or combinations like `1d2h30m`.
+
+### User Worklog
+
+Retrieve worklogs for a specific user over a timeframe:
+
+```bash
+jira-ai user worklog "Jane Smith" 7d
+```
+
+Group results by issue:
+
+```bash
+jira-ai user worklog "Jane Smith" 30d --group-by-issue
+```
+
+Restrict to a specific project:
+
+```bash
+jira-ai user worklog "Jane Smith" 30d --project PS
+```
+
+### Issue Search Enhancements
+
+Search issues with JQL and filter by comment author:
+
+```bash
+jira-ai issue search 'project = PS AND updated >= -7d' --comment-author "Jane Smith"
+```
+
+Use `--comment-author` without a JQL query to find all issues commented on by a user:
+
+```bash
+jira-ai issue search --comment-author "Jane Smith" --limit 50
+```
+
+`--comment-author` can be combined with both positional JQL and `--query` (saved queries).
 
 ## Service Account Authentication
 
@@ -382,7 +458,7 @@ The `--preset`, `--list-presets`, `--detect-preset`, `--apply`, `--validate`, an
 
 #### What each preset allows
 
-- **`read-only`** — `issue get/search/stats/comments/activity/tree/worklog.list/link.list/link.types/attach/list`, `project list/statuses/types/fields`, `user me/search/worklog`, `confl get/spaces/pages/search`, `epic list/get/issues/progress`, `board list/get/config/issues`, `sprint list/get/issues/tree`
+- **`read-only`** — `issue get/search/stats/comments/activity/tree/worklog.list/link.list/link.types/attach/list`, `project list/statuses/types/fields`, `user me/search/worklog/activity`, `confl get/spaces/pages/search`, `epic list/get/issues/progress`, `board list/get/config/issues`, `sprint list/get/issues/tree`
 - **`standard`** — Everything in `read-only`, plus `issue create/update/transition/comment/assign/label.add/label.remove/link.create/attach.upload/attach.download/worklog.add/worklog.update`, `confl create/comment/update`, `epic create/update/link/unlink`, `sprint update`
 - **`my-tasks`** — All commands across all domains (`issue`, `project`, `user`, `confl`, `epic`, `board`, `sprint`, `backlog`), but issue visibility is filtered to those where the user participated (see [globalParticipationFilter](#globalparticipationfilter) below)
 - **`yolo`** — All commands, all projects, all Confluence spaces. No restrictions.
