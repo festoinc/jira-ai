@@ -23,6 +23,16 @@ const makeActivityEntry = (overrides: Partial<jiraClient.ActivityEntry> = {}): j
   ...overrides,
 });
 
+const makeUserActivityEntry = (
+  issueKey: string,
+  summary: string,
+  overrides: Partial<jiraClient.ActivityEntry> = {}
+): jiraClient.UserActivityEntry => ({
+  ...makeActivityEntry(overrides),
+  issueKey,
+  issueSummary: summary,
+});
+
 describe('userActivityCommand', () => {
   let consoleLogSpy: any;
 
@@ -45,22 +55,24 @@ describe('userActivityCommand', () => {
     vi.mocked(jiraClient.searchIssuesByJql).mockResolvedValue([
       { key: 'TEST-1', summary: 'Issue 1', status: { name: 'Done' }, assignee: null, priority: null },
     ]);
-    vi.mocked(jiraClient.getIssueActivityFeed).mockResolvedValue({
-      issueKey: 'TEST-1',
-      activities: [makeActivityEntry()],
-      totalChanges: 1,
-      hasMore: false,
+    vi.mocked(jiraClient.getUserActivity).mockResolvedValue({
+      entries: [makeUserActivityEntry('TEST-1', 'Issue 1')],
+      skipped: 0,
     });
 
     await userActivityCommand('Alice', '30d', {});
 
     expect(jiraClient.resolveUserByName).toHaveBeenCalledWith('Alice');
     expect(jiraClient.searchIssuesByJql).toHaveBeenCalled();
-    expect(jiraClient.getIssueActivityFeed).toHaveBeenCalledWith('TEST-1', expect.objectContaining({ author: 'user-abc' }));
+    expect(jiraClient.getUserActivity).toHaveBeenCalledWith(
+      'user-abc',
+      expect.any(Array),
+      expect.objectContaining({ author: 'user-abc' })
+    );
     const output = JSON.parse(consoleLogSpy.mock.calls[0][0]);
-    expect(Array.isArray(output)).toBe(true);
-    expect(output.length).toBeGreaterThan(0);
-    expect(output[0]).toHaveProperty('issueKey', 'TEST-1');
+    expect(Array.isArray(output.activities)).toBe(true);
+    expect(output.activities.length).toBeGreaterThan(0);
+    expect(output.activities[0]).toHaveProperty('issueKey', 'TEST-1');
   });
 
   it('falls back to raw string when resolveUserByName returns null', async () => {
@@ -74,15 +86,15 @@ describe('userActivityCommand', () => {
     expect(jqlArg).toContain('unknown-person');
   });
 
-  it('returns empty array when no issues found', async () => {
+  it('returns empty result when no issues found', async () => {
     vi.mocked(jiraClient.resolveUserByName).mockResolvedValue('user-abc');
     vi.mocked(jiraClient.searchIssuesByJql).mockResolvedValue([]);
 
     await userActivityCommand('Alice', '7d', {});
 
     const output = JSON.parse(consoleLogSpy.mock.calls[0][0]);
-    expect(output).toEqual([]);
-    expect(jiraClient.getIssueActivityFeed).not.toHaveBeenCalled();
+    expect(output).toEqual({ activities: [], skipped: 0 });
+    expect(jiraClient.getUserActivity).not.toHaveBeenCalled();
   });
 
   it('applies --limit to activities', async () => {
@@ -91,20 +103,20 @@ describe('userActivityCommand', () => {
       { key: 'TEST-1', summary: 'Issue 1', status: { name: 'Open' }, assignee: null, priority: null },
       { key: 'TEST-2', summary: 'Issue 2', status: { name: 'Open' }, assignee: null, priority: null },
     ]);
-    vi.mocked(jiraClient.getIssueActivityFeed).mockImplementation(async (key) => ({
-      issueKey: key,
-      activities: [
-        makeActivityEntry({ id: `${key}-1`, timestamp: '2023-01-15T10:00:00Z' }),
-        makeActivityEntry({ id: `${key}-2`, timestamp: '2023-01-16T10:00:00Z' }),
+    vi.mocked(jiraClient.getUserActivity).mockResolvedValue({
+      entries: [
+        makeUserActivityEntry('TEST-1', 'Issue 1', { id: 'TEST-1-1', timestamp: '2023-01-15T10:00:00Z' }),
+        makeUserActivityEntry('TEST-1', 'Issue 1', { id: 'TEST-1-2', timestamp: '2023-01-16T10:00:00Z' }),
+        makeUserActivityEntry('TEST-2', 'Issue 2', { id: 'TEST-2-1', timestamp: '2023-01-14T10:00:00Z' }),
+        makeUserActivityEntry('TEST-2', 'Issue 2', { id: 'TEST-2-2', timestamp: '2023-01-17T10:00:00Z' }),
       ],
-      totalChanges: 2,
-      hasMore: false,
-    }));
+      skipped: 0,
+    });
 
     await userActivityCommand('Alice', '30d', { limit: 2 });
 
     const output = JSON.parse(consoleLogSpy.mock.calls[0][0]);
-    expect(output.length).toBe(2);
+    expect(output.activities.length).toBe(2);
   });
 
   it('groups activities by issue with --group-by-issue', async () => {
@@ -113,21 +125,22 @@ describe('userActivityCommand', () => {
       { key: 'TEST-1', summary: 'Issue 1', status: { name: 'Open' }, assignee: null, priority: null },
       { key: 'TEST-2', summary: 'Issue 2', status: { name: 'Open' }, assignee: null, priority: null },
     ]);
-    vi.mocked(jiraClient.getIssueActivityFeed).mockImplementation(async (key) => ({
-      issueKey: key,
-      activities: [makeActivityEntry({ id: `${key}-1` })],
-      totalChanges: 1,
-      hasMore: false,
-    }));
+    vi.mocked(jiraClient.getUserActivity).mockResolvedValue({
+      entries: [
+        makeUserActivityEntry('TEST-1', 'Issue 1', { id: 'TEST-1-1' }),
+        makeUserActivityEntry('TEST-2', 'Issue 2', { id: 'TEST-2-1' }),
+      ],
+      skipped: 0,
+    });
 
     await userActivityCommand('Alice', '30d', { groupByIssue: true });
 
     const output = JSON.parse(consoleLogSpy.mock.calls[0][0]);
-    expect(Array.isArray(output)).toBe(true);
-    expect(output.length).toBe(2);
-    expect(output[0]).toHaveProperty('issueKey');
-    expect(output[0]).toHaveProperty('summary');
-    expect(output[0]).toHaveProperty('activities');
+    expect(Array.isArray(output.issues)).toBe(true);
+    expect(output.issues.length).toBe(2);
+    expect(output.issues[0]).toHaveProperty('issueKey');
+    expect(output.issues[0]).toHaveProperty('summary');
+    expect(output.issues[0]).toHaveProperty('activities');
   });
 
   it('filters by --project in the JQL query', async () => {
@@ -140,47 +153,42 @@ describe('userActivityCommand', () => {
     expect(jqlArg).toContain('MYPROJ');
   });
 
-  it('filters by --types when fetching activity feed', async () => {
+  it('passes --types to getUserActivity feed options', async () => {
     vi.mocked(jiraClient.resolveUserByName).mockResolvedValue('user-abc');
     vi.mocked(jiraClient.searchIssuesByJql).mockResolvedValue([
       { key: 'TEST-1', summary: 'Issue 1', status: { name: 'Open' }, assignee: null, priority: null },
     ]);
-    vi.mocked(jiraClient.getIssueActivityFeed).mockResolvedValue({
-      issueKey: 'TEST-1',
-      activities: [makeActivityEntry()],
-      totalChanges: 1,
-      hasMore: false,
+    vi.mocked(jiraClient.getUserActivity).mockResolvedValue({
+      entries: [makeUserActivityEntry('TEST-1', 'Issue 1')],
+      skipped: 0,
     });
 
     await userActivityCommand('Alice', '7d', { types: 'comment_added,status_change' });
 
-    expect(jiraClient.getIssueActivityFeed).toHaveBeenCalledWith(
-      'TEST-1',
+    expect(jiraClient.getUserActivity).toHaveBeenCalledWith(
+      'user-abc',
+      expect.any(Array),
       expect.objectContaining({ types: 'comment_added,status_change' })
     );
   });
 
-  it('skips failed issues and continues with others', async () => {
+  it('reports skipped count when issues fail', async () => {
     vi.mocked(jiraClient.resolveUserByName).mockResolvedValue('user-abc');
     vi.mocked(jiraClient.searchIssuesByJql).mockResolvedValue([
       { key: 'TEST-1', summary: 'Issue 1', status: { name: 'Open' }, assignee: null, priority: null },
       { key: 'TEST-2', summary: 'Issue 2', status: { name: 'Open' }, assignee: null, priority: null },
     ]);
-    vi.mocked(jiraClient.getIssueActivityFeed)
-      .mockRejectedValueOnce(new Error('Forbidden'))
-      .mockResolvedValueOnce({
-        issueKey: 'TEST-2',
-        activities: [makeActivityEntry({ id: 'act-2', timestamp: '2023-01-10T00:00:00Z' })],
-        totalChanges: 1,
-        hasMore: false,
-      });
+    vi.mocked(jiraClient.getUserActivity).mockResolvedValue({
+      entries: [makeUserActivityEntry('TEST-2', 'Issue 2', { id: 'act-2', timestamp: '2023-01-10T00:00:00Z' })],
+      skipped: 1,
+    });
 
     await userActivityCommand('Alice', '7d', {});
 
     const output = JSON.parse(consoleLogSpy.mock.calls[0][0]);
-    expect(Array.isArray(output)).toBe(true);
-    expect(output.length).toBe(1);
-    expect(output[0].issueKey).toBe('TEST-2');
+    expect(output.activities.length).toBe(1);
+    expect(output.activities[0].issueKey).toBe('TEST-2');
+    expect(output.skipped).toBe(1);
   });
 
   it('throws CommandError when --limit is 0', async () => {
@@ -206,7 +214,7 @@ describe('userActivityCommand', () => {
     expect(maxResultsArg).toBe(100);
   });
 
-  it('uses batch parallelism (max 5 concurrent) for activity fetching', async () => {
+  it('delegates activity fetching to getUserActivity with all issues', async () => {
     vi.mocked(jiraClient.resolveUserByName).mockResolvedValue('user-abc');
     const issues = Array.from({ length: 10 }, (_, i) => ({
       key: `TEST-${i + 1}`,
@@ -216,21 +224,15 @@ describe('userActivityCommand', () => {
       priority: null,
     }));
     vi.mocked(jiraClient.searchIssuesByJql).mockResolvedValue(issues);
-
-    let maxConcurrent = 0;
-    let currentConcurrent = 0;
-    vi.mocked(jiraClient.getIssueActivityFeed).mockImplementation(async (key) => {
-      currentConcurrent++;
-      maxConcurrent = Math.max(maxConcurrent, currentConcurrent);
-      await new Promise((r) => setTimeout(r, 5));
-      currentConcurrent--;
-      return { issueKey: key, activities: [], totalChanges: 0, hasMore: false };
-    });
+    vi.mocked(jiraClient.getUserActivity).mockResolvedValue({ entries: [], skipped: 0 });
 
     await userActivityCommand('Alice', '7d', {});
 
-    expect(maxConcurrent).toBeLessThanOrEqual(5);
-    expect(jiraClient.getIssueActivityFeed).toHaveBeenCalledTimes(10);
+    expect(jiraClient.getUserActivity).toHaveBeenCalledWith(
+      'user-abc',
+      issues,
+      expect.any(Object)
+    );
   });
 });
 
@@ -249,5 +251,11 @@ describe('buildUserActivityJql', () => {
   it('uses commentAuthor for comment-based searching', () => {
     const jql = jiraClient.buildUserActivityJql('acc-123', '2023-01-01', '2023-01-31');
     expect(jql).toContain('commentAuthor');
+  });
+
+  it('date-bounds the commentAuthor clause', () => {
+    const jql = jiraClient.buildUserActivityJql('acc-123', '2023-01-01', '2023-01-31');
+    // commentAuthor must be followed by an updated >= bound, not just an unbounded clause
+    expect(jql).toMatch(/commentAuthor = "acc-123" AND updated >=/);
   });
 });

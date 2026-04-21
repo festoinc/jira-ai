@@ -2,52 +2,15 @@ import {
   searchIssuesByJql,
   resolveUserByName,
   buildUserActivityJql,
-  getIssueActivityFeed,
-  JqlIssue,
+  getUserActivity,
   ActivityType,
-  ActivityEntry,
   ActivityFeedOptions,
+  UserActivityEntry,
   UserActivityGrouped,
 } from '../lib/jira-client.js';
 import { parseTimeframe, formatDateForJql } from '../lib/utils.js';
 import { CommandError } from '../lib/errors.js';
 import { outputResult } from '../lib/json-mode.js';
-
-interface UserActivityEntry extends ActivityEntry {
-  issueKey: string;
-  issueSummary: string;
-}
-
-const BATCH_SIZE = 5;
-
-async function fetchActivityInBatches(
-  issues: JqlIssue[],
-  feedOptions: ActivityFeedOptions
-): Promise<{ entries: UserActivityEntry[]; skipped: number }> {
-  let skipped = 0;
-  const allEntries: UserActivityEntry[] = [];
-
-  for (let i = 0; i < issues.length; i += BATCH_SIZE) {
-    const batch = issues.slice(i, i + BATCH_SIZE);
-    const results = await Promise.allSettled(
-      batch.map((issue) => getIssueActivityFeed(issue.key, feedOptions))
-    );
-
-    for (let j = 0; j < results.length; j++) {
-      const result = results[j];
-      const issue = batch[j];
-      if (result.status === 'fulfilled') {
-        for (const entry of result.value.activities) {
-          allEntries.push({ ...entry, issueKey: issue.key, issueSummary: issue.summary });
-        }
-      } else {
-        skipped++;
-      }
-    }
-  }
-
-  return { entries: allEntries, skipped };
-}
 
 const VALID_ACTIVITY_TYPES: ActivityType[] = [
   'status_change',
@@ -99,7 +62,7 @@ export async function userActivityCommand(
   const issues = await searchIssuesByJql(jql, 100);
 
   if (issues.length === 0) {
-    outputResult([]);
+    outputResult({ activities: [], skipped: 0 });
     return;
   }
 
@@ -110,7 +73,7 @@ export async function userActivityCommand(
     ...(limit ? { limit: limit * 2 } : {}), // fetch extra to allow for sorting + slicing
   };
 
-  const { entries } = await fetchActivityInBatches(issues, feedOptions);
+  const { entries, skipped } = await getUserActivity(accountId, issues, feedOptions);
 
   // Sort by timestamp descending
   entries.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
@@ -131,8 +94,8 @@ export async function userActivityCommand(
       const { issueKey: _k, issueSummary: _s, ...rest } = entry;
       grouped.get(entry.issueKey)!.activities.push(rest);
     }
-    outputResult(Array.from(grouped.values()));
+    outputResult({ issues: Array.from(grouped.values()), skipped });
   } else {
-    outputResult(limited);
+    outputResult({ activities: limited, skipped });
   }
 }

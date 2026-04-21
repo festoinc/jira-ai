@@ -2068,7 +2068,7 @@ export function buildUserActivityJql(
   return (
     `(` +
     `worklogAuthor = "${accountId}" AND worklogDate >= "${startJql}" AND worklogDate <= "${endJql}"` +
-    ` OR commentAuthor = "${accountId}"` +
+    ` OR commentAuthor = "${accountId}" AND updated >= "${startJql}" AND updated <= "${endJql}"` +
     ` OR assignee = "${accountId}" AND updated >= "${startJql}" AND updated <= "${endJql}"` +
     `)` +
     projectClause

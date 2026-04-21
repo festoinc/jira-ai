@@ -18,12 +18,9 @@ export async function getPersonWorklogCommand(
     const startJql = formatDateForJql(startDate);
     const endJql = formatDateForJql(endDate);
 
-    // Resolve person to accountId when a project filter is provided for better JQL accuracy
-    let worklogAuthor = person;
-    if (options.project) {
-      const resolved = await resolveUserByName(person);
-      worklogAuthor = resolved ?? person;
-    }
+    // Resolve person to accountId for consistent JQL and in-memory filtering
+    const resolved = await resolveUserByName(person);
+    const worklogAuthor = resolved ?? person;
 
     // 1. Search for issues where the person has tracked time in the timeframe
     // We use a broader search first to find relevant issues
@@ -44,7 +41,7 @@ export async function getPersonWorklogCommand(
       const worklogs = await getIssueWorklogs(issue.key);
       
       const filteredWorklogs = worklogs.filter(w => {
-        const matchesPerson = w.author.accountId === person || w.author.emailAddress === person;
+        const matchesPerson = w.author.accountId === worklogAuthor || w.author.emailAddress === worklogAuthor;
         const worklogDate = new Date(w.started);
         const matchesDate = worklogDate >= startDate && worklogDate <= endDate;
         return matchesPerson && matchesDate;

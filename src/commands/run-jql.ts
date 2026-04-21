@@ -30,7 +30,10 @@ export async function runJqlCommand(
     }
     resolvedJql = savedJql;
   } else {
-    resolvedJql = jqlQuery!;
+    if (!jqlQuery || jqlQuery.trim() === '') {
+      throw new CliError('A JQL query is required. Provide a JQL string or use --query <name>.');
+    }
+    resolvedJql = jqlQuery;
   }
 
   // Append commentAuthor filter if provided (not mutually exclusive with other options)
