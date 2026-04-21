@@ -21,7 +21,7 @@
 | :--- | :--- |
 | `issue get <issue-id>` | Retrieve comprehensive issue data including key, summary, status, assignee, reporter, dates, labels, description, and comments. Use `--include-detailed-history` for change logs. |
 | `issue create` | Create a new Jira issue with specified title, project key, and issue type. Supports `--priority`, `--description`, `--description-file`, `--labels`, `--component`, `--fix-version`, `--due-date`, `--assignee`, and `--custom-field` flags. Supports `--dry-run` to preview without creating. |
-| `issue search [jql-query]` | Execute a JQL search query. Supports `--limit <n>` (default 50), `--query <name>` to run a saved query, and `--list-queries` to list all saved queries. |
+| `issue search [jql-query]` | Execute a JQL search query. Supports `--limit <n>` (default 50), `--query <name>` to run a saved query, `--list-queries` to list all saved queries, and `--comment-author <name>` to filter results to issues commented on by a user (display name or account ID; works with both positional JQL and `--query`). |
 | `issue transition <issue-id> <to-status>` | Change the status of a Jira issue using status name or ID. Supports `--resolution <name>`, `--comment <text>`, `--comment-file <path>`, `--assignee <email-or-name>`, `--fix-version <name>`, and `--custom-field "Field Name=value"` flags. Supports `--dry-run` to preview without transitioning. |
 | `issue transitions <issue-id>` | List all available transitions for an issue, including which fields are required for each. Supports `--required-only` to filter to transitions with required fields. |
 | `issue update <issue-id>` | Update one or more fields of a Jira issue. Supports `--priority`, `--summary`, `--description`, `--from-file`, `--labels`, `--clear-labels`, `--component`, `--fix-version`, `--due-date`, `--assignee`, and `--custom-field` flags. Supports `--dry-run` to preview without updating. |
@@ -190,6 +190,7 @@ Query names must be lowercase alphanumeric with optional hyphens (e.g., `my-quer
 | `--query <name>` | Execute a saved query by name. Mutually exclusive with a positional JQL argument. |
 | `--list-queries` | List all configured saved queries and their JQL definitions. |
 | `--limit <n>` | Maximum number of results (default 50, max 1000). Applies to both raw JQL and saved queries. |
+| `--comment-author <name>` | Filter results to issues commented on by this user (display name or account ID). Can be combined with both positional JQL and `--query`. |
 
 ### Examples
 
@@ -521,11 +522,90 @@ jira-ai project fields PROJ --search "priority"
 
 ## User Commands (`user`)
 
-| Command | Description |
-| :--- | :--- |
-| `user me` | Show profile details for the currently authenticated user. |
-| `user search [project-key]` | Search and list users within the organization or a specific project. |
-| `user worklog <person> <timeframe>` | Retrieve worklogs for a user over a timeframe (e.g., `7d`, `30d`). Supports `--group-by-issue` to group results by issue. |
+| Command | Description | Permission |
+| :--- | :--- | :--- |
+| `user me` | Show profile details for the currently authenticated user. | `user.me` |
+| `user search [project-key]` | Search and list users within the organization or a specific project. | `user.search` |
+| `user worklog <person> <timeframe>` | Retrieve worklogs for a user over a timeframe (e.g., `7d`, `30d`). Use `--group-by-issue` to group results by issue, `--project <key>` to restrict to a specific project. | `user.worklog` |
+| `user activity <person> <timeframe>` | Retrieve a user's activity across all issues (comments, status changes, field changes, links, attachments). Use `--project <key>`, `--types <types>`, `--limit <n>`, `--group-by-issue`, and `--compact`. | `user.activity` |
+
+### `user activity`
+
+Show activity (comments, status changes, field changes, links, attachments) for a user over a timeframe.
+
+```bash
+jira-ai user activity <person> <timeframe> [options]
+```
+
+**Permission:** `user.activity`
+
+| Flag | Description | Default |
+| :--- | :--- | :--- |
+| `--project <key>` | Restrict to a specific project. | — |
+| `--types <types>` | Comma-separated activity types to include. | All types |
+| `--limit <n>` | Maximum number of activity entries to return. | 50 |
+| `--group-by-issue` | Group activities by issue instead of a flat timeline. | `false` |
+| `--compact` | Strip comment bodies from output (global flag). | `false` |
+
+**Activity types:** `comment_added`, `comment_updated`, `status_change`, `field_change`, `link_added`, `link_removed`, `attachment_added`, `attachment_removed`
+
+**Timeline mode (default) output fields:**
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `user` | `string` | The display name of the queried user. |
+| `timeframe` | `string` | The requested timeframe. |
+| `project` | `string\|null` | The project filter (if specified). |
+| `activities` | `UserActivityEntry[]` | Array of activity entries sorted by timestamp descending. Each entry has `issueKey`, `issueSummary`, `type`, `timestamp`, `author`, and type-specific fields (`commentBody`, `field`, `from`, `to`). |
+| `total` | `number` | Total number of matching activities. |
+| `hasMore` | `boolean` | Whether more results exist beyond the limit. |
+| `issueCount` | `number` | Number of issues with matching activities. |
+
+**Group-by-issue mode (`--group-by-issue`) output fields:**
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `issues` | `UserActivityGrouped[]` | Array of issue groups. Each has `issueKey`, `summary`, and `activities` (array of `ActivityEntry`). |
+| `total` | `number` | Total number of matching activities. |
+| `hasMore` | `boolean` | Whether more results exist beyond the limit. |
+
+#### Examples
+
+All activity for a user in the last 7 days:
+
+```bash
+jira-ai user activity "Jane Smith" 7d
+```
+
+Filter by project:
+
+```bash
+jira-ai user activity "Jane Smith" 7d --project PS
+```
+
+Filter by activity types:
+
+```bash
+jira-ai user activity "Jane Smith" 7d --types comment_added,status_change
+```
+
+Group by issue:
+
+```bash
+jira-ai user activity "Jane Smith" 14d --project PS --group-by-issue
+```
+
+Compact mode for token efficiency:
+
+```bash
+jira-ai --compact user activity "Jane Smith" 30d --types comment_added
+```
+
+Set a result limit:
+
+```bash
+jira-ai user activity "Jane Smith" 7d --limit 100
+```
 
 ## Epic Commands (`epic`)
 

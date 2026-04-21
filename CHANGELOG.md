@@ -2,6 +2,25 @@
 
 ## [Unreleased]
 
+### Added
+
+- **User Activity** — New `user activity <person> <timeframe>` command to retrieve a user's activity across all issues (comments, status changes, field changes, links, attachments).
+  - Supports `--project <key>` to restrict to a specific project.
+  - Supports `--types <types>` to filter by activity type (`comment_added`, `comment_updated`, `status_change`, `field_change`, `link_added`, `link_removed`, `attachment_added`, `attachment_removed`).
+  - Supports `--limit <n>` to cap results (default 50).
+  - Supports `--group-by-issue` to group activities by issue instead of a flat timeline.
+  - Supports `--compact` (global flag) to strip comment bodies for token efficiency.
+  - New permission: `user.activity` — must be explicitly granted; not covered by `user.worklog`.
+  - Added to `read-only` and `standard` presets.
+
+- **`user worklog --project`** — New `--project <key>` option to restrict worklog results to a specific project.
+
+- **`issue search --comment-author`** — New `--comment-author <name>` option to filter search results to issues commented on by a specific user (display name or account ID). Works with both positional JQL and `--query` (saved queries).
+
+### Documentation
+
+- Updated README, SKILL.md, and all_avaliable_commands.md with new commands and options.
+
 ## [1.7.1] - 2026-04-16
 
 ### Documentation
